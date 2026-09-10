@@ -30,17 +30,17 @@ PERSONA_DATABASE = {
         You are 'Obi-Wan Kenbogey,' a wise and serene Jedi Master AI golf caddie.
         Tone: Calm, philosophical, dramatic, heroic, slightly cryptic.
         Sample Catchphrases: 'May the Force be with your clubface.', 'These are not the trees you are looking for.', 'Beware the Dark Side—anger leads to an open face.'
-        Analyze shot errors using Jedi terminology and wise guidance.
+        Analyze shot errors across full swing, short game, and putting using Jedi terminology and wise guidance.
         """
     },
     "Harry Putter": {
         "title": "Harry Putter (The Boy Who Shanked)",
-        "description": "Magical prodigy who treats golf clubs like wands and blames Dark Magic for shanked drives.",
+        "description": "Magical prodigy who treats golf clubs like wands and blames Dark Magic for shanked drives and three-putts.",
         "system_instruction": """
         You are 'Harry Putter,' a young wizard AI golf caddie who treats golf clubs like magic wands and shot analysis like Defense Against the Dark Arts.
         Tone: Enthusiastic, spell-casting, British, magical.
         Sample Catchphrases: 'Expecto Fairway-um!', 'Yer a golfer, Harry!', '10 points to Gryffindor if you hit this green.'
-        Analyze shot errors using wizarding world terminology and spell metaphors.
+        Analyze shot errors across full swing, short game, and putting using wizarding world terminology and spell metaphors.
         """
     },
     "James Pond": {
@@ -66,9 +66,10 @@ PERSONA_DATABASE = {
 }
 
 # -------------------------------------------------------------
-# EXPANDED PGA TOUR KNOWLEDGE BASE & SCHEMATICS (10 DRILLS)
+# EXPANDED PGA TOUR KNOWLEDGE BASE & SCHEMATICS (40 DRILLS)
 # -------------------------------------------------------------
 DRILL_SCHEMATICS = {
+    # --- FULL SWING DRILLS (10) ---
     "Alignment Stick Gate Drill": {
         "equipment": "2 Alignment Rods, 2 Golf Tees",
         "image_url": "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?q=80&w=1000&auto=format&fit=crop",
@@ -138,6 +139,238 @@ DRILL_SCHEMATICS = {
         "vivid_description": "Take a backswing, pump the downswing halfway down twice holding wrist angle, then sweep through on the third stroke.",
         "analogy": "🎣 **Whip Crack:** Preserves wrist angle until the absolute last millisecond before impact.",
         "pro_tip": "🏆 **PGA Tour Pro Tip:** Let your hips lead the pull down while hands stay soft and passive."
+    },
+
+    # --- SHORT GAME DRILLS (15) ---
+    # Issue 1: Chunked / Fat Chips
+    "Towel Behind Ball Drill": {
+        "equipment": "1 Microfiber Golf Towel",
+        "image_url": "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Lay a folded towel flat on the grass 4 inches behind the ball. Chip over the towel without clipping fabric on the downswing.",
+        "analogy": "✈️ **Steep Landing Descent:** Force the wedge sole to enter the turf right at the ball rather than dragging behind.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Lean 70% of your body weight onto your lead foot and keep it locked throughout."
+    },
+    "Lead Foot Weight Anchor Drill": {
+        "equipment": "Wedge (56° or 60°)",
+        "image_url": "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Lift your trail heel off the ground so only your lead foot bears weight. Make soft chipping strokes while balanced entirely on the front leg.",
+        "analogy": "⚓ **Heavy Anchor:** Keeps your swing center firmly ahead of the ball to guarantee downward turf contact.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Do not lean backward to elevate the ball; let the wedge loft perform the lifting."
+    },
+    "Brush Turf Chipping Drill": {
+        "equipment": "Pitching Wedge",
+        "image_url": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Take practice strokes without a ball, focusing on making a crisp 'thump' sound against the grass in front of your lead big toe.",
+        "analogy": "🧹 **Broom Sweep:** Sweep grass roots smoothly rather than digging deep trenches.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Keep your chest moving toward the target through impact to avoid stopping early."
+    },
+
+    # Issue 2: Thin / Bladed Chips
+    "Coin Lead-Point Pitch Drill": {
+        "equipment": "1 Quarter or Ball Marker",
+        "image_url": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Place a coin flat under your golf ball. Strike the shot aiming to slide the wedge bounce cleanly beneath the coin and skip it forward.",
+        "analogy": "💳 **Credit Card Slide:** Slide the rounded bottom of the club flat along the dirt surface.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Keep trail wrist bent back softly through impact rather than flattening early."
+    },
+    "Ruler in Glove Wrist Anchor Drill": {
+        "equipment": "1 Plastic Ruler, Golf Glove",
+        "image_url": "https://images.unsplash.com/photo-1592919505780-303950717480?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Tuck a 6-inch plastic ruler into the back of your lead wrist glove. Make chips without letting the ruler poke into the back of your hand.",
+        "analogy": "🛡️ **Rigid Wrist Shield:** Locks the lead wrist in a flat, stable structure to eliminate scooping.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Drive the motion entirely with torso rotation instead of flipping hands."
+    },
+    "Hinge-and-Hold Chipping Drill": {
+        "equipment": "52° or 56° Wedge",
+        "image_url": "https://images.unsplash.com/photo-1593111774601-dfbce3206564?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Hinge your wrists quickly on the takeaway, then hold that wrist angle firm through impact and finish with hands ahead of clubhead.",
+        "analogy": "🔒 **Vault Door Lock:** Hinge back, then lock the angles in steel through impact.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Finish with the butt end of the grip pointing at your lead hip."
+    },
+
+    # Issue 3: Pitching Distance Control
+    "Clock System Wedge Drill": {
+        "equipment": "Wedge Set (50°, 54°, 58°)",
+        "image_url": "https://images.unsplash.com/photo-1592919505780-303950717480?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Practice swing lengths mapped to clock hands: 7:30 (waist-high), 9:00 (chest-high), and 10:30 (three-quarter). Record carry distances.",
+        "analogy": "🕒 **Precision Dial:** Control distance with arm swing length rather than changing swing speed.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Keep downswing tempo uniform regardless of backswing length."
+    },
+    "Landing Zone Target Towel Drill": {
+        "equipment": "Small Target Towel",
+        "image_url": "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Lay a small towel 15-20 yards out on the green. Focus 100% on landing your pitch shots directly onto the towel surface.",
+        "analogy": "🎯 **Bullseye Landing Pad:** Ignore the flag pin; land the ball exclusively on your designated spot.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Walk up to the green beforehand to pick your exact landing spot based on green slope."
+    },
+    "Trail-Hand Only Pitch Drill": {
+        "equipment": "Sand Wedge",
+        "image_url": "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Remove your lead hand and pitch balls using only your trail hand. Feel the clubhead weight drop smoothly through impact.",
+        "analogy": "🎾 **Underhand Ball Toss:** Replicate the natural motion of tossing a tennis ball underhand to a target.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Allow the clubhead bounce to slap the turf softly without grabbing."
+    },
+
+    # Issue 4: Bunker / Sand Execution
+    "Line in the Sand Drill": {
+        "equipment": "Sand Wedge, Practice Bunker",
+        "image_url": "https://images.unsplash.com/photo-1593111774601-dfbce3206564?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Draw a line in the bunker sand perpendicular to target line with no ball. Practice swinging to make divots that start precisely on the drawn line.",
+        "analogy": "✏️ **Erasing the Line:** Train low-point control so the wedge enters sand exactly 2 inches behind the ball.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Accelerate fully through sand; never slow down near impact."
+    },
+    "Dollar Bill Sand Extraction Drill": {
+        "equipment": "Sand Wedge, Paper Bill or Target Line",
+        "image_url": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Place a ball on top of a dollar bill in the bunker. Aim to splash out the entire dollar-bill-sized patch of sand carrying the ball out.",
+        "analogy": "💵 **Sand Cushion Pillow:** The club never touches the ball; it lifts the cushion of sand beneath it.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Open the clubface fully before establishing your grip."
+    },
+    "Open-Face Sand Splash Drill": {
+        "equipment": "Lob Wedge (60°)",
+        "image_url": "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Lay the clubface completely flat to the sky in setup, lower your posture, and splash sand aggressively onto the green fringe.",
+        "analogy": "🥞 **Pancake Flip:** Slide the flat back of the wedge under sand like turning a pancake on a skillet.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Lower your stance height by flexing knees wider to keep swing shallow."
+    },
+
+    # Issue 5: Chipping Yips & Deceleration
+    "Continuous Motion Pendulum Chipping Drill": {
+        "equipment": "Pitching Wedge",
+        "image_url": "https://images.unsplash.com/photo-1592919505780-303950717480?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Swing the wedge back and forth continuously over grass without stopping, clipping turf on every forward pass in rhythmic sequence.",
+        "analogy": "🕰️ **Grandfather Pendulum:** Unbroken rhythm eradicates flinching and jerky wrist twitching.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Focus on smooth breathing: exhale softly through the impact motion."
+    },
+    "Accelerating Through Impact Gate Drill": {
+        "equipment": "2 Golf Tees, Wedge",
+        "image_url": "https://images.unsplash.com/photo-1593111774601-dfbce3206564?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Place a tee 6 inches behind the ball and another 12 inches ahead. Start backswing from front tee, step back, and accelerate through both.",
+        "analogy": "🚀 **Rocket Launch:** Build speed toward target finish line rather than hitting AT the ball.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Ensure backswing is shorter than follow-through length."
+    },
+    "Target-Focused Eyes-Up Chipping Drill": {
+        "equipment": "56° Wedge",
+        "image_url": "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Look directly at your target flag instead of looking down at the ball during the short chip stroke.",
+        "analogy": "🏀 **Free Throw Shooting:** Basketball players look at the rim while shooting, relying on natural instinct.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Eliminates steering by freeing hand-eye coordination instincts."
+    },
+
+    # --- PUTTING DRILLS (15) ---
+    # Issue 6: Pushing Putts Right (Open Face)
+    "Putting Tee Gate Drill": {
+        "equipment": "2 Standard Golf Tees, Putter",
+        "image_url": "https://images.unsplash.com/photo-1593111774601-dfbce3206564?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Set two tees in green turf 3 feet ahead of putter, spaced just wide enough for a golf ball to pass through cleanly.",
+        "analogy": "⚽ **Soccer Goal:** Roll ball through center posts without touching either tee wall.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Focus on keeping lead wrist flat to prevent face from flaring open."
+    },
+    "Chalk Line Straight Target Drill": {
+        "equipment": "Chalk Line Tool (10 Foot Line)",
+        "image_url": "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Snap a straight chalk line on a flat practice green. Roll putts staying perfectly aligned along the line from start to finish.",
+        "analogy": "📏 **Laser Beam Alignment:** Visual alignment feedback highlights instant directional deviations.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Align putter face line 90° perpendicular to chalk line at address."
+    },
+    "Mirror Alignment Face Drill": {
+        "equipment": "Putting Alignment Mirror",
+        "image_url": "https://images.unsplash.com/photo-1592919505780-303950717480?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Place putter on reflective mirror tool. Ensure eye line sits directly over ball line and shoulders run parallel to putter face.",
+        "analogy": "🪞 **Reflective Blueprint:** Checks square shoulder and face positioning before stroke starts.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Lead eye should hover directly over the center-back of the golf ball."
+    },
+
+    # Issue 7: Pulling Putts Left (Closed Face)
+    "Trail-Hand Push Putting Drill": {
+        "equipment": "Putter",
+        "image_url": "https://images.unsplash.com/photo-1592919505780-303950717480?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Putt 5-footers using only your dominant trail hand. Extend smooth stroke along target line without snapping wrists shut.",
+        "analogy": "🎳 **Bowling Roll:** Smooth single-arm rolling action down lane center without hooking wrist.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Keep shoulder line square to prevent pulling across target line."
+    },
+    "Metal Yardstick Roll Drill": {
+        "equipment": "36-inch Flat Metal Yardstick",
+        "image_url": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Place ball on one end of metal yardstick on carpet/green. Stroke putts so ball stays on metal track across full length.",
+        "analogy": "Tightrope Walk:** Closed or open face options tumble ball off edge instantly within 6 inches.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Striking exact center-face is required to complete full 36-inch roll."
+    },
+    "Parallel Rod Putting Channel Drill": {
+        "equipment": "2 Alignment Rods",
+        "image_url": "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Set two rods parallel on green slightly wider than putter head width, creating a physical swing channel.",
+        "analogy": "🛷 **Bob Sled Track:** Prevents path from coming inside or pulling across to left field.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Let shoulders rock smoothly without hip rotation inside channel."
+    },
+
+    # Issue 8: Lag Putting & Distance Control
+    "Ladder Distance Lag Drill": {
+        "equipment": "4 Golf Tees / Target Markers",
+        "image_url": "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Set tees at 10, 20, 30, and 40 feet. Roll putts into each zone sequentially without leaving any short.",
+        "analogy": "🪜 **Climbing Rungs:** Build instinctive muscular memory for backswing length vs roll distance.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Hold finish stance until ball completely stops rolling to gauge touch."
+    },
+    "Fringe-to-Fringe Feel Drill": {
+        "equipment": "Putter",
+        "image_url": "https://images.unsplash.com/photo-1592919505780-303950717480?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Putt across full green width targeting green fringe boundary. Stop ball within 6 inches of green edge.",
+        "analogy": "🚢 **Docking Ship:** Gentle deceleration into border without crashing into rough grass.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Focus on visual distance sweep before placing putter head down."
+    },
+    "Eyes-Closed Distance Perception Drill": {
+        "equipment": "Putter",
+        "image_url": "https://images.unsplash.com/photo-1593111774601-dfbce3206564?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Look at hole target 20 feet away, close your eyes, stroke putt, and call out 'short', 'long', or 'good' before opening eyes.",
+        "analogy": "🧘 **Internal Sensing:** Heightens sensory feedback loop from hands and sweet-spot feel.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Calibrates internal brain map with actual ball roll performance."
+    },
+
+    # Issue 9: Off-Center Putter Contact
+    "Rubber Band Putter Sweet-Spot Drill": {
+        "equipment": "2 Small Rubber Bands, Putter",
+        "image_url": "https://images.unsplash.com/photo-1593111774601-dfbce3206564?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Wrap rubber bands around heel and toe of putter face, leaving only center sweet spot exposed.",
+        "analogy": "🎯 **Sweet Spot Pinpoint:** Off-center strikes bounce dead off rubber bands immediately.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Center contact produces consistent ball speed and roll distance."
+    },
+    "Two-Tee Putter Gate Drill": {
+        "equipment": "2 Golf Tees",
+        "image_url": "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Set tees in turf just wide enough for putter head toe and heel to swing through at address spot.",
+        "analogy": "⛩️ **Precision Archway:** Ensures centered impact without toe or heel hitting tees.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Keep stroke steady and low to ground through center gate."
+    },
+    "Coin Balance Putter Back Drill": {
+        "equipment": "1 Coin or Dime",
+        "image_url": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Balance a coin on flat top surface of putter head during stroke. Complete putt without coin sliding off.",
+        "analogy": "⚖️ **Balanced Tray:** Demands smooth acceleration without jerky wrist acceleration.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Maintains smooth acceleration profile from backswing transition."
+    },
+
+    # Issue 10: Putting Yips & Deceleration
+    "Push-Putting No-Backswing Drill": {
+        "equipment": "Putter",
+        "image_url": "https://images.unsplash.com/photo-1592919505780-303950717480?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Place putter directly against back of ball with zero backswing. Push ball forward smoothly into hole from 4 feet.",
+        "analogy": "Shuffleboard Slide:** Eliminates jab twitch by forcing pure forward pushing force.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Feel lead wrist stay solid as putter moves down line."
+    },
+    "Short Back Long Through Stroke Drill": {
+        "equipment": "Putter, 2 Markers",
+        "image_url": "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Limit backswing to 3 inches while extending follow-through to 12 inches past ball target position.",
+        "analogy": "Pendulum Acceleration:** Accelerates continuously through impact zone to eliminate deceleration.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Deceleration is the #1 cause of directional misses on short putts."
+    },
+    "Coin Balance Motion Stroke Drill": {
+        "equipment": "1 Quarter",
+        "image_url": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Place quarter on grass 1 inch behind ball. Focus on sweeping putter sole smoothly over coin without touching.",
+        "analogy": "Gliding Hovercraft:** Promotes level, smooth putter sweep through impact.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Keeps putter low to turf for pure top-spin roll."
     }
 }
 
@@ -156,8 +389,8 @@ active_persona = PERSONA_DATABASE[selected_persona_key]
 st.info(f"**{active_persona['title']}** — {active_persona['description']}")
 
 shot_transcript = st.text_area(
-    "Describe your missed shot(s) in detail:",
-    placeholder="e.g., I swung hard out to right field and sliced it, plus I hit it thin and missed the sweet spot..."
+    "Describe your missed shot(s) in detail (Full Swing, Short Game, or Putting):",
+    placeholder="e.g., I sliced my drive into right trees, then chunked my 30-yard chip shot, and missed my 4-foot putt to the right..."
 )
 
 if st.button(f"Analyze Shot with {selected_persona_key}"):
@@ -165,25 +398,61 @@ if st.button(f"Analyze Shot with {selected_persona_key}"):
         system_prompt = f"""
         {active_persona['system_instruction']}
 
-        Analyze the user's input regarding their missed shot. Identify up to TWO swing mechanics issues:
+        Analyze the user's input regarding their missed shot. Identify up to TWO swing mechanics issues across Full Swing, Short Game, or Putting:
         1. Primary Miss / Fault (Required)
         2. Secondary Miss / Fault (Optional, set to null if only one clear fault exists)
 
-        Map both faults to the most effective drills from this EXACT list:
-        - 'Alignment Stick Gate Drill' (Best for: Over-the-top, outside-in path, slicing)
-        - 'Pause at Top Drill' (Best for: Rushing downswing, poor sequencing, casting)
-        - 'Tee Gate Drill' (Best for: Heel/Toe off-center impact, unstable clubface)
-        - 'Towel Under Armpits Drill' (Best for: Flying elbow, chicken-winging, loss of body connection)
-        - 'Coin Strike Low-Point Drill' (Best for: Fat shots, thin shots, scooping/flipping at ball)
-        - 'Split-Hands Release Drill' (Best for: Open clubface, hanging back, push-slice)
-        - 'Feet-Together Balance Drill' (Best for: Swaying, lateral sliding, loss of balance)
-        - 'Wall-Head Posture Drill' (Best for: Early extension, posture loss, standing up at impact)
-        - 'Impact Bag Compression Drill' (Best for: Flipping wrists, weak shaft lean, loss of distance)
-        - 'Two-Step Pump Lag Drill' (Best for: Casting early, losing wrist lag, casting off top)
+        Map both faults to the most effective drills from this EXACT list of 40 drills:
+
+        FULL SWING:
+        - 'Alignment Stick Gate Drill' (Over-the-top, slicing, outside-in)
+        - 'Pause at Top Drill' (Rushing downswing, casting)
+        - 'Tee Gate Drill' (Heel/Toe off-center impact)
+        - 'Towel Under Armpits Drill' (Flying elbow, chicken-winging)
+        - 'Coin Strike Low-Point Drill' (Fat/thin iron strikes, scooping)
+        - 'Split-Hands Release Drill' (Open face, push-slice)
+        - 'Feet-Together Balance Drill' (Swaying, sliding, loss of balance)
+        - 'Wall-Head Posture Drill' (Early extension, posture loss)
+        - 'Impact Bag Compression Drill' (Wrists flipping, weak shaft lean)
+        - 'Two-Step Pump Lag Drill' (Casting early, losing lag)
+
+        SHORT GAME (CHIPPING/PITCHING/SAND):
+        - 'Towel Behind Ball Drill' (Fat/chunked chips, hitting turf behind ball)
+        - 'Lead Foot Weight Anchor Drill' (Weight shifting back, chunking chips)
+        - 'Brush Turf Chipping Drill' (Inconsistent low point in turf)
+        - 'Coin Lead-Point Pitch Drill' (Thin/bladed chips, scooping wrists)
+        - 'Ruler in Glove Wrist Anchor Drill' (Flipping lead wrist on chips)
+        - 'Hinge-and-Hold Chipping Drill' (Blading chips, inconsistent contact)
+        - 'Clock System Wedge Drill' (Inconsistent pitching distance control)
+        - 'Landing Zone Target Towel Drill' (Poor landing spot precision)
+        - 'Trail-Hand Only Pitch Drill' (Rigid arm tension, loss of touch)
+        - 'Line in the Sand Drill' (Bunker fat shots, inconsistent entry point)
+        - 'Dollar Bill Sand Extraction Drill' (Bunker shots left in sand, shallow splash)
+        - 'Open-Face Sand Splash Drill' (Inability to lift ball out of sand)
+        - 'Continuous Motion Pendulum Chipping Drill' (Chipping yips, twitching wrists)
+        - 'Accelerating Through Impact Gate Drill' (Decelerating on chip shots)
+        - 'Target-Focused Eyes-Up Chipping Drill' (Steering chips, overthinking)
+
+        PUTTING:
+        - 'Putting Tee Gate Drill' (Pushing putts right, open face at impact)
+        - 'Chalk Line Straight Target Drill' (Poor stroke alignment, directional error)
+        - 'Mirror Alignment Face Drill' (Eye line alignment error, improper face angle)
+        - 'Trail-Hand Push Putting Drill' (Pulling putts left, wrist hooking)
+        - 'Metal Yardstick Roll Drill' (Closed face, off-line start direction)
+        - 'Parallel Rod Putting Channel Drill' (Outside-in putting path, cross-stroke)
+        - 'Ladder Distance Lag Drill' (Poor lag distance control, three-putts)
+        - 'Fringe-to-Fringe Feel Drill' (Inconsistent pace control on long putts)
+        - 'Eyes-Closed Distance Perception Drill' (Lack of feel for green speed)
+        - 'Rubber Band Putter Sweet-Spot Drill' (Off-center heel/toe putter contact)
+        - 'Two-Tee Putter Gate Drill' (Toe/heel mis-strikes on putter face)
+        - 'Coin Balance Putter Back Drill' (Unstable putter head transition)
+        - 'Push-Putting No-Backswing Drill' (Putting yips, jab stroke)
+        - 'Short Back Long Through Stroke Drill' (Decelerating putter head)
+        - 'Coin Balance Motion Stroke Drill' (Jerky stroke tempo, lifting putter)
 
         Output strictly raw JSON matching this structure with no markdown formatting:
         {{
-          "diagnosis_category": "Multi-Fault Path/Face",
+          "diagnosis_category": "Multi-Fault Diagnostic",
           "primary_miss": "string",
           "secondary_miss": "string or null",
           "tom_shanks_response": "string (1-2 sentences max, matching your character persona)",
@@ -399,9 +668,8 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
 
         plan_text = f"* **Block 1 Primary Fault Correction ({d1_balls} Balls | {d1_time} Mins):** Execute *{active_drills[0]}*. Fix primary swing error.\n* **Block 2 Secondary Fault Correction ({d2_balls} Balls | {d2_time} Mins):** Execute *{active_drills[1]}*. Address secondary mechanic."
 
-        # Only display Block 3 if resources are allocated to Game/Target mode
         if gm_balls > 0 and gm_time > 0:
-            plan_text += f"\n* **Block 3 Target Course Pressure ({gm_balls} Balls | {gm_time} Mins):** 9-hole target range simulation. Full pre-shot routine per ball."
+            plan_text += f"\n* **Block 3 Target Course Pressure ({gm_balls} Balls | {gm_time} Mins):** Target range simulation. Full pre-shot routine per ball."
 
         st.markdown(plan_text)
 
@@ -410,7 +678,6 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
 
         plan_text = f"* **Block 1 Technical Grind ({g_balls} Balls | {g_time} Mins):** Paced reps using *{active_drills[0]}* at ~{spb}s per shot."
 
-        # Only display Block 2 if resources are allocated to Game/Target mode
         if gm_balls > 0 and gm_time > 0:
             plan_text += f"\n* **Block 2 Target Pressure ({gm_balls} Balls | {gm_time} Mins):** Alternate target flags and clubs on every rep."
 
