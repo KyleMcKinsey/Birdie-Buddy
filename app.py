@@ -43,7 +43,10 @@ if st.button("Analyze Shot with Tom Shanks"):
         """
         
         try:
-            model = genai.GenerativeModel('gemini-2.5-flash')
+            # Automatically select an active Gemini Flash model for your API key
+            valid_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+            target_model = next((m for m in valid_models if 'flash' in m.lower()), valid_models[0])
+            model = genai.GenerativeModel(target_model)
             response = model.generate_content(f"{system_prompt}\n\nUser Input: {shot_transcript}")
             clean_json = response.text.replace("```json", "").replace("```", "").strip()
             st.session_state['diagnosis'] = json.loads(clean_json)
