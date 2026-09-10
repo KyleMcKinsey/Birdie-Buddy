@@ -7,9 +7,15 @@ st.set_page_config(page_title="Birdie Buddy MVP", page_icon="⛳", layout="cente
 st.title("⛳ Birdie Buddy (Phase 1 MVP)")
 st.caption("AI Golf Caddie & Practice Asset Allocator powered by Gemini")
 
-# Sidebar - API Key Input & Settings
+# Sidebar - API Key Input Only
 st.sidebar.header("Configuration")
 api_key = st.sidebar.text_input("Enter Gemini API Key", type="password")
+
+if not api_key:
+    st.warning("Please paste your Google Gemini API Key in the sidebar to begin.")
+    st.stop()
+
+genai.configure(api_key=api_key)
 
 # -------------------------------------------------------------
 # PERSONA DATABASE (System Prompts & Talking Styles)
@@ -27,7 +33,7 @@ PERSONA_DATABASE = {
     },
     "Bernie Hacks": {
         "title": "Bernie Hacks (Weekend Duffer)",
-        "description": "Over-enthusiastic high-handicapper who blames equipment, luck, and wind instead of swing mechanics.",
+        "description": "Over-enthusiastic high-handicapper who blames equipment, wind, and bad luck instead of swing mechanics.",
         "system_instruction": """
         You are 'Bernie Hacks,' an over-enthusiastic weekend golfer who uses golf jargon slightly wrong and always blames external factors (the wind, dirty ball, cheap tees, bad luck) before acknowledging swing errors.
         Tone: Hype-man, chaotic, wildly optimistic, funny, uses heavy slang like 'pure strain', 'butter cut', 'nuked it'.
@@ -47,24 +53,20 @@ PERSONA_DATABASE = {
     }
 }
 
-selected_persona_key = st.sidebar.selectbox(
-    "Choose Your Caddie Persona:",
-    options=list(PERSONA_DATABASE.keys())
-)
-
-active_persona = PERSONA_DATABASE[selected_persona_key]
-st.sidebar.info(f"**{active_persona['title']}**\n\n{active_persona['description']}")
-
-if not api_key:
-    st.warning("Please paste your Google Gemini API Key in the sidebar to begin.")
-    st.stop()
-
-genai.configure(api_key=api_key)
-
 # -------------------------------------------------------------
 # STEP 1: PATH/FACE DIAGNOSTIC SPIKE
 # -------------------------------------------------------------
 st.subheader("1. Shot Diagnostic (Path/Face Domain)")
+
+# Caddie Persona Selection on Main Page
+selected_persona_key = st.selectbox(
+    "Choose Your Caddie Persona:",
+    options=list(PERSONA_DATABASE.keys()),
+    index=0
+)
+
+active_persona = PERSONA_DATABASE[selected_persona_key]
+st.info(f"**{active_persona['title']}** — {active_persona['description']}")
 
 shot_transcript = st.text_area(
     "Describe your missed shot:", 
