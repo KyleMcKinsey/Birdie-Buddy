@@ -33,7 +33,7 @@ PERSONA_DATABASE = {
         You are 'Obi-Wan Kenbogey,' a wise and serene Jedi Master AI golf caddie.
         Tone: Calm, philosophical, dramatic, heroic, slightly cryptic.
         Sample Catchphrases: 'May the Force be with your clubface.', 'These are not the trees you are looking for.', 'Beware the Dark Side—anger leads to an open face.'
-        Analyze the shot error against the 'Path/Face' domain using Jedi terminology and wise guidance.
+        Analyze shot errors using Jedi terminology and wise guidance.
         """,
     },
     "Harry Putter": {
@@ -46,7 +46,7 @@ PERSONA_DATABASE = {
         You are 'Harry Putter,' a young wizard AI golf caddie who treats golf clubs like magic wands and shot analysis like Defense Against the Dark Arts.
         Tone: Enthusiastic, spell-casting, British, magical.
         Sample Catchphrases: 'Expecto Fairway-um!', 'Yer a golfer, Harry!', '10 points to Gryffindor if you hit this green.'
-        Analyze the shot error against the 'Path/Face' domain using wizarding world terminology and spell metaphors.
+        Analyze shot errors using wizarding world terminology and spell metaphors.
         """,
     },
     "James Pond": {
@@ -59,7 +59,7 @@ PERSONA_DATABASE = {
         You are 'James Pond' (Agent 00-Slice), a suave, high-class secret agent AI golf caddie.
         Tone: Cool, sophisticated, covert, tactical, dry British charm.
         Sample Catchphrases: 'Shaken, not stirred—much like your grip pressure.', 'License to slice.', "The name's Pond... James Pond."
-        Analyze the shot error against the 'Path/Face' domain as if evaluating high-stakes tactical intelligence.
+        Analyze shot errors as if evaluating high-stakes tactical intelligence.
         """,
     },
     "Captain Hack Sparrow": {
@@ -72,13 +72,13 @@ PERSONA_DATABASE = {
         You are 'Captain Hack Sparrow,' an eccentric, wildly unpredictable pirate AI golf caddie.
         Tone: Slurred charm, chaotic, theatrical, witty, rum-obsessed, highly eccentric.
         Sample Catchphrases: 'Why is the fairway always gone?', 'Take what you can, give nothing back—except that ball in the hazard.', 'This shot is either brilliant or mad. Utterly mad.'
-        Analyze the shot error against the 'Path/Face' domain using nautical pirate metaphors.
+        Analyze shot errors using nautical pirate metaphors.
         """,
     },
 }
 
 # -------------------------------------------------------------
-# DETAILED DRILL & VISUAL SCHEMATIC DATABASE
+# EXPANDED PGA TOUR KNOWLEDGE BASE & SCHEMATICS
 # -------------------------------------------------------------
 DRILL_SCHEMATICS = {
     "Alignment Stick Gate Drill": {
@@ -92,22 +92,17 @@ DRILL_SCHEMATICS = {
             " behind the ball, angled up at 45° like a slanted fence. If your"
             " backswing loop swings too far outside or 'over-the-top', your club"
             " shaft will immediately sound the alarm by tapping this stick."
-            " Finally, two tees are pushed into the grass 2 inches ahead of your"
-            " ball, leaving just enough clearance for your iron's sweet spot to"
-            " glide through."
         ),
         "analogy": (
             "🚂 **The Railroad Track & Slanted Roof:** Think of your swing as a"
             " bullet train moving through a narrow glass tunnel. If you swing"
             " over-the-top, you shatter the glass on the upper slanted roof"
-            " (Stick #2). You must stay beneath the roof and glide straight"
-            " through the center of the tracks."
+            " (Stick #2)."
         ),
         "pro_tip": (
             "🏆 **PGA Tour Pro Tip:** Keep 60% of your weight grounded in your"
             " lead heel during impact. Do not fight to hit the ball—focus purely"
-            " on sweeping the turf between the two tee gates while keeping your"
-            " eyes fixed on the front edge of the golf ball."
+            " on sweeping the turf cleanly."
         ),
     },
     "Pause at Top Drill": {
@@ -118,23 +113,16 @@ DRILL_SCHEMATICS = {
             " torso fully into your trail hip on the backswing, reaching the"
             " top of your arc. Instead of rushing down with your hands, you freeze"
             " completely in place for 2 full seconds. Your torso remains fully"
-            " loaded, chest pointed away from the target, hands held high over"
-            " your right shoulder. You take a brief breath to audit your wrist"
-            " flatness, then initiate the downswing strictly by shifting your"
-            " lead knee toward the target line."
+            " loaded, chest pointed away from the target before starting the downswing."
         ),
         "analogy": (
             "🏹 **The Coiled Archer's Bow:** Pulling the bowstring back is your"
             " backswing. Holding the pause at the top is holding your aim"
-            " steady before release. If you rush the drop, the arrow flies off"
-            " course. The pause forces your lower body to fire first while the"
-            " arms simply follow."
+            " steady before release."
         ),
         "pro_tip": (
             "🏆 **PGA Tour Pro Tip:** Count 'One-One-Thousand' silently at the"
-            " top before starting down. Feel as though your lead hip slides 2"
-            " inches toward the target while your chest remains pointed behind"
-            " you."
+            " top before starting down to initiate downswing with lower body."
         ),
     },
     "Tee Gate Drill": {
@@ -144,29 +132,76 @@ DRILL_SCHEMATICS = {
             "Step up to the ball on the turf and press two tees flush into the"
             " ground just 1/4 inch beyond the toe and heel of your clubhead."
             " Then, move 3 inches down the target line and plant two more tees"
-            " spaced exactly one ball-width apart to create a tight exit"
-            " corridor. Your objective is surgical precision: strike the ball"
-            " cleanly, pass through the front corridor, and avoid clipping any of"
-            " the four surrounding tees."
+            " spaced exactly one ball-width apart to create a tight exit corridor."
         ),
         "analogy": (
-            "🛩️ **Threading the Needle / Aircraft Runway:** Your clubhead is an"
-            " airplane landing on a narrow runway. If your club path drifts in"
-            " or out, you clip the runway guardrails (the tees). You must keep"
-            " the wings level and flush through impact."
+            "🛩️ **Aircraft Runway:** Your clubhead is an airplane landing on a"
+            " narrow runway. If your club path drifts in or out, you clip the"
+            " runway guardrails (the tees)."
         ),
         "pro_tip": (
-            "🏆 **PGA Tour Pro Tip:** Soften your tension in both wrists to a 4"
-            " out of 10. Let the weight of the clubhead drop through the gate organically"
-            " rather than steering it with your hands."
+            "🏆 **PGA Tour Pro Tip:** Soften wrist grip pressure to 4/10. Let"
+            " the weight of the clubhead drop through the gate organically."
+        ),
+    },
+    "Towel Under Armpits Drill": {
+        "equipment": "1 Microfiber Golf Towel",
+        "image_url": "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": (
+            "Tuck a single golf towel horizontally across your chest, clamping it"
+            " snugly under both armpits. Take half-swings focusing on keeping your"
+            " lead and trail upper arms pinned against your torso throughout rotation."
+            " If your arms disconnect or 'chicken-wing', the towel drops instantly."
+        ),
+        "analogy": (
+            "📦 **The Solid Core Cylinder:** Your arms and torso form a single"
+            " solid unit like a spinning turbine. The arms do not flap independently."
+        ),
+        "pro_tip": (
+            "🏆 **PGA Tour Pro Tip:** Focus on turning your sternum toward the target"
+            " rather than pulling the club through with your hands."
+        ),
+    },
+    "Coin Strike Low-Point Drill": {
+        "equipment": "1 Small Coin (Quarter or Ball Marker)",
+        "image_url": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": (
+            "Place a quarter flat on the turf exactly 2 inches in front of where your ball"
+            " would sit. Make smooth, three-quarter iron swings with the goal of brushing"
+            " the turf so your divot starts AT the coin, sending the coin skipping forward."
+        ),
+        "analogy": (
+            "🔪 **Chopping Wood vs. Shoveling:** Stop trying to scoop the ball into the air."
+            " Think of compressing the ball down into the turf ahead."
+        ),
+        "pro_tip": (
+            "🏆 **PGA Tour Pro Tip:** Ensure your chest buttons are positioned directly over"
+            " or slightly ahead of the coin at the moment of impact."
+        ),
+    },
+    "Split-Hands Release Drill": {
+        "equipment": "Mid-Iron (7-Iron)",
+        "image_url": "https://images.unsplash.com/photo-1592919505780-303950717480?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": (
+            "Grip your 7-iron normally with your lead hand at the top, but separate your"
+            " trail hand 3 inches lower down the grip (like holding a hockey stick). Take slow"
+            " waist-high swings to feel your lead forearm rotate naturally over the trail forearm."
+        ),
+        "analogy": (
+            "🏒 **The Hockey Slap Shot:** Splitting your hands exaggerates forearm crossover"
+            " and prevents holding the face open through impact."
+        ),
+        "pro_tip": (
+            "🏆 **PGA Tour Pro Tip:** Feel the toe of the club head point straight up to the sky"
+            " immediately after impact on the follow-through."
         ),
     },
 }
 
 # -------------------------------------------------------------
-# STEP 1: PATH/FACE DIAGNOSTIC SPIKE
+# STEP 1: MULTI-ISSUE PATH/FACE DIAGNOSTIC
 # -------------------------------------------------------------
-st.subheader("1. Shot Diagnostic (Path/Face Domain)")
+st.subheader("1. Shot Diagnostic (Multi-Fault Detection)")
 
 selected_persona_key = st.selectbox(
     "Choose Your Movie Caddie Persona:",
@@ -178,10 +213,9 @@ active_persona = PERSONA_DATABASE[selected_persona_key]
 st.info(f"**{active_persona['title']}** — {active_persona['description']}")
 
 shot_transcript = st.text_area(
-    "Describe your missed shot:",
+    "Describe your missed shot(s) in detail:",
     placeholder=(
-        "e.g., I swung hard out to right field and the ball sliced way off"
-        " target..."
+        "e.g., I swung hard out to right field and sliced it, plus I hit it thin and missed the sweet spot..."
     ),
 )
 
@@ -190,14 +224,27 @@ if st.button(f"Analyze Shot with {selected_persona_key}"):
     system_prompt = f"""
         {active_persona['system_instruction']}
 
-        Analyze the user's input regarding a missed shot. Strictly evaluate errors against the 'Path/Face' domain (club path relative to target line, face angle relative to path). 
+        Analyze the user's input regarding their missed shot. Identify up to TWO swing mechanics issues:
+        1. Primary Miss / Fault (Required)
+        2. Secondary Miss / Fault (Optional, set to null if only one clear fault exists)
+
+        Map both faults to the most effective drills from this EXACT list:
+        - 'Alignment Stick Gate Drill' (Best for: Over-the-top, outside-in path, slicing)
+        - 'Pause at Top Drill' (Best for: Rushing downswing, poor sequencing, casting)
+        - 'Tee Gate Drill' (Best for: Heel/Toe off-center impact, unstable clubface)
+        - 'Towel Under Armpits Drill' (Best for: Flying elbow, chicken-winging, loss of body connection)
+        - 'Coin Strike Low-Point Drill' (Best for: Fat shots, thin shots, scooping/flipping at ball)
+        - 'Split-Hands Release Drill' (Best for: Open clubface, hanging back, push-slice)
+
         Output strictly raw JSON matching this structure with no markdown formatting:
         {{
-          "diagnosis_category": "Path/Face",
-          "detected_miss": "string",
-          "tom_shanks_response": "string (1-2 sentences max, matching your assigned movie character persona)",
+          "diagnosis_category": "Multi-Fault Path/Face",
+          "primary_miss": "string",
+          "secondary_miss": "string or null",
+          "tom_shanks_response": "string (1-2 sentences max, matching your character persona)",
           "confidence_score": 0.95,
-          "recommended_grind_drill": "string (MUST select one of: 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill')"
+          "recommended_primary_drill": "string",
+          "recommended_secondary_drill": "string or null"
         }}
         """
 
@@ -243,20 +290,17 @@ if "diagnosis" in st.session_state:
 
   col1, col2 = st.columns(2)
   with col1:
-    st.metric("Category", diag["diagnosis_category"])
-    st.write(f"**Detected Miss:** {diag['detected_miss']}")
+    st.metric("Primary Issue", diag.get("primary_miss", "Not detected"))
+    st.write(f"**Primary Drill:** `{diag.get('recommended_primary_drill')}`")
   with col2:
-    st.metric("Confidence Score", f"{int(diag['confidence_score'] * 100)}%")
-    st.write(f"**Base Recommended Drill:** {diag['recommended_grind_drill']}")
+    sec_miss = diag.get("secondary_miss")
+    st.metric("Secondary Issue", sec_miss if sec_miss else "None Detected")
+    sec_drill = diag.get("recommended_secondary_drill")
+    st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
 
   st.markdown("---")
-  st.write(
-      "**Calibration Loop: Did Gemini's diagnosis match your felt"
-      " experience?**"
-  )
-  match_flag = st.radio(
-      "Diagnosis Match:", ["Matched", "Overridden"], horizontal=True
-  )
+  st.write("**Calibration Loop: Did Gemini's diagnosis match your felt experience?**")
+  match_flag = st.radio("Diagnosis Match:", ["Matched", "Overridden"], horizontal=True)
 
   if match_flag == "Overridden":
     user_felt = st.text_input("Describe your actual felt experience:")
@@ -267,7 +311,7 @@ if "diagnosis" in st.session_state:
       st.success("Diagnosis confirmed and logged.")
 
 # -------------------------------------------------------------
-# STEP 2: PRACTICE ASSET ALLOCATION & DUAL-CONSTRAINT FOCUS
+# STEP 2: PRACTICE ASSET ALLOCATION & CONSTRAINTS
 # -------------------------------------------------------------
 st.markdown("---")
 st.subheader("2. Practice Resource Constraints (Balls & Time)")
@@ -390,42 +434,40 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
   diag = st.session_state["diagnosis"]
   res = st.session_state["confirmed_resources"]
 
-  base_drill = diag.get("recommended_grind_drill", "Alignment Stick Gate Drill")
+  p_drill = diag.get("recommended_primary_drill", "Alignment Stick Gate Drill")
+  s_drill = diag.get("recommended_secondary_drill")
+
   c_balls = res["total_balls"]
   c_time = res["total_time"]
 
-  # MULTI-DRILL RESOLUTION LOGIC based on constraint volume
+  # MULTI-DRILL RESOLUTION LOGIC
+  active_drills = [p_drill]
+
   if c_balls < 40 or c_time < 30:
-    active_drills = ["Tee Gate Drill"]
-    session_tier = "⚡ Express Micro-Session (Single Drill)"
+    session_tier = "⚡ Express Micro-Session (Focus Drill)"
     adaptation_reason = (
-        f"Confirmed constraints are focused ({c_balls} balls / {c_time} mins)."
-        " Assigned a rapid-setup single drill for maximum efficiency."
-    )
-  elif c_balls > 110 or c_time > 75:
-    # Extended range session: multi-drill combination!
-    secondary_drill = (
-        "Pause at Top Drill"
-        if base_drill != "Pause at Top Drill"
-        else "Alignment Stick Gate Drill"
-    )
-    active_drills = [base_drill, secondary_drill]
-    session_tier = "🔥 Master Extended Multi-Drill Session"
-    adaptation_reason = (
-        f"Extended resources available ({c_balls} balls / {c_time} mins)."
-        " Assigned a **2-Drill Circuit** combining primary swing path control"
-        " with secondary tempo & transition calibration."
+        f"Micro-session detected ({c_balls} balls / {c_time} mins). Prioritizing"
+        f" Primary Drill ({p_drill}) only."
     )
   else:
-    active_drills = [base_drill]
-    session_tier = "🎯 Standard Dual-Block Session (Single Primary Drill)"
-    adaptation_reason = (
-        "Balanced resources. Executing standard AI-diagnosed primary drill."
-    )
+    # Standard or Extended session: include secondary drill if present
+    if s_drill and s_drill != p_drill:
+      active_drills.append(s_drill)
+      session_tier = "🔥 Multi-Fault Correction Circuit"
+      adaptation_reason = (
+          f"Sufficient resources ({c_balls} balls / {c_time} mins). Addressing"
+          f" Primary ({p_drill}) and Secondary ({s_drill}) swing issues."
+      )
+    else:
+      session_tier = "🎯 Deep Focus Primary Calibration"
+      adaptation_reason = (
+          "Single clear fault detected. Allocating full grind duration to"
+          f" primary drill ({p_drill})."
+      )
 
   st.info(f"**{session_tier}:** {adaptation_reason}")
 
-  # Display all active resolved drills
+  # Render Active Drills
   for idx, d_name in enumerate(active_drills, 1):
     schematic = DRILL_SCHEMATICS.get(
         d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"]
@@ -456,38 +498,33 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
 
   st.markdown("---")
 
-  # Dynamic Constraint Execution Protocol using confirmed split values
+  # Dynamic Execution Protocol
   g_balls = res["grind_balls"]
   gm_balls = res["game_balls"]
   g_time = res["grind_time"]
   gm_time = res["game_time"]
   spb = res["sec_per_ball"]
 
-  if c_balls < 40 or c_time < 30:
-    st.warning("⚡ **Express Micro-Session Execution Plan**")
-    st.markdown(f"""
-        * **Block 1 Technical Grind ({g_balls} Balls | {g_time} Mins):** Execute rapid reps using *{active_drills[0]}*. Focus strictly on impact feel and clean path execution.
-        * **Block 2 Target Pressure ({gm_balls} Balls | {gm_time} Mins):** Single target gate challenge. Must hit {min(gm_balls, 3)} consecutive fairways to complete session.
-        """)
-  elif c_balls > 110 or c_time > 75:
-    st.success("🔥 **Master Multi-Drill Progressive Execution Plan**")
+  if len(active_drills) == 2:
     d1_balls = g_balls // 2
     d2_balls = g_balls - d1_balls
     d1_time = g_time // 2
     d2_time = g_time - d1_time
 
+    st.success("🔥 **Dual-Fault Circuit Plan**")
     st.markdown(f"""
-        * **Stage 1 Primary Mechanical Grind ({d1_balls} Balls | {d1_time} Mins):** Execute *{active_drills[0]}*. Focus on eliminating your missed swing path.
-        * **Stage 2 Secondary Transition & Tempo ({d2_balls} Balls | {d2_time} Mins):** Transition to *{active_drills[1]}*. Hold a 3-second finish pose on every shot.
-        * **Stage 3 Full Target Course Simulation ({gm_balls} Balls | {gm_time} Mins):** 9-hole simulated range round. Execute full 45s pre-shot routine per ball, alternating targets and clubs.
+        * **Block 1 Primary Fault Correction ({d1_balls} Balls | {d1_time} Mins):** Execute *{active_drills[0]}*. Fix primary swing error.
+        * **Block 2 Secondary Fault Correction ({d2_balls} Balls | {d2_time} Mins):** Execute *{active_drills[1]}*. Address secondary mechanic.
+        * **Block 3 Target Course Pressure ({gm_balls} Balls | {gm_time} Mins):** 9-hole target range simulation. Full pre-shot routine per ball.
         """)
   else:
-    st.info("🎯 **Standard Dual-Block Plan**")
+    st.info("🎯 **Single Drill Focus Plan**")
     st.markdown(f"""
-        * **Block 1 Technical Grind ({g_balls} Balls | {g_time} Mins):** {g_balls // 10 if g_balls >= 10 else 1} sets using *{active_drills[0]}*. Paced at ~{spb}s per shot.
-        * **Block 2 Game Simulation ({gm_balls} Balls | {gm_time} Mins):** Alternate targets and clubs on every single rep.
+        * **Block 1 Technical Grind ({g_balls} Balls | {g_time} Mins):** Paced reps using *{active_drills[0]}* at ~{spb}s per shot.
+        * **Block 2 Target Pressure ({gm_balls} Balls | {gm_time} Mins):** Alternate target flags and clubs on every rep.
         """)
+
 elif "diagnosis" in st.session_state:
-  st.warning("👈 Please click **'✅ Confirm Selection & Generate Execution Plan'** in Section 2 to generate your drill execution setup.")
+  st.warning("👈 Please click **'✅ Confirm Selection & Generate Execution Plan'** in Section 2 to generate your plan.")
 else:
-  st.caption("Run a shot diagnosis in Section 1 and confirm your resources in Section 2 to generate your drill routine!")
+  st.caption("Run a shot diagnosis in Section 1 and confirm resources in Section 2 to get started!")
