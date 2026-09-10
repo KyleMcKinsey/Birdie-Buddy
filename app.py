@@ -333,22 +333,52 @@ sec_per_ball = (
     int((total_time * 60) / total_balls) if total_balls > 0 else 0
 )
 
-st.write("**Resource Distribution:**")
-st.progress(
-    grind_pct,
-    text=(
-        f"Grind Mode: {int(grind_pct * 100)}% | Game Mode:"
-        f" {int(game_pct * 100)}%"
-    ),
-)
+# Confirmation Button to lock in constraint inputs
+if st.button("✅ Confirm Selection & Generate Execution Plan", type="primary"):
+  st.session_state["confirmed_resources"] = {
+      "total_balls": total_balls,
+      "total_time": total_time,
+      "grind_balls": grind_balls,
+      "game_balls": game_balls,
+      "grind_time": grind_time,
+      "game_time": game_time,
+      "sec_per_ball": sec_per_ball,
+      "grind_pct": grind_pct,
+      "game_pct": game_pct,
+  }
+  st.success("Resource constraints locked in! Drill execution plan generated below.")
 
-col_a, col_b, col_c = st.columns(3)
-with col_a:
-  st.metric("Grind Mode Split", f"{grind_balls} balls", f"{grind_time} mins")
-with col_b:
-  st.metric("Game Mode Split", f"{game_balls} balls", f"{game_time} mins")
-with col_c:
-  st.metric("Target Pace", f"{sec_per_ball} sec/ball", "Recommended Tempo")
+# Display confirmed metric preview if available
+if "confirmed_resources" in st.session_state:
+  res_data = st.session_state["confirmed_resources"]
+  st.write("**Confirmed Resource Distribution:**")
+  st.progress(
+      res_data["grind_pct"],
+      text=(
+          f"Grind Mode: {int(res_data['grind_pct'] * 100)}% | Game Mode:"
+          f" {int(res_data['game_pct'] * 100)}%"
+      ),
+  )
+
+  col_a, col_b, col_c = st.columns(3)
+  with col_a:
+    st.metric(
+        "Grind Mode Split",
+        f"{res_data['grind_balls']} balls",
+        f"{res_data['grind_time']} mins",
+    )
+  with col_b:
+    st.metric(
+        "Game Mode Split",
+        f"{res_data['game_balls']} balls",
+        f"{res_data['game_time']} mins",
+    )
+  with col_c:
+    st.metric(
+        "Target Pace",
+        f"{res_data['sec_per_ball']} sec/ball",
+        "Recommended Tempo",
+    )
 
 # -------------------------------------------------------------
 # STEP 3: ADAPTIVE PRACTICE EXECUTION & DYNAMIC DRILL RESOLUTION
@@ -356,26 +386,30 @@ with col_c:
 st.markdown("---")
 st.subheader("3. Adaptive Practice Execution & Detailed Setup Guide")
 
-if "diagnosis" in st.session_state:
+if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state:
   diag = st.session_state["diagnosis"]
-  base_drill = diag.get("recommended_grind_drill", "Alignment Stick Gate Drill")
+  res = st.session_state["confirmed_resources"]
 
-  # Dynamic Constraint-Based Drill Adaptation Logic
-  if total_balls < 40 or total_time < 30:
+  base_drill = diag.get("recommended_grind_drill", "Alignment Stick Gate Drill")
+  c_balls = res["total_balls"]
+  c_time = res["total_time"]
+
+  # Dynamic Constraint-Based Drill Adaptation Logic using CONFIRMED values
+  if c_balls < 40 or c_time < 30:
     active_drill = "Tee Gate Drill"
     session_tier = "⚡ Express Micro-Session"
     adaptation_reason = (
-        "Time/Ball constraints are low (<40 balls or <30 mins). Automatically"
-        " simplified to a rapid-setup **Tee Gate Drill** requiring no heavy"
-        " equipment alignment."
+        f"Confirmed constraints are low ({c_balls} balls / {c_time} mins)."
+        " Automatically simplified to a rapid-setup **Tee Gate Drill** requiring"
+        " no heavy alignment stick setup."
     )
-  elif total_balls > 110 or total_time > 75:
+  elif c_balls > 110 or c_time > 75:
     active_drill = "Alignment Stick Gate Drill"
     session_tier = "🔥 Master Progressive Calibration Session"
     adaptation_reason = (
-        "High resource availability (>110 balls or >75 mins). Upgraded to a"
-        " full **Alignment Stick Gate Drill** for deep multi-stage stance and"
-        " path calibration."
+        f"High resource availability ({c_balls} balls / {c_time} mins)."
+        " Upgraded to a full **Alignment Stick Gate Drill** for deep multi-stage"
+        " stance and path calibration."
     )
   else:
     active_drill = base_drill
@@ -412,26 +446,34 @@ if "diagnosis" in st.session_state:
 
   st.markdown("---")
 
-  # Dynamic Constraint Execution Protocol
-  if total_balls < 40 or total_time < 30:
+  # Dynamic Constraint Execution Protocol using confirmed split values
+  g_balls = res["grind_balls"]
+  gm_balls = res["game_balls"]
+  g_time = res["grind_time"]
+  gm_time = res["game_time"]
+  spb = res["sec_per_ball"]
+
+  if c_balls < 40 or c_time < 30:
     st.warning("⚡ **Express Micro-Session Execution Plan**")
     st.markdown(f"""
-        * **Block 1 Technical Grind ({grind_balls} Balls | {grind_time} Mins):** Execute rapid reps using *{active_drill}*. Focus strictly on impact feel and clean path execution without stopping between swings.
-        * **Block 2 Target Pressure ({game_balls} Balls | {game_time} Mins):** Single target gate challenge. Must hit {min(game_balls, 3)} consecutive fairways to complete session.
+        * **Block 1 Technical Grind ({g_balls} Balls | {g_time} Mins):** Execute rapid reps using *{active_drill}*. Focus strictly on impact feel and clean path execution without stopping between swings.
+        * **Block 2 Target Pressure ({gm_balls} Balls | {gm_time} Mins):** Single target gate challenge. Must hit {min(gm_balls, 3)} consecutive fairways to complete session.
         """)
-  elif total_balls > 110 or total_time > 75:
+  elif c_balls > 110 or c_time > 75:
     st.success("🔥 **Master Progressive Calibration Session Plan**")
-    p1_balls, p2_balls = grind_balls // 2, grind_balls - (grind_balls // 2)
+    p1_balls, p2_balls = g_balls // 2, g_balls - (g_balls // 2)
     st.markdown(f"""
-        * **Stage 1 Mechanical Exaggeration ({p1_balls} Balls | {grind_time // 2} Mins):** Deliberately over-correct your missed swing path using *{active_drill}*.
-        * **Stage 2 Precision Tolerance ({p2_balls} Balls | {grind_time // 2} Mins):** Tighten gate width to minimum tolerances. Hold a 3-second finish pose on every shot.
-        * **Stage 3 Full Course Simulation ({game_balls} Balls | {game_time} Mins):** 9-hole range simulation. Execute a full 45s pre-shot routine per ball.
+        * **Stage 1 Mechanical Exaggeration ({p1_balls} Balls | {g_time // 2} Mins):** Deliberately over-correct your missed swing path using *{active_drill}*.
+        * **Stage 2 Precision Tolerance ({p2_balls} Balls | {g_time // 2} Mins):** Tighten gate width to minimum tolerances. Hold a 3-second finish pose on every shot.
+        * **Stage 3 Full Course Simulation ({gm_balls} Balls | {gm_time} Mins):** 9-hole range simulation. Execute a full 45s pre-shot routine per ball.
         """)
   else:
     st.info("🎯 **Standard Dual-Block Plan**")
     st.markdown(f"""
-        * **Block 1 Technical Grind ({grind_balls} Balls | {grind_time} Mins):** {grind_balls // 10 if grind_balls >= 10 else 1} sets using *{active_drill}*. Paced at ~{sec_per_ball}s per shot.
-        * **Block 2 Game Simulation ({game_balls} Balls | {game_time} Mins):** Alternate targets and clubs on every single rep.
+        * **Block 1 Technical Grind ({g_balls} Balls | {g_time} Mins):** {g_balls // 10 if g_balls >= 10 else 1} sets using *{active_drill}*. Paced at ~{spb}s per shot.
+        * **Block 2 Game Simulation ({gm_balls} Balls | {gm_time} Mins):** Alternate targets and clubs on every single rep.
         """)
+elif "diagnosis" in st.session_state:
+  st.warning("👈 Please click **'✅ Confirm Selection & Generate Execution Plan'** in Section 2 to generate your drill execution setup.")
 else:
-  st.caption("Run a shot diagnosis above to generate your customized drill routine, images, and pro coaching tips!")
+  st.caption("Run a shot diagnosis in Section 1 and confirm your resources in Section 2 to generate your drill routine!")
