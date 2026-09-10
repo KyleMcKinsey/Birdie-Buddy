@@ -113,7 +113,8 @@ DRILL_SCHEMATICS = {
             " torso fully into your trail hip on the backswing, reaching the"
             " top of your arc. Instead of rushing down with your hands, you freeze"
             " completely in place for 2 full seconds. Your torso remains fully"
-            " loaded, chest pointed away from the target before starting the downswing."
+            " loaded, chest pointed away from the target before starting the"
+            " downswing."
         ),
         "analogy": (
             "🏹 **The Coiled Archer's Bow:** Pulling the bowstring back is your"
@@ -149,51 +150,58 @@ DRILL_SCHEMATICS = {
         "image_url": "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=1000&auto=format&fit=crop",
         "vivid_description": (
             "Tuck a single golf towel horizontally across your chest, clamping it"
-            " snugly under both armpits. Take half-swings focusing on keeping your"
-            " lead and trail upper arms pinned against your torso throughout rotation."
-            " If your arms disconnect or 'chicken-wing', the towel drops instantly."
+            " snugly under both armpits. Take half-swings focusing on keeping"
+            " your lead and trail upper arms pinned against your torso"
+            " throughout rotation. If your arms disconnect or 'chicken-wing',"
+            " the towel drops instantly."
         ),
         "analogy": (
             "📦 **The Solid Core Cylinder:** Your arms and torso form a single"
-            " solid unit like a spinning turbine. The arms do not flap independently."
+            " solid unit like a spinning turbine. The arms do not flap"
+            " independently."
         ),
         "pro_tip": (
-            "🏆 **PGA Tour Pro Tip:** Focus on turning your sternum toward the target"
-            " rather than pulling the club through with your hands."
+            "🏆 **PGA Tour Pro Tip:** Focus on turning your sternum toward the"
+            " target rather than pulling the club through with your hands."
         ),
     },
     "Coin Strike Low-Point Drill": {
         "equipment": "1 Small Coin (Quarter or Ball Marker)",
         "image_url": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop",
         "vivid_description": (
-            "Place a quarter flat on the turf exactly 2 inches in front of where your ball"
-            " would sit. Make smooth, three-quarter iron swings with the goal of brushing"
-            " the turf so your divot starts AT the coin, sending the coin skipping forward."
+            "Place a quarter flat on the turf exactly 2 inches in front of"
+            " where your ball would sit. Make smooth, three-quarter iron swings"
+            " with the goal of brushing the turf so your divot starts AT the"
+            " coin, sending the coin skipping forward."
         ),
         "analogy": (
-            "🔪 **Chopping Wood vs. Shoveling:** Stop trying to scoop the ball into the air."
-            " Think of compressing the ball down into the turf ahead."
+            "🔪 **Chopping Wood vs. Shoveling:** Stop trying to scoop the ball"
+            " into the air. Think of compressing the ball down into the turf"
+            " ahead."
         ),
         "pro_tip": (
-            "🏆 **PGA Tour Pro Tip:** Ensure your chest buttons are positioned directly over"
-            " or slightly ahead of the coin at the moment of impact."
+            "🏆 **PGA Tour Pro Tip:** Ensure your chest buttons are positioned"
+            " directly over or slightly ahead of the coin at the moment of"
+            " impact."
         ),
     },
     "Split-Hands Release Drill": {
         "equipment": "Mid-Iron (7-Iron)",
         "image_url": "https://images.unsplash.com/photo-1592919505780-303950717480?q=80&w=1000&auto=format&fit=crop",
         "vivid_description": (
-            "Grip your 7-iron normally with your lead hand at the top, but separate your"
-            " trail hand 3 inches lower down the grip (like holding a hockey stick). Take slow"
-            " waist-high swings to feel your lead forearm rotate naturally over the trail forearm."
+            "Grip your 7-iron normally with your lead hand at the top, but"
+            " separate your trail hand 3 inches lower down the grip (like"
+            " holding a hockey stick). Take slow waist-high swings to feel your"
+            " lead forearm rotate naturally over the trail forearm."
         ),
         "analogy": (
-            "🏒 **The Hockey Slap Shot:** Splitting your hands exaggerates forearm crossover"
-            " and prevents holding the face open through impact."
+            "🏒 **The Hockey Slap Shot:** Splitting your hands exaggerates forearm"
+            " crossover and prevents holding the face open through impact."
         ),
         "pro_tip": (
-            "🏆 **PGA Tour Pro Tip:** Feel the toe of the club head point straight up to the sky"
-            " immediately after impact on the follow-through."
+            "🏆 **PGA Tour Pro Tip:** Feel the toe of the club head point"
+            " straight up to the sky immediately after impact on the"
+            " follow-through."
         ),
     },
 }
@@ -215,7 +223,8 @@ st.info(f"**{active_persona['title']}** — {active_persona['description']}")
 shot_transcript = st.text_area(
     "Describe your missed shot(s) in detail:",
     placeholder=(
-        "e.g., I swung hard out to right field and sliced it, plus I hit it thin and missed the sweet spot..."
+        "e.g., I swung hard out to right field and sliced it, plus I hit it"
+        " thin and missed the sweet spot..."
     ),
 )
 
@@ -288,19 +297,30 @@ if "diagnosis" in st.session_state:
 
   st.success(f'**{caddie}:** "{diag["tom_shanks_response"]}"')
 
+  # WRAPPING DISPLAY FIX: Using Warning & Info boxes for full text visibility
   col1, col2 = st.columns(2)
   with col1:
-    st.metric("Primary Issue", diag.get("primary_miss", "Not detected"))
+    st.markdown("**🎯 Primary Issue**")
+    st.warning(diag.get("primary_miss", "Not detected"))
     st.write(f"**Primary Drill:** `{diag.get('recommended_primary_drill')}`")
   with col2:
+    st.markdown("**⚠️ Secondary Issue**")
     sec_miss = diag.get("secondary_miss")
-    st.metric("Secondary Issue", sec_miss if sec_miss else "None Detected")
+    if sec_miss:
+      st.info(sec_miss)
+    else:
+      st.info("None Detected")
     sec_drill = diag.get("recommended_secondary_drill")
     st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
 
   st.markdown("---")
-  st.write("**Calibration Loop: Did Gemini's diagnosis match your felt experience?**")
-  match_flag = st.radio("Diagnosis Match:", ["Matched", "Overridden"], horizontal=True)
+  st.write(
+      "**Calibration Loop: Did Gemini's diagnosis match your felt"
+      " experience?**"
+  )
+  match_flag = st.radio(
+      "Diagnosis Match:", ["Matched", "Overridden"], horizontal=True
+  )
 
   if match_flag == "Overridden":
     user_felt = st.text_input("Describe your actual felt experience:")
@@ -525,6 +545,12 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         """)
 
 elif "diagnosis" in st.session_state:
-  st.warning("👈 Please click **'✅ Confirm Selection & Generate Execution Plan'** in Section 2 to generate your plan.")
+  st.warning(
+      "👈 Please click **'✅ Confirm Selection & Generate Execution Plan'** in"
+      " Section 2 to generate your plan."
+  )
 else:
-  st.caption("Run a shot diagnosis in Section 1 and confirm resources in Section 2 to get started!")
+  st.caption(
+      "Run a shot diagnosis in Section 1 and confirm resources in Section 2 to"
+      " get started!"
+  )
