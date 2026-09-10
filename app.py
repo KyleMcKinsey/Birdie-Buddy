@@ -82,81 +82,85 @@ PERSONA_DATABASE = {
 # -------------------------------------------------------------
 DRILL_SCHEMATICS = {
     "Alignment Stick Gate Drill": {
-        "equipment": "2 Alignment Sticks, 2 Tees, Target Flag",
-        "setup_steps": [
-            "Lay Stick #1 parallel to target line 1 foot outside the golf ball.",
-            (
-                "Plant Stick #2 vertically into turf 2 feet behind ball, angled"
-                " 45° along outer backswing path."
-            ),
-            (
-                "Push 2 Tees into turf 2 inches ahead of ball, just wider than"
-                " clubhead width."
-            ),
-        ],
-        "diagram_html": """
-        <div style="background-color: #0f172a; padding: 16px; border-radius: 10px; border: 1px solid #334155; font-family: monospace; color: #f8fafc;">
-            <div style="text-align: center; color: #38bdf8; font-weight: bold; margin-bottom: 10px;">⛳ RANGE VISUAL SCHEMATIC: ALIGNMENT STICK GATE</div>
-            <pre style="color: #4ade80; font-size: 13px; line-height: 1.3; margin: 0; text-align: center;">
-🎯 Target Line Flag ---------------------------------------------------->
-         
-               \  (Stick #2: Outer Path Barrier @ 45°)
-                \
-          [Tee 1] 🟢 Ball [Tee 2]   <-- Impact Gate (+1" Clubhead Width)
-         =========================  <-- Stick #1: Target Line Guide
-               👣 [Golfer Stance]
-            </pre>
-        </div>
-        """,
-        "pro_cue": (
-            "Swing cleanly through the tee gate without touching either stick"
-            " or clipping the outer barrier stick on takeaway."
+        "equipment": "2 Alignment Rods, 2 Golf Tees, Target Alignment Flag",
+        "image_url": "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": (
+            "Imagine laying down a pristine set of parallel railroad tracks on"
+            " the green grass pointing directly down your target line. Stick #1"
+            " sits on the turf 1 foot outside the ball, acting as your visual"
+            " track line. Stick #2 is stuck vertically into the turf 2 feet"
+            " behind the ball, angled up at 45° like a slanted fence. If your"
+            " backswing loop swings too far outside or 'over-the-top', your club"
+            " shaft will immediately sound the alarm by tapping this stick."
+            " Finally, two tees are pushed into the grass 2 inches ahead of your"
+            " ball, leaving just enough clearance for your iron's sweet spot to"
+            " glide through."
+        ),
+        "analogy": (
+            "🚂 **The Railroad Track & Slanted Roof:** Think of your swing as a"
+            " bullet train moving through a narrow glass tunnel. If you swing"
+            " over-the-top, you shatter the glass on the upper slanted roof"
+            " (Stick #2). You must stay beneath the roof and glide straight"
+            " through the center of the tracks."
+        ),
+        "pro_tip": (
+            "🏆 **PGA Tour Pro Tip:** Keep 60% of your weight grounded in your"
+            " lead heel during impact. Do not fight to hit the ball—focus purely"
+            " on sweeping the turf between the two tee gates while keeping your"
+            " eyes fixed on the front edge of the golf ball."
         ),
     },
     "Pause at Top Drill": {
-        "equipment": "1 Alignment Stick, Target Flag",
-        "setup_steps": [
-            "Lay 1 Alignment Stick across toe line for stance alignment.",
-            "Take normal backswing to top position and hold for 2 full seconds.",
-            "Audit clubface angle (parallel to lead forearm) before initiating downswing."
-        ],
-        "diagram_html": """
-        <div style="background-color: #0f172a; padding: 16px; border-radius: 10px; border: 1px solid #334155; font-family: monospace; color: #f8fafc;">
-            <div style="text-align: center; color: #38bdf8; font-weight: bold; margin-bottom: 10px;">⛳ RANGE VISUAL SCHEMATIC: PAUSE AT TOP DRILL</div>
-            <pre style="color: #38bdf8; font-size: 13px; line-height: 1.3; margin: 0; text-align: center;">
-                          [ TOP OF SWING ]
-                        ⏸️ 2-Sec Audit Pause
-                                |
-                                v
- 🎯 Target Line ----------> 🟢 Ball
-                        ==================  <-- Feet Alignment Stick
-                              👣 [Stance]
-            </pre>
-        </div>
-        """,
-        "pro_cue": "Feel body weight shift to lead side BEFORE hands begin downswing motion.",
+        "equipment": "1 Alignment Rod, Target Line Marker",
+        "image_url": "https://images.unsplash.com/photo-1592919505780-303950717480?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": (
+            "Picture coiled tension inside a grand pendulum clock. You coil your"
+            " torso fully into your trail hip on the backswing, reaching the"
+            " top of your arc. Instead of rushing down with your hands, you freeze"
+            " completely in place for 2 full seconds. Your torso remains fully"
+            " loaded, chest pointed away from the target, hands held high over"
+            " your right shoulder. You take a brief breath to audit your wrist"
+            " flatness, then initiate the downswing strictly by shifting your"
+            " lead knee toward the target line."
+        ),
+        "analogy": (
+            "🏹 **The Coiled Archer's Bow:** Pulling the bowstring back is your"
+            " backswing. Holding the pause at the top is holding your aim"
+            " steady before release. If you rush the drop, the arrow flies off"
+            " course. The pause forces your lower body to fire first while the"
+            " arms simply follow."
+        ),
+        "pro_tip": (
+            "🏆 **PGA Tour Pro Tip:** Count 'One-One-Thousand' silently at the"
+            " top before starting down. Feel as though your lead hip slides 2"
+            " inches toward the target while your chest remains pointed behind"
+            " you."
+        ),
     },
     "Tee Gate Drill": {
         "equipment": "4 Standard Golf Tees",
-        "setup_steps": [
-            "Place ball in center.",
-            "Press Tee #1 and Tee #2 into ground 0.5 inches inside and outside toe/heel.",
-            "Press Tee #3 and Tee #4 into ground 3 inches ahead of ball to form exit corridor."
-        ],
-        "diagram_html": """
-        <div style="background-color: #0f172a; padding: 16px; border-radius: 10px; border: 1px solid #334155; font-family: monospace; color: #f8fafc;">
-            <div style="text-align: center; color: #38bdf8; font-weight: bold; margin-bottom: 10px;">⛳ RANGE VISUAL SCHEMATIC: TEE GATE CORRIDOR</div>
-            <pre style="color: #facc15; font-size: 13px; line-height: 1.3; margin: 0; text-align: center;">
-🎯 Target Flag ----> [Tee 3]   [Tee 4]   <-- Exit Corridor Gate
-                          \     /
-                           \   /
-                      [Tee 1]🟢[Tee 2]   <-- Entry Gate at Ball Position
-                           👣 [Stance]
-            </pre>
-        </div>
-        """,
-        "pro_cue": "Sweep ball cleanly without disturbing entry or exit tees.",
-    }
+        "image_url": "https://images.unsplash.com/photo-1593111774601-dfbce3206564?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": (
+            "Step up to the ball on the turf and press two tees flush into the"
+            " ground just 1/4 inch beyond the toe and heel of your clubhead."
+            " Then, move 3 inches down the target line and plant two more tees"
+            " spaced exactly one ball-width apart to create a tight exit"
+            " corridor. Your objective is surgical precision: strike the ball"
+            " cleanly, pass through the front corridor, and avoid clipping any of"
+            " the four surrounding tees."
+        ),
+        "analogy": (
+            "🛩️ **Threading the Needle / Aircraft Runway:** Your clubhead is an"
+            " airplane landing on a narrow runway. If your club path drifts in"
+            " or out, you clip the runway guardrails (the tees). You must keep"
+            " the wings level and flush through impact."
+        ),
+        "pro_tip": (
+            "🏆 **PGA Tour Pro Tip:** Soften your tension in both wrists to a 4"
+            " out of 10. Let the weight of the clubhead drop through the gate organically"
+            " rather than steering it with your hands."
+        ),
+    },
 }
 
 # -------------------------------------------------------------
@@ -347,34 +351,39 @@ with col_c:
   st.metric("Target Pace", f"{sec_per_ball} sec/ball", "Recommended Tempo")
 
 # -------------------------------------------------------------
-# STEP 3: ADAPTIVE PGA EXECUTION & VISUAL SETUP SCHEMATIC
+# STEP 3: ADAPTIVE PRACTICE EXECUTION & DETAILED SETUP
 # -------------------------------------------------------------
 st.markdown("---")
-st.subheader("3. Adaptive Practice Execution & Visual Setup")
+st.subheader("3. Adaptive Practice Execution & Detailed Setup Guide")
 
 if "diagnosis" in st.session_state:
   diag = st.session_state["diagnosis"]
   drill_name = diag.get("recommended_grind_drill", "Alignment Stick Gate Drill")
 
-  # Fetch schematic details or default
   schematic = DRILL_SCHEMATICS.get(
       drill_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"]
   )
 
-  st.info(f"🎯 **Primary Technical Drill:** {drill_name}")
+  st.markdown(f"### 🎯 Recommended Drill: **{drill_name}**")
 
-  # Display Visual HTML Diagram
-  st.markdown(schematic["diagram_html"], unsafe_allow_html=True)
-
-  # Display Setup & Equipment
-  st.markdown(
-      f"**Required Range Equipment:** {schematic['equipment']}"
+  # High Quality Visual Image Rendering
+  st.image(
+      schematic["image_url"],
+      caption=f"Visual Range Setup Blueprint — {drill_name}",
+      use_container_width=True,
   )
-  st.write("**Step-by-Step Physical Setup:**")
-  for step in schematic["setup_steps"]:
-    st.write(f"* {step}")
 
-  st.caption(f"💡 **PGA Tour Coaching Cue:** {schematic['pro_cue']}")
+  # Equipment & Vivid Setup Explanation
+  st.markdown(f"**🛠️ Range Equipment Needed:** {schematic['equipment']}")
+
+  st.markdown("#### 📖 Vivid Visual Setup Description")
+  st.write(schematic["vivid_description"])
+
+  st.markdown("#### 🧠 Mental Analogy")
+  st.markdown(schematic["analogy"])
+
+  st.markdown("#### 💡 PGA Tour Pro Tip")
+  st.info(schematic["pro_tip"])
 
   st.markdown("---")
 
@@ -382,16 +391,16 @@ if "diagnosis" in st.session_state:
   if total_balls < 40 or total_time < 30:
     st.warning("⚡ **Express Micro-Session Execution Plan**")
     st.markdown(f"""
-        * **Block 1 Grind ({grind_balls} Balls | {grind_time} Mins):** Execute rapid-fire reps using *{drill_name}*. Focus strictly on impact feel.
-        * **Block 2 Pressure ({game_balls} Balls | {game_time} Mins):** Single target gate challenge. Must hit {min(game_balls, 3)} consecutive fairways to complete session.
+        * **Block 1 Technical Grind ({grind_balls} Balls | {grind_time} Mins):** Execute reps using *{drill_name}*. Focus strictly on impact feel and clean path execution.
+        * **Block 2 Target Pressure ({game_balls} Balls | {game_time} Mins):** Single target gate challenge. Must hit {min(game_balls, 3)} consecutive fairways to complete session.
         """)
   elif total_balls > 110 or total_time > 75:
     st.success("🔥 **Master Progressive Calibration Session Plan**")
     p1_balls, p2_balls = grind_balls // 2, grind_balls - (grind_balls // 2)
     st.markdown(f"""
         * **Stage 1 Mechanical Exaggeration ({p1_balls} Balls | {grind_time // 2} Mins):** Deliberately over-correct your missed swing path using the visual setup above.
-        * **Stage 2 Precision Tolerance ({p2_balls} Balls | {grind_time // 2} Mins):** Tighten gate width. Hold 3-second finish pose on every shot.
-        * **Stage 3 Full Course Simulation ({game_balls} Balls | {game_time} Mins):** 9-hole range simulation. Full 45s pre-shot routine per ball.
+        * **Stage 2 Precision Tolerance ({p2_balls} Balls | {grind_time // 2} Mins):** Tighten gate width to minimum tolerances. Hold a 3-second finish pose on every shot.
+        * **Stage 3 Full Course Simulation ({game_balls} Balls | {game_time} Mins):** 9-hole range simulation. Execute a full 45s pre-shot routine per ball.
         """)
   else:
     st.info("🎯 **Standard Dual-Block Plan**")
@@ -400,4 +409,4 @@ if "diagnosis" in st.session_state:
         * **Block 2 Game Simulation ({game_balls} Balls | {game_time} Mins):** Alternate targets and clubs on every single rep.
         """)
 else:
-  st.caption("Run a shot diagnosis above to generate your customized drill routine and setup schematics!")
+  st.caption("Run a shot diagnosis above to generate your customized drill routine, images, and pro coaching tips!")
