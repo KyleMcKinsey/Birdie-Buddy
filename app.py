@@ -124,8 +124,40 @@ game_pct = 1.0 - grind_pct
 grind_balls = int(total_balls * grind_pct)
 game_balls = int(total_balls * game_pct)
 
+# Visual Asset Allocation Progress Bar
+st.write("**Asset Distribution:**")
+st.progress(grind_pct, text=f"Grind Mode: {int(grind_pct * 100)}% | Game Mode: {int(game_pct * 100)}%")
+
 col_a, col_b = st.columns(2)
 with col_a:
-    st.metric("Grind Mode Balls (Technical Reps)", f"{grind_balls} balls", f"{int(grind_pct * 100)}%")
+    st.metric("Grind Mode Balls", f"{grind_balls} balls", f"{int(grind_pct * 100)}%")
 with col_b:
-    st.metric("Game Mode Balls (Target Pressure)", f"{game_balls} balls", f"{int(game_pct * 100)}%")
+    st.metric("Game Mode Balls", f"{game_balls} balls", f"{int(game_pct * 100)}%")
+
+# -------------------------------------------------------------
+# STEP 3: ACTIONABLE PRACTICE ROUTINE CARD
+# -------------------------------------------------------------
+st.markdown("---")
+st.subheader("3. Actionable Practice Execution Plan")
+
+if 'diagnosis' in st.session_state:
+    diag = st.session_state['diagnosis']
+    drill_name = diag.get('recommended_grind_drill', 'Standard Alignment Drill')
+    
+    st.info(f"🎯 **Target Drill:** {drill_name}")
+    
+    # Calculate Sets based on Grind Balls
+    reps_per_set = 10
+    total_sets = max(1, grind_balls // reps_per_set)
+    
+    st.markdown(f"""
+    **Block 1: Technical Grind ({grind_balls} Balls)**
+    * **Structure:** {total_sets} sets of {reps_per_set} balls using *{drill_name}*.
+    * **Focus:** Execute 3-second freeze at finish position on every rep.
+    
+    **Block 2: Target Pressure Game ({game_balls} Balls)**
+    * **Structure:** Single-ball target switching (Fairway simulation).
+    * **Focus:** Full pre-shot routine; switch target flag after every single ball.
+    """)
+else:
+    st.caption("Run a shot diagnosis above to generate your customized drill routine!")
