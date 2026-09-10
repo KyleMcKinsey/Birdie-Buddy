@@ -101,6 +101,7 @@ shot_transcript = st.text_area(
 
 if st.button(f"Analyze Shot with {selected_persona_key}"):
   if shot_transcript:
+    # Strictly isolate persona humor to 'tom_shanks_response' while forcing real PGA drills for 'recommended_grind_drill'
     system_prompt = f"""
         {active_persona['system_instruction']}
 
@@ -111,7 +112,7 @@ if st.button(f"Analyze Shot with {selected_persona_key}"):
           "detected_miss": "string",
           "tom_shanks_response": "string (1-2 sentences max, matching your assigned movie character persona)",
           "confidence_score": 0.95,
-          "recommended_grind_drill": "string"
+          "recommended_grind_drill": "string (MUST be a real, standard PGA golf instruction drill, e.g., 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill', 'Head Cover Under Arm Drill')"
         }}
         """
 
@@ -186,7 +187,6 @@ if "diagnosis" in st.session_state:
 st.markdown("---")
 st.subheader("2. Practice Resource Constraints (Balls & Time)")
 
-# Dual Input Layout: Balls & Time
 col_input_a, col_input_b = st.columns(2)
 with col_input_a:
   total_balls = st.number_input(
@@ -248,13 +248,11 @@ else:
 
 game_pct = 1.0 - grind_pct
 
-# Asset Allocations (Balls & Time)
 grind_balls = int(total_balls * grind_pct)
 game_balls = int(total_balls * game_pct)
 grind_time = int(total_time * grind_pct)
 game_time = int(total_time * game_pct)
 
-# Tempo Pacing Metrics
 sec_per_ball = (
     int((total_time * 60) / total_balls) if total_balls > 0 else 0
 )
@@ -277,10 +275,10 @@ with col_c:
   st.metric("Target Pace", f"{sec_per_ball} sec/ball", "Recommended Tempo")
 
 # -------------------------------------------------------------
-# STEP 3: ACTIONABLE PRACTICE ROUTINE CARD
+# STEP 3: REALISTIC PRACTICE EXECUTION PLAN
 # -------------------------------------------------------------
 st.markdown("---")
-st.subheader("3. Time-Optimized Practice Execution Plan")
+st.subheader("3. Realistic Practice Execution Plan")
 
 if "diagnosis" in st.session_state:
   diag = st.session_state["diagnosis"]
@@ -293,18 +291,20 @@ if "diagnosis" in st.session_state:
     total_sets = max(1, grind_balls // reps_per_set)
     time_per_set = max(1, grind_time // total_sets)
     st.markdown(f"""
-        **Block 1: Technical Grind ({grind_balls} Balls | {grind_time} Minutes)**
-        * **Structure:** {total_sets} sets of {reps_per_set} balls using *{drill_name}*.
-        * **Pacing:** Pace each 10-ball set over ~{time_per_set} minutes ({sec_per_ball}s per shot).
-        * **Focus:** Execute 3-second freeze at finish position on every rep.
+        **Block 1: Technical Mechanical Grind ({grind_balls} Balls | {grind_time} Minutes)**
+        * **Required Equipment:** 2 Alignment Sticks, 1 Box of Standard Tees, Target Flag.
+        * **Setup & Structure:** {total_sets} sets of {reps_per_set} balls using the *{drill_name}*.
+        * **Pacing Protocol:** Allow ~{time_per_set} minutes per 10-ball set (~{sec_per_ball} seconds per swing).
+        * **Execution Focus:** Hold a deliberate 3-second finish pose on every repetition to audit swing path and balance before teeing up the next ball.
         """)
 
   if game_balls > 0:
     st.markdown(f"""
-        **Block 2: Target Pressure Game ({game_balls} Balls | {game_time} Minutes)**
-        * **Structure:** Single-ball target switching (Fairway simulation).
-        * **Pacing:** Full 45-second pre-shot routine per shot across {game_time} minutes.
-        * **Focus:** Switch target flag and club selection after every single ball.
+        **Block 2: Target Pressure Course Simulation ({game_balls} Balls | {game_time} Minutes)**
+        * **Required Equipment:** Full Bag (Driver, Irons, Wedges), Alignment Stick (for target line reference).
+        * **Setup & Structure:** Simulated 9-hole range play. Pick 2 range flags as left/right fairway boundaries.
+        * **Pacing Protocol:** Step off the mat and execute a complete 45-second pre-shot routine for each of the {game_balls} shots across {game_time} minutes.
+        * **Execution Focus:** Change target flag and club on *every single shot*. Record fairways hit and greens in regulation mentally.
         """)
 else:
   st.caption("Run a shot diagnosis above to generate your customized drill routine!")
