@@ -66,50 +66,78 @@ PERSONA_DATABASE = {
 }
 
 # -------------------------------------------------------------
-# EXPANDED PGA TOUR KNOWLEDGE BASE & SCHEMATICS
+# EXPANDED PGA TOUR KNOWLEDGE BASE & SCHEMATICS (10 DRILLS)
 # -------------------------------------------------------------
 DRILL_SCHEMATICS = {
     "Alignment Stick Gate Drill": {
-        "equipment": "2 Alignment Rods, 2 Golf Tees, Target Alignment Flag",
+        "equipment": "2 Alignment Rods, 2 Golf Tees",
         "image_url": "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?q=80&w=1000&auto=format&fit=crop",
-        "vivid_description": "Imagine laying down a pristine set of parallel railroad tracks on the green grass pointing directly down your target line. Stick #1 sits on the turf 1 foot outside the ball, acting as your visual track line. Stick #2 is stuck vertically into the turf 2 feet behind the ball, angled up at 45° like a slanted fence. If your backswing loop swings too far outside or 'over-the-top', your club shaft will immediately sound the alarm by tapping this stick.",
-        "analogy": "🚂 **The Railroad Track & Slanted Roof:** Think of your swing as a bullet train moving through a narrow glass tunnel. If you swing over-the-top, you shatter the glass on the upper slanted roof (Stick #2).",
-        "pro_tip": "🏆 **PGA Tour Pro Tip:** Keep 60% of your weight grounded in your lead heel during impact. Do not fight to hit the ball—focus purely on sweeping the turf cleanly."
+        "vivid_description": "Lay down parallel alignment rods along your target line. Stick a second rod into the turf 2 feet behind the ball at a 45° angle along your target path to force an inside-out delivery.",
+        "analogy": "🚂 **Railroad Track & Slanted Roof:** Swing inside the tunnel without clipping the slanted roof stick on the way down.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Keep 60% of your weight grounded in your lead heel through impact to clear hips."
     },
     "Pause at Top Drill": {
-        "equipment": "1 Alignment Rod, Target Line Marker",
+        "equipment": "1 Alignment Rod",
         "image_url": "https://images.unsplash.com/photo-1592919505780-303950717480?q=80&w=1000&auto=format&fit=crop",
-        "vivid_description": "Picture coiled tension inside a grand pendulum clock. You coil your torso fully into your trail hip on the backswing, reaching the top of your arc. Instead of rushing down with your hands, you freeze completely in place for 2 full seconds. Your torso remains fully loaded, chest pointed away from the target before starting the downswing.",
-        "analogy": "🏹 **The Coiled Archer's Bow:** Pulling the bowstring back is your backswing. Holding the pause at the top is holding your aim steady before release.",
-        "pro_tip": "🏆 **PGA Tour Pro Tip:** Count 'One-One-Thousand' silently at the top before starting down to initiate downswing with lower body."
+        "vivid_description": "Take a full backswing and pause for a complete 2-second count at the top before starting your downswing. Feel your lower body initiate the downswing transition.",
+        "analogy": "🏹 **Coiled Archer's Bow:** Holding the pause stabilizes your aim before smoothly releasing the arrow.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Count 'One-One-Thousand' silently at the top before starting down with your hips."
     },
     "Tee Gate Drill": {
         "equipment": "4 Standard Golf Tees",
         "image_url": "https://images.unsplash.com/photo-1593111774601-dfbce3206564?q=80&w=1000&auto=format&fit=crop",
-        "vivid_description": "Step up to the ball on the turf and press two tees flush into the ground just 1/4 inch beyond the toe and heel of your clubhead. Then, move 3 inches down the target line and plant two more tees spaced exactly one ball-width apart to create a tight exit corridor.",
-        "analogy": "🛩️ **Aircraft Runway:** Your clubhead is an airplane landing on a narrow runway. If your club path drifts in or out, you clip the runway guardrails (the tees).",
-        "pro_tip": "🏆 **PGA Tour Pro Tip:** Soften wrist grip pressure to 4/10. Let the weight of the clubhead drop through the gate organically."
+        "vivid_description": "Plant two tees just outside the toe and heel of your clubhead at address, creating a narrow gate that forces center-face contact on every swing.",
+        "analogy": "🛩️ **Narrow Runway:** Swing clean through the gate without clipping the side guardrails.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Soften wrist grip pressure to 4/10 to let the clubhead release naturally through the gate."
     },
     "Towel Under Armpits Drill": {
         "equipment": "1 Microfiber Golf Towel",
         "image_url": "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=1000&auto=format&fit=crop",
-        "vivid_description": "Tuck a single golf towel horizontally across your chest, clamping it snugly under both armpits. Take half-swings focusing on keeping your lead and trail upper arms pinned against your torso throughout rotation. If your arms disconnect or 'chicken-wing', the towel drops instantly.",
-        "analogy": "📦 **The Solid Core Cylinder:** Your arms and torso form a single solid unit like a spinning turbine. The arms do not flap independently.",
-        "pro_tip": "🏆 **PGA Tour Pro Tip:** Focus on turning your sternum toward the target rather than pulling the club through with your hands."
+        "vivid_description": "Tuck a single golf towel across your chest under both armpits. Take smooth half-swings without dropping the towel to maintain body-arm connectivity.",
+        "analogy": "📦 **Solid Core Cylinder:** Your arms and torso turn as one unified engine rather than swinging independently.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Rotate your sternum through the ball rather than pulling with your arms."
     },
     "Coin Strike Low-Point Drill": {
-        "equipment": "1 Small Coin (Quarter or Ball Marker)",
+        "equipment": "1 Coin or Ball Marker",
         "image_url": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop",
-        "vivid_description": "Place a quarter flat on the turf exactly 2 inches in front of where your ball would sit. Make smooth, three-quarter iron swings with the goal of brushing the turf so your divot starts AT the coin, sending the coin skipping forward.",
-        "analogy": "🔪 **Chopping Wood vs. Shoveling:** Stop trying to scoop the ball into the air. Think of compressing the ball down into the turf ahead.",
-        "pro_tip": "🏆 **PGA Tour Pro Tip:** Ensure your chest buttons are positioned directly over or slightly ahead of the coin at the moment of impact."
+        "vivid_description": "Place a coin 2 inches ahead of your golf ball. Focus entirely on clipping the coin off the turf to shift your swing low-point forward.",
+        "analogy": "🔪 **Compressing vs. Scooping:** Drive the clubhead through the turf forward instead of scooping up.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Ensure your chest buttons are directly over or slightly ahead of the coin at impact."
     },
     "Split-Hands Release Drill": {
         "equipment": "Mid-Iron (7-Iron)",
         "image_url": "https://images.unsplash.com/photo-1592919505780-303950717480?q=80&w=1000&auto=format&fit=crop",
-        "vivid_description": "Grip your 7-iron normally with your lead hand at the top, but separate your trail hand 3 inches lower down the grip (like holding a hockey stick). Take slow waist-high swings to feel your lead forearm rotate naturally over the trail forearm.",
-        "analogy": "🏒 **The Hockey Slap Shot:** Splitting your hands exaggerates forearm crossover and prevents holding the face open through impact.",
-        "pro_tip": "🏆 **PGA Tour Pro Tip:** Feel the toe of the club head point straight up to the sky immediately after impact on the follow-through."
+        "vivid_description": "Separate your trail hand 3 inches down the grip like holding a hockey stick. Take half-swings to feel the lead forearm roll over naturally.",
+        "analogy": "🏒 **Hockey Slap Shot:** Forces proper wrist crossover to stop leaving the face open.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Feel the toe of the club point straight to the sky on the extension follow-through."
+    },
+    "Feet-Together Balance Drill": {
+        "equipment": "Any Short/Mid-Iron",
+        "image_url": "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Stand with your feet touching heel-to-toe. Make smooth 75% tempo swings while maintaining total balance without swaying or tipping.",
+        "analogy": "🌳 **Deep Rooted Tree:** Rotates around a fixed central axis without lateral sliding.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Keep your weight centered over the mid-foot throughout the backswing and finish."
+    },
+    "Wall-Head Posture Drill": {
+        "equipment": "Wall or Alignment Rod behind hips",
+        "image_url": "https://images.unsplash.com/photo-1592919505780-303950717480?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Set up with your forehead gently touching a wall or soft pad. Practice slow swings maintaining head contact to eliminate early extension.",
+        "analogy": "🎯 **Fixed Pivot Pin:** Prevents your hips from thrusting forward toward the ball.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Keep your trail hip pressed back during the initial downswing transition."
+    },
+    "Impact Bag Compression Drill": {
+        "equipment": "Impact Bag or Heavy Towel Bundle",
+        "image_url": "https://images.unsplash.com/photo-1593111774601-dfbce3206564?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Swing half-speed into an impact bag, stopping at impact to feel shaft lean forward and hands leading the clubhead.",
+        "analogy": "🔨 **Driving a Nail:** Delivers maximum energy transfer with hands ahead of the clubhead.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Firm up your lead wrist at impact so it forms a flat line with your forearm."
+    },
+    "Two-Step Pump Lag Drill": {
+        "equipment": "Mid-Iron (6-Iron or 7-Iron)",
+        "image_url": "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=1000&auto=format&fit=crop",
+        "vivid_description": "Take a backswing, pump the downswing halfway down twice holding wrist angle, then sweep through on the third stroke.",
+        "analogy": "🎣 **Whip Crack:** Preserves wrist angle until the absolute last millisecond before impact.",
+        "pro_tip": "🏆 **PGA Tour Pro Tip:** Let your hips lead the pull down while hands stay soft and passive."
     }
 }
 
@@ -148,6 +176,10 @@ if st.button(f"Analyze Shot with {selected_persona_key}"):
         - 'Towel Under Armpits Drill' (Best for: Flying elbow, chicken-winging, loss of body connection)
         - 'Coin Strike Low-Point Drill' (Best for: Fat shots, thin shots, scooping/flipping at ball)
         - 'Split-Hands Release Drill' (Best for: Open clubface, hanging back, push-slice)
+        - 'Feet-Together Balance Drill' (Best for: Swaying, lateral sliding, loss of balance)
+        - 'Wall-Head Posture Drill' (Best for: Early extension, posture loss, standing up at impact)
+        - 'Impact Bag Compression Drill' (Best for: Flipping wrists, weak shaft lean, loss of distance)
+        - 'Two-Step Pump Lag Drill' (Best for: Casting early, losing wrist lag, casting off top)
 
         Output strictly raw JSON matching this structure with no markdown formatting:
         {{
@@ -367,7 +399,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
 
         plan_text = f"* **Block 1 Primary Fault Correction ({d1_balls} Balls | {d1_time} Mins):** Execute *{active_drills[0]}*. Fix primary swing error.\n* **Block 2 Secondary Fault Correction ({d2_balls} Balls | {d2_time} Mins):** Execute *{active_drills[1]}*. Address secondary mechanic."
 
-        # Only display Block 3 if resources are actually allocated to Game/Target mode
+        # Only display Block 3 if resources are allocated to Game/Target mode
         if gm_balls > 0 and gm_time > 0:
             plan_text += f"\n* **Block 3 Target Course Pressure ({gm_balls} Balls | {gm_time} Mins):** 9-hole target range simulation. Full pre-shot routine per ball."
 
@@ -378,7 +410,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
 
         plan_text = f"* **Block 1 Technical Grind ({g_balls} Balls | {g_time} Mins):** Paced reps using *{active_drills[0]}* at ~{spb}s per shot."
 
-        # Only display Block 2 if resources are actually allocated to Game/Target mode
+        # Only display Block 2 if resources are allocated to Game/Target mode
         if gm_balls > 0 and gm_time > 0:
             plan_text += f"\n* **Block 2 Target Pressure ({gm_balls} Balls | {gm_time} Mins):** Alternate target flags and clubs on every rep."
 
