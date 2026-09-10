@@ -9,7 +9,7 @@ st.set_page_config(
 st.title("⛳ Birdie Buddy (Phase 1 MVP)")
 st.caption("AI Golf Caddie & Practice Asset Allocator powered by Gemini")
 
-# Sidebar - API Key Input Only
+# Sidebar - API Key Input
 st.sidebar.header("Configuration")
 api_key = st.sidebar.text_input("Enter Gemini API Key", type="password")
 
@@ -78,6 +78,88 @@ PERSONA_DATABASE = {
 }
 
 # -------------------------------------------------------------
+# DETAILED DRILL & VISUAL SCHEMATIC DATABASE
+# -------------------------------------------------------------
+DRILL_SCHEMATICS = {
+    "Alignment Stick Gate Drill": {
+        "equipment": "2 Alignment Sticks, 2 Tees, Target Flag",
+        "setup_steps": [
+            "Lay Stick #1 parallel to target line 1 foot outside the golf ball.",
+            (
+                "Plant Stick #2 vertically into turf 2 feet behind ball, angled"
+                " 45° along outer backswing path."
+            ),
+            (
+                "Push 2 Tees into turf 2 inches ahead of ball, just wider than"
+                " clubhead width."
+            ),
+        ],
+        "diagram_html": """
+        <div style="background-color: #0f172a; padding: 16px; border-radius: 10px; border: 1px solid #334155; font-family: monospace; color: #f8fafc;">
+            <div style="text-align: center; color: #38bdf8; font-weight: bold; margin-bottom: 10px;">⛳ RANGE VISUAL SCHEMATIC: ALIGNMENT STICK GATE</div>
+            <pre style="color: #4ade80; font-size: 13px; line-height: 1.3; margin: 0; text-align: center;">
+🎯 Target Line Flag ---------------------------------------------------->
+         
+               \  (Stick #2: Outer Path Barrier @ 45°)
+                \
+          [Tee 1] 🟢 Ball [Tee 2]   <-- Impact Gate (+1" Clubhead Width)
+         =========================  <-- Stick #1: Target Line Guide
+               👣 [Golfer Stance]
+            </pre>
+        </div>
+        """,
+        "pro_cue": (
+            "Swing cleanly through the tee gate without touching either stick"
+            " or clipping the outer barrier stick on takeaway."
+        ),
+    },
+    "Pause at Top Drill": {
+        "equipment": "1 Alignment Stick, Target Flag",
+        "setup_steps": [
+            "Lay 1 Alignment Stick across toe line for stance alignment.",
+            "Take normal backswing to top position and hold for 2 full seconds.",
+            "Audit clubface angle (parallel to lead forearm) before initiating downswing."
+        ],
+        "diagram_html": """
+        <div style="background-color: #0f172a; padding: 16px; border-radius: 10px; border: 1px solid #334155; font-family: monospace; color: #f8fafc;">
+            <div style="text-align: center; color: #38bdf8; font-weight: bold; margin-bottom: 10px;">⛳ RANGE VISUAL SCHEMATIC: PAUSE AT TOP DRILL</div>
+            <pre style="color: #38bdf8; font-size: 13px; line-height: 1.3; margin: 0; text-align: center;">
+                          [ TOP OF SWING ]
+                        ⏸️ 2-Sec Audit Pause
+                                |
+                                v
+ 🎯 Target Line ----------> 🟢 Ball
+                        ==================  <-- Feet Alignment Stick
+                              👣 [Stance]
+            </pre>
+        </div>
+        """,
+        "pro_cue": "Feel body weight shift to lead side BEFORE hands begin downswing motion.",
+    },
+    "Tee Gate Drill": {
+        "equipment": "4 Standard Golf Tees",
+        "setup_steps": [
+            "Place ball in center.",
+            "Press Tee #1 and Tee #2 into ground 0.5 inches inside and outside toe/heel.",
+            "Press Tee #3 and Tee #4 into ground 3 inches ahead of ball to form exit corridor."
+        ],
+        "diagram_html": """
+        <div style="background-color: #0f172a; padding: 16px; border-radius: 10px; border: 1px solid #334155; font-family: monospace; color: #f8fafc;">
+            <div style="text-align: center; color: #38bdf8; font-weight: bold; margin-bottom: 10px;">⛳ RANGE VISUAL SCHEMATIC: TEE GATE CORRIDOR</div>
+            <pre style="color: #facc15; font-size: 13px; line-height: 1.3; margin: 0; text-align: center;">
+🎯 Target Flag ----> [Tee 3]   [Tee 4]   <-- Exit Corridor Gate
+                          \     /
+                           \   /
+                      [Tee 1]🟢[Tee 2]   <-- Entry Gate at Ball Position
+                           👣 [Stance]
+            </pre>
+        </div>
+        """,
+        "pro_cue": "Sweep ball cleanly without disturbing entry or exit tees.",
+    }
+}
+
+# -------------------------------------------------------------
 # STEP 1: PATH/FACE DIAGNOSTIC SPIKE
 # -------------------------------------------------------------
 st.subheader("1. Shot Diagnostic (Path/Face Domain)")
@@ -111,7 +193,7 @@ if st.button(f"Analyze Shot with {selected_persona_key}"):
           "detected_miss": "string",
           "tom_shanks_response": "string (1-2 sentences max, matching your assigned movie character persona)",
           "confidence_score": 0.95,
-          "recommended_grind_drill": "string (MUST be a real PGA instruction drill name like 'Alignment Stick Gate Drill', 'Pause at Top Drill', or 'Tee Gate Drill')"
+          "recommended_grind_drill": "string (MUST select one of: 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill')"
         }}
         """
 
@@ -142,225 +224,4 @@ if st.button(f"Analyze Shot with {selected_persona_key}"):
         st.stop()
 
       clean_json = (
-          response.text.replace("```json", "").replace("```", "").strip()
-      )
-      st.session_state["diagnosis"] = json.loads(clean_json)
-      st.session_state["caddie_name"] = selected_persona_key
-    except Exception as e:
-      st.error(f"Error parsing Gemini response: {e}")
-
-if "diagnosis" in st.session_state:
-  diag = st.session_state["diagnosis"]
-  caddie = st.session_state.get("caddie_name", selected_persona_key)
-
-  st.success(f'**{caddie}:** "{diag["tom_shanks_response"]}"')
-
-  col1, col2 = st.columns(2)
-  with col1:
-    st.metric("Category", diag["diagnosis_category"])
-    st.write(f"**Detected Miss:** {diag['detected_miss']}")
-  with col2:
-    st.metric("Confidence Score", f"{int(diag['confidence_score'] * 100)}%")
-    st.write(f"**Recommended Drill:** {diag['recommended_grind_drill']}")
-
-  st.markdown("---")
-  st.write(
-      "**Calibration Loop: Did Gemini's diagnosis match your felt"
-      " experience?**"
-  )
-  match_flag = st.radio(
-      "Diagnosis Match:", ["Matched", "Overridden"], horizontal=True
-  )
-
-  if match_flag == "Overridden":
-    user_felt = st.text_input("Describe your actual felt experience:")
-    if st.button("Log Override"):
-      st.info("Override recorded for continuous improvement calibration.")
-  else:
-    if st.button("Confirm Match"):
-      st.success("Diagnosis confirmed and logged.")
-
-# -------------------------------------------------------------
-# STEP 2: PRACTICE ASSET ALLOCATION & DUAL-CONSTRAINT FOCUS
-# -------------------------------------------------------------
-st.markdown("---")
-st.subheader("2. Practice Resource Constraints (Balls & Time)")
-
-col_input_a, col_input_b = st.columns(2)
-with col_input_a:
-  total_balls = st.number_input(
-      "Total Balls Available:",
-      min_value=10,
-      max_value=300,
-      value=100,
-      step=10,
-  )
-with col_input_b:
-  total_time = st.number_input(
-      "Total Time Available (mins):",
-      min_value=15,
-      max_value=180,
-      value=60,
-      step=15,
-  )
-
-practice_mode = st.radio(
-    "Select Practice Mode:",
-    options=[
-        "Combination / Hybrid (AI Balanced)",
-        "Pure Grind Mode (100% Technical Drill)",
-        "Pure Game Mode (100% Target Pressure)",
-    ],
-    horizontal=False,
-)
-
-if practice_mode == "Pure Grind Mode (100% Technical Drill)":
-  grind_pct = 1.0
-  st.caption("Pure Grind selected: All resources committed to drill reps.")
-elif practice_mode == "Pure Game Mode (100% Target Pressure)":
-  grind_pct = 0.0
-  st.caption(
-      "Pure Game selected: All resources committed to pressure simulation."
-  )
-else:
-  raw_grind_ratio = 0.60
-  bounded_grind_ratio = max(0.30, min(0.75, raw_grind_ratio))
-  user_override = st.checkbox("Enable Manual Ratio Override")
-
-  if user_override:
-    grind_pct = (
-        st.slider(
-            "Manual Grind Allocation (%)",
-            min_value=0,
-            max_value=100,
-            value=int(bounded_grind_ratio * 100),
-        )
-        / 100.0
-    )
-    st.caption("Manual override active. Sum locked to 100%.")
-  else:
-    grind_pct = bounded_grind_ratio
-    st.info(
-        f"AI Default Grind Allocation: {int(grind_pct * 100)}% (Enforced within"
-        " 30%–75% guardrails)"
-    )
-
-game_pct = 1.0 - grind_pct
-
-grind_balls = int(total_balls * grind_pct)
-game_balls = int(total_balls * game_pct)
-grind_time = int(total_time * grind_pct)
-game_time = int(total_time * game_pct)
-
-sec_per_ball = (
-    int((total_time * 60) / total_balls) if total_balls > 0 else 0
-)
-
-st.write("**Resource Distribution:**")
-st.progress(
-    grind_pct,
-    text=(
-        f"Grind Mode: {int(grind_pct * 100)}% | Game Mode:"
-        f" {int(game_pct * 100)}%"
-    ),
-)
-
-col_a, col_b, col_c = st.columns(3)
-with col_a:
-  st.metric("Grind Mode Split", f"{grind_balls} balls", f"{grind_time} mins")
-with col_b:
-  st.metric("Game Mode Split", f"{game_balls} balls", f"{game_time} mins")
-with col_c:
-  st.metric("Target Pace", f"{sec_per_ball} sec/ball", "Recommended Tempo")
-
-# -------------------------------------------------------------
-# STEP 3: ADAPTIVE PGA PRACTICE EXECUTION ENGINE
-# -------------------------------------------------------------
-st.markdown("---")
-st.subheader("3. Adaptive Practice Execution Plan")
-
-if "diagnosis" in st.session_state:
-  diag = st.session_state["diagnosis"]
-  drill_name = diag.get("recommended_grind_drill", "Standard Alignment Drill")
-
-  # Dynamic Constraint-Based Strategy Engine
-  if total_balls < 40 or total_time < 30:
-    session_tier = "⚡ Express Micro-Session (Tight Constraints)"
-    tier_note = (
-        "Short session detected. Eliminating multi-step setups; focusing on 1"
-        " high-yield micro-drill and rapid pressure evaluation."
-    )
-
-    grind_protocol = f"""
-        **Block 1: Hyper-Focused Micro-Drill ({grind_balls} Balls | {grind_time} Mins)**
-        * **PGA Drill Protocol:** Single-Point *{drill_name}* (Express Variant).
-        * **Required Equipment:** 1 Alignment Stick, 1 Box of Tees.
-        * **Execution:** Perform {grind_balls} continuous reps with 0 rest between swings. Focus purely on immediate feeling of path at impact.
-        """
-
-    game_protocol = f"""
-        **Block 2: High-Consequence Deathmatch ({game_balls} Balls | {game_time} Mins)**
-        * **PGA Drill Protocol:** 3-In-A-Row Target Gate.
-        * **Execution:** Select 1 narrow target corridor. You must land {min(game_balls, 3)} consecutive shots inside the zone before your time expires.
-        """
-
-  elif total_balls > 110 or total_time > 75:
-    session_tier = "🔥 Master Progressive Calibration Session (High Resources)"
-    tier_note = (
-        "Extended range session detected. Structuring a multi-stage progressive"
-        " coaching protocol (Exaggeration -> Precision Gate -> Differential"
-        " Scoring)."
-    )
-
-    p1_balls = grind_balls // 2
-    p2_balls = grind_balls - p1_balls
-    p1_time = grind_time // 2
-    p2_time = grind_time - p1_time
-
-    grind_protocol = f"""
-        **Block 1: Multi-Stage Technical Calibration ({grind_balls} Balls | {grind_time} Mins)**
-        * **Stage 1 - Opposite Feel Exaggeration ({p1_balls} Balls | {p1_time} Mins):** Deliberately over-correct your missed path using *{drill_name}* to build motor pattern awareness.
-        * **Stage 2 - Tour Precision Gate ({p2_balls} Balls | {p2_time} Mins):** Set alignment sticks to tight tour-width tolerances. Hold 3-second finish pose on every rep.
-        """
-
-    game_protocol = f"""
-        **Block 2: Full 9-Hole Simulated Match ({game_balls} Balls | {game_time} Mins)**
-        * **PGA Drill Protocol:** Full Bag Range Simulation.
-        * **Execution:** Play 9 simulated holes. Switch Driver, Iron, and Wedge on every ball. Step completely off the mat between shots for full 45-second routines.
-        """
-
-  else:
-    session_tier = "🎯 Standard Dual-Block Balanced Plan"
-    tier_note = (
-        "Standard session resources. Balancing mechanical reps with routine"
-        " pressure integration."
-    )
-
-    reps_per_set = 10
-    total_sets = max(1, grind_balls // reps_per_set)
-    time_per_set = max(1, grind_time // total_sets)
-
-    grind_protocol = f"""
-        **Block 1: Technical Mechanical Grind ({grind_balls} Balls | {grind_time} Mins)**
-        * **Structure:** {total_sets} sets of {reps_per_set} balls using *{drill_name}*.
-        * **Pacing:** ~{time_per_set} minutes per 10-ball set ({sec_per_ball} seconds/ball).
-        * **Execution:** Hold 3-second finish pose on every rep to evaluate balance and face alignment.
-        """
-
-    game_protocol = f"""
-        **Block 2: Target Pressure Simulation ({game_balls} Balls | {game_time} Mins)**
-        * **Structure:** Alternating target flags with full 45-second pre-shot routines.
-        * **Execution:** Change club and target flag after every ball. Record fairway accuracy mentally.
-        """
-
-  st.info(f"**{session_tier}**\n\n*{tier_note}*")
-  st.write(f"🎯 **Primary Drill Selection:** {drill_name}")
-
-  if grind_balls > 0:
-    st.markdown(grind_protocol)
-
-  if game_balls > 0:
-    st.markdown(game_protocol)
-
-else:
-  st.caption("Run a shot diagnosis above to generate your customized drill routine!")
+          response.text.replace("```json", "").replace("
