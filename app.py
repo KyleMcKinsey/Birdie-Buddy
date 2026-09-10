@@ -43,7 +43,7 @@ if st.button("Analyze Shot with Tom Shanks"):
         """
         
         try:
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content(f"{system_prompt}\n\nUser Input: {shot_transcript}")
             clean_json = response.text.replace("```json", "").replace("```", "").strip()
             st.session_state['diagnosis'] = json.loads(clean_json)
