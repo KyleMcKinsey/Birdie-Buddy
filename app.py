@@ -7,9 +7,53 @@ st.set_page_config(page_title="Birdie Buddy MVP", page_icon="⛳", layout="cente
 st.title("⛳ Birdie Buddy (Phase 1 MVP)")
 st.caption("AI Golf Caddie & Practice Asset Allocator powered by Gemini")
 
-# Sidebar - API Key Input
+# Sidebar - API Key Input & Settings
 st.sidebar.header("Configuration")
 api_key = st.sidebar.text_input("Enter Gemini API Key", type="password")
+
+# -------------------------------------------------------------
+# PERSONA DATABASE (System Prompts & Talking Styles)
+# -------------------------------------------------------------
+PERSONA_DATABASE = {
+    "Tom Shanks": {
+        "title": "Tom Shanks (Sarcastic Strategist)",
+        "description": "Brutally honest, witty, and sharp caddie who calls out bad choices with dry humor.",
+        "system_instruction": """
+        You are 'Tom Shanks,' a lightheartedly sarcastic yet highly strategic AI golf caddie.
+        Tone: Dry, witty, slightly condescending but fundamentally helpful.
+        Sample Catchphrases: 'Fore right into the timber sale!', 'Bold choice aiming for the parking lot.'
+        Analyze the shot error against the 'Path/Face' domain.
+        """
+    },
+    "Bernie Hacks": {
+        "title": "Bernie Hacks (Weekend Duffer)",
+        "description": "Over-enthusiastic high-handicapper who blames equipment, luck, and wind instead of swing mechanics.",
+        "system_instruction": """
+        You are 'Bernie Hacks,' an over-enthusiastic weekend golfer who uses golf jargon slightly wrong and always blames external factors (the wind, dirty ball, cheap tees, bad luck) before acknowledging swing errors.
+        Tone: Hype-man, chaotic, wildly optimistic, funny, uses heavy slang like 'pure strain', 'butter cut', 'nuked it'.
+        Sample Catchphrases: 'That was definitely a gust of wind at 100 feet!', 'Time to buy a new $600 driver!'
+        Analyze the shot error against the 'Path/Face' domain while keeping this comedic persona.
+        """
+    },
+    "Coach Grace": {
+        "title": "Coach Grace (Mindful Mentor)",
+        "description": "Calm, encouraging, and focused on swing tempo, breathwork, and positive mental re-framing.",
+        "system_instruction": """
+        You are 'Coach Grace,' a serene and supportive PGA master instructor focusing on mental clarity, swing tempo, and constructive encouragement.
+        Tone: Empathetic, balanced, warm, professional, encouraging.
+        Sample Catchphrases: 'Breathe through the release.', 'Every missed shot is just data for growth.'
+        Analyze the shot error against the 'Path/Face' domain while offering calm, positive encouragement.
+        """
+    }
+}
+
+selected_persona_key = st.sidebar.selectbox(
+    "Choose Your Caddie Persona:",
+    options=list(PERSONA_DATABASE.keys())
+)
+
+active_persona = PERSONA_DATABASE[selected_persona_key]
+st.sidebar.info(f"**{active_persona['title']}**\n\n{active_persona['description']}")
 
 if not api_key:
     st.warning("Please paste your Google Gemini API Key in the sidebar to begin.")
@@ -27,23 +71,23 @@ shot_transcript = st.text_area(
     placeholder="e.g., I swung hard out to right field and the ball sliced way off target..."
 )
 
-if st.button("Analyze Shot with Tom Shanks"):
+if st.button(f"Analyze Shot with {selected_persona_key}"):
     if shot_transcript:
-        system_prompt = """
-        You are 'Tom Shanks,' a lightheartedly sarcastic yet highly strategic AI golf caddie. 
-        Analyze the user's input regarding a missed shot. For Phase 1, strictly evaluate errors against the 'Path/Face' domain (club path relative to target line, face angle relative to path). 
+        system_prompt = f"""
+        {active_persona['system_instruction']}
+
+        Analyze the user's input regarding a missed shot. Strictly evaluate errors against the 'Path/Face' domain (club path relative to target line, face angle relative to path). 
         Output strictly raw JSON matching this structure with no markdown formatting:
-        {
+        {{
           "diagnosis_category": "Path/Face",
           "detected_miss": "string",
-          "tom_shanks_response": "string (1-2 sentences max, comedic persona)",
+          "tom_shanks_response": "string (1-2 sentences max, matching your assigned persona style)",
           "confidence_score": 0.95,
           "recommended_grind_drill": "string"
-        }
+        }}
         """
         
         try:
-            # Query active Flash models and sort newest first
             flash_models = [
                 m.name for m in genai.list_models() 
                 if 'generateContent' in m.supported_generation_methods and 'flash' in m.name.lower()
@@ -67,13 +111,15 @@ if st.button("Analyze Shot with Tom Shanks"):
 
             clean_json = response.text.replace("```json", "").replace("```", "").strip()
             st.session_state['diagnosis'] = json.loads(clean_json)
+            st.session_state['caddie_name'] = selected_persona_key
         except Exception as e:
             st.error(f"Error parsing Gemini response: {e}")
 
 if 'diagnosis' in st.session_state:
     diag = st.session_state['diagnosis']
+    caddie = st.session_state.get('caddie_name', selected_persona_key)
     
-    st.success(f"**Tom Shanks:** \"{diag['tom_shanks_response']}\"")
+    st.success(f"**{caddie}:** \"{diag['tom_shanks_response']}\"")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -83,7 +129,6 @@ if 'diagnosis' in st.session_state:
         st.metric("Confidence Score", f"{int(diag['confidence_score'] * 100)}%")
         st.write(f"**Recommended Drill:** {diag['recommended_grind_drill']}")
 
-    # Discrepancy & Calibration Loop UI
     st.markdown("---")
     st.write("**Calibration Loop: Did Gemini's diagnosis match your felt experience?**")
     match_flag = st.radio("Diagnosis Match:", ["Matched", "Overridden"], horizontal=True)
@@ -104,10 +149,7 @@ st.subheader("2. Practice Asset Allocation & Trust Bounds")
 
 total_balls = st.number_input("Total Practice Balls Available:", min_value=10, max_value=300, value=100, step=10)
 
-# Default Allocation Ratio
 raw_grind_ratio = 0.60
-
-# Practice Trust Bounds (Hardcoded Guardrails: 30% min, 75% max for Grind Mode)
 bounded_grind_ratio = max(0.30, min(0.75, raw_grind_ratio))
 
 user_override = st.checkbox("Enable Manual Override")
@@ -124,7 +166,6 @@ game_pct = 1.0 - grind_pct
 grind_balls = int(total_balls * grind_pct)
 game_balls = int(total_balls * game_pct)
 
-# Visual Asset Allocation Progress Bar
 st.write("**Asset Distribution:**")
 st.progress(grind_pct, text=f"Grind Mode: {int(grind_pct * 100)}% | Game Mode: {int(game_pct * 100)}%")
 
@@ -146,7 +187,6 @@ if 'diagnosis' in st.session_state:
     
     st.info(f"🎯 **Target Drill:** {drill_name}")
     
-    # Calculate Sets based on Grind Balls
     reps_per_set = 10
     total_sets = max(1, grind_balls // reps_per_set)
     
