@@ -43,11 +43,28 @@ if st.button("Analyze Shot with Tom Shanks"):
         """
         
         try:
-            # Automatically select an active Gemini Flash model for your API key
-            valid_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-            target_model = next((m for m in valid_models if 'flash' in m.lower()), valid_models[0])
-            model = genai.GenerativeModel(target_model)
-            response = model.generate_content(f"{system_prompt}\n\nUser Input: {shot_transcript}")
+            # Query active Flash models and sort newest first
+            flash_models = [
+                m.name for m in genai.list_models() 
+                if 'generateContent' in m.supported_generation_methods and 'flash' in m.name.lower()
+            ]
+            flash_models.sort(reverse=True)
+            
+            response = None
+            for model_name in flash_models:
+                try:
+                    model = genai.GenerativeModel(model_name)
+                    res = model.generate_content(f"{system_prompt}\n\nUser Input: {shot_transcript}")
+                    if res and res.text:
+                        response = res
+                        break
+                except Exception:
+                    continue
+
+            if response is None:
+                st.error("No active Gemini Flash model found for this API key.")
+                st.stop()
+
             clean_json = response.text.replace("```json", "").replace("```", "").strip()
             st.session_state['diagnosis'] = json.loads(clean_json)
         except Exception as e:
