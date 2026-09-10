@@ -247,7 +247,7 @@ if "diagnosis" in st.session_state:
     st.write(f"**Detected Miss:** {diag['detected_miss']}")
   with col2:
     st.metric("Confidence Score", f"{int(diag['confidence_score'] * 100)}%")
-    st.write(f"**Recommended Drill:** {diag['recommended_grind_drill']}")
+    st.write(f"**Base Recommended Drill:** {diag['recommended_grind_drill']}")
 
   st.markdown("---")
   st.write(
@@ -351,29 +351,54 @@ with col_c:
   st.metric("Target Pace", f"{sec_per_ball} sec/ball", "Recommended Tempo")
 
 # -------------------------------------------------------------
-# STEP 3: ADAPTIVE PRACTICE EXECUTION & DETAILED SETUP
+# STEP 3: ADAPTIVE PRACTICE EXECUTION & DYNAMIC DRILL RESOLUTION
 # -------------------------------------------------------------
 st.markdown("---")
 st.subheader("3. Adaptive Practice Execution & Detailed Setup Guide")
 
 if "diagnosis" in st.session_state:
   diag = st.session_state["diagnosis"]
-  drill_name = diag.get("recommended_grind_drill", "Alignment Stick Gate Drill")
+  base_drill = diag.get("recommended_grind_drill", "Alignment Stick Gate Drill")
+
+  # Dynamic Constraint-Based Drill Adaptation Logic
+  if total_balls < 40 or total_time < 30:
+    active_drill = "Tee Gate Drill"
+    session_tier = "⚡ Express Micro-Session"
+    adaptation_reason = (
+        "Time/Ball constraints are low (<40 balls or <30 mins). Automatically"
+        " simplified to a rapid-setup **Tee Gate Drill** requiring no heavy"
+        " equipment alignment."
+    )
+  elif total_balls > 110 or total_time > 75:
+    active_drill = "Alignment Stick Gate Drill"
+    session_tier = "🔥 Master Progressive Calibration Session"
+    adaptation_reason = (
+        "High resource availability (>110 balls or >75 mins). Upgraded to a"
+        " full **Alignment Stick Gate Drill** for deep multi-stage stance and"
+        " path calibration."
+    )
+  else:
+    active_drill = base_drill
+    session_tier = "🎯 Standard Dual-Block Session"
+    adaptation_reason = (
+        "Balanced resources. Executing standard AI-diagnosed primary drill."
+    )
 
   schematic = DRILL_SCHEMATICS.get(
-      drill_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"]
+      active_drill, DRILL_SCHEMATICS["Alignment Stick Gate Drill"]
   )
 
-  st.markdown(f"### 🎯 Recommended Drill: **{drill_name}**")
+  st.info(f"**{session_tier}:** {adaptation_reason}")
+  st.markdown(f"### 🎯 Active Drill Resolved: **{active_drill}**")
 
-  # High Quality Visual Image Rendering
+  # Dynamic Visual Image Rendering based on active resolved drill
   st.image(
       schematic["image_url"],
-      caption=f"Visual Range Setup Blueprint — {drill_name}",
+      caption=f"Visual Range Setup Blueprint — {active_drill}",
       use_container_width=True,
   )
 
-  # Equipment & Vivid Setup Explanation
+  # Dynamic Equipment & Setup Explanation
   st.markdown(f"**🛠️ Range Equipment Needed:** {schematic['equipment']}")
 
   st.markdown("#### 📖 Vivid Visual Setup Description")
@@ -391,21 +416,21 @@ if "diagnosis" in st.session_state:
   if total_balls < 40 or total_time < 30:
     st.warning("⚡ **Express Micro-Session Execution Plan**")
     st.markdown(f"""
-        * **Block 1 Technical Grind ({grind_balls} Balls | {grind_time} Mins):** Execute reps using *{drill_name}*. Focus strictly on impact feel and clean path execution.
+        * **Block 1 Technical Grind ({grind_balls} Balls | {grind_time} Mins):** Execute rapid reps using *{active_drill}*. Focus strictly on impact feel and clean path execution without stopping between swings.
         * **Block 2 Target Pressure ({game_balls} Balls | {game_time} Mins):** Single target gate challenge. Must hit {min(game_balls, 3)} consecutive fairways to complete session.
         """)
   elif total_balls > 110 or total_time > 75:
     st.success("🔥 **Master Progressive Calibration Session Plan**")
     p1_balls, p2_balls = grind_balls // 2, grind_balls - (grind_balls // 2)
     st.markdown(f"""
-        * **Stage 1 Mechanical Exaggeration ({p1_balls} Balls | {grind_time // 2} Mins):** Deliberately over-correct your missed swing path using the visual setup above.
+        * **Stage 1 Mechanical Exaggeration ({p1_balls} Balls | {grind_time // 2} Mins):** Deliberately over-correct your missed swing path using *{active_drill}*.
         * **Stage 2 Precision Tolerance ({p2_balls} Balls | {grind_time // 2} Mins):** Tighten gate width to minimum tolerances. Hold a 3-second finish pose on every shot.
         * **Stage 3 Full Course Simulation ({game_balls} Balls | {game_time} Mins):** 9-hole range simulation. Execute a full 45s pre-shot routine per ball.
         """)
   else:
     st.info("🎯 **Standard Dual-Block Plan**")
     st.markdown(f"""
-        * **Block 1 Technical Grind ({grind_balls} Balls | {grind_time} Mins):** {grind_balls // 10} sets of 10 balls. Paced at ~{sec_per_ball}s per shot.
+        * **Block 1 Technical Grind ({grind_balls} Balls | {grind_time} Mins):** {grind_balls // 10 if grind_balls >= 10 else 1} sets using *{active_drill}*. Paced at ~{sec_per_ball}s per shot.
         * **Block 2 Game Simulation ({game_balls} Balls | {game_time} Mins):** Alternate targets and clubs on every single rep.
         """)
 else:
