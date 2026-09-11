@@ -73,7 +73,7 @@ DRILL_SCHEMATICS = {
     # --- FULL SWING DRILLS (10) ---
     "Alignment Stick Gate Drill": {
         "equipment": "2 Alignment Rods, 2 Golf Tees",
-        "vivid_description": "Lay down parallel alignment rods along your target line. Stick a second rod into the turf 2 feet behind the ball at a 45° angle along your target path to force an inside-out delivery.",
+        "vivid_description": "Take practice strokes without a ball, focusing on making a crisp 'thump' sound against the grass in front of your lead big toe.",
         "analogy": "Railroad Track & Slanted Roof: Swing inside the tunnel without clipping the slanted roof stick on the way down.",
         "pro_tip": "🏆 **Pro Tip:** Keep 60% of your weight grounded in your lead heel through impact to clear hips."
     },
@@ -552,7 +552,7 @@ if "confirmed_resources" in st.session_state:
         st.metric("Target Pace", f"{res_data['sec_per_ball']} sec/ball", "Recommended Tempo")
 
 # -------------------------------------------------------------
-# STEP 3: ADAPTIVE PRACTICE EXECUTION & MULTI-DRILL RESOLUTION
+# STEP 3: ADAPTIVE PRACTICE EXECUTION & SETUP GUIDE
 # -------------------------------------------------------------
 st.markdown("---")
 st.subheader("3. Adaptive Practice Execution & Setup Guide")
@@ -588,25 +588,25 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     else:
         st.info(summary_line)
 
-    # Render Active Drills with Clean Indented Formatting & Bulleted Equipment
+    # Render Active Drills with Flush Bullet Alignment
     for idx, d_name in enumerate(active_drills, 1):
         schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
 
         st.markdown(f"### 🎯 Drill #{idx}: **{d_name}**")
 
-        # Bulleted Equipment List
+        # Native Bulleted Equipment List (Flush with text margin)
         st.markdown("**🛠️ Range Equipment Needed**")
         equip_items = re.split(r',\s*(?![^()]*\))', schematic["equipment"])
-        equip_bullets = "".join([f"<li>{item.strip()}</li>" for item in equip_items if item.strip()])
-        st.markdown(f'<div style="margin-left: 24px; margin-bottom: 12px;"><ul style="margin: 0; padding-left: 20px;">{equip_bullets}</ul></div>', unsafe_allow_html=True)
+        bullet_list = "\n".join([f"* {item.strip()}" for item in equip_items if item.strip()])
+        st.markdown(bullet_list)
 
-        # Indented Description
+        # Flush Setup Description
         st.markdown("**📖 Setup Description**")
-        st.markdown(f'<div style="margin-left: 24px; margin-bottom: 12px;">{schematic["vivid_description"]}</div>', unsafe_allow_html=True)
+        st.write(schematic["vivid_description"])
 
-        # Indented Analogy (Clean Plain Text)
+        # Flush Mental Analogy (Clean Plain Text)
         st.markdown("**🧠 Mental Analogy**")
-        st.markdown(f'<div style="margin-left: 24px; margin-bottom: 16px;">{schematic["analogy"]}</div>', unsafe_allow_html=True)
+        st.write(schematic["analogy"])
 
         st.info(schematic["pro_tip"])
 
