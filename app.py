@@ -332,7 +332,7 @@ DRILL_SCHEMATICS = {
 }
 
 # -------------------------------------------------------------
-# DRILL COMPLEXITY MAPPING (FOR ADAPTIVE CONSTRAINTS)
+# DRILL COMPLEXITY MAPPING
 # -------------------------------------------------------------
 DRILL_COMPLEXITY = {
     # Full Swing
@@ -378,6 +378,46 @@ DRILL_COMPLEXITY = {
     "Push-Putting No-Backswing Drill": "Medium",
     "Short Back Long Through Stroke Drill": "Low",
     "Coin Balance Motion Stroke Drill": "Low",
+}
+
+# -------------------------------------------------------------
+# GAME MODE DRILL CONVERSION MAP
+# -------------------------------------------------------------
+GAME_MODE_DRILL_MAP = {
+    # Full Swing Technical -> Target Challenge
+    "Alignment Stick Gate Drill": "Tee Gate Drill",
+    "Pause at Top Drill": "Tee Gate Drill",
+    "Towel Under Armpits Drill": "Tee Gate Drill",
+    "Coin Strike Low-Point Drill": "Tee Gate Drill",
+    "Split-Hands Release Drill": "Tee Gate Drill",
+    "Feet-Together Balance Drill": "Tee Gate Drill",
+    "Wall-Head Posture Drill": "Tee Gate Drill",
+    "Impact Bag Compression Drill": "Tee Gate Drill",
+    "Two-Step Pump Lag Drill": "Tee Gate Drill",
+
+    # Short Game Technical -> Target Challenge
+    "Towel Behind Ball Drill": "Landing Zone Target Towel Drill",
+    "Lead Foot Weight Anchor Drill": "Landing Zone Target Towel Drill",
+    "Brush Turf Chipping Drill": "Target-Focused Eyes-Up Chipping Drill",
+    "Coin Lead-Point Pitch Drill": "Landing Zone Target Towel Drill",
+    "Ruler in Glove Wrist Anchor Drill": "Target-Focused Eyes-Up Chipping Drill",
+    "Hinge-and-Hold Chipping Drill": "Clock System Wedge Drill",
+    "Trail-Hand Only Pitch Drill": "Target-Focused Eyes-Up Chipping Drill",
+    "Line in the Sand Drill": "Dollar Bill Sand Extraction Drill",
+    "Continuous Motion Pendulum Chipping Drill": "Target-Focused Eyes-Up Chipping Drill",
+    "Accelerating Through Impact Gate Drill": "Clock System Wedge Drill",
+
+    # Putting Technical -> Target Challenge
+    "Mirror Alignment Face Drill": "Putting Tee Gate Drill",
+    "Trail-Hand Push Putting Drill": "Ladder Distance Lag Drill",
+    "Metal Yardstick Roll Drill": "Chalk Line Straight Target Drill",
+    "Parallel Rod Putting Channel Drill": "Putting Tee Gate Drill",
+    "Fringe-to-Fringe Feel Drill": "Ladder Distance Lag Drill",
+    "Rubber Band Putter Sweet-Spot Drill": "Two-Tee Putter Gate Drill",
+    "Coin Balance Putter Back Drill": "Putting Tee Gate Drill",
+    "Push-Putting No-Backswing Drill": "Ladder Distance Lag Drill",
+    "Short Back Long Through Stroke Drill": "Ladder Distance Lag Drill",
+    "Coin Balance Motion Stroke Drill": "Ladder Distance Lag Drill",
 }
 
 # -------------------------------------------------------------
@@ -596,7 +636,8 @@ if st.button("✅ Confirm Selection & Generate Execution Plan", type="primary"):
         "game_time": game_time,
         "sec_per_ball": sec_per_ball,
         "grind_pct": grind_pct,
-        "game_pct": game_pct
+        "game_pct": game_pct,
+        "practice_mode": practice_mode
     }
     st.success("Resource constraints locked in! Drill execution plan generated below.")
 
@@ -637,15 +678,24 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
 
     c_balls = res["total_balls"]
     c_time = res["total_time"]
+    p_mode = res.get("practice_mode", "Combination / Hybrid (AI Balanced)")
+
+    # Pure Game Mode Conversion Logic
+    is_pure_game = (p_mode == "Pure Game Mode (100% Target Pressure)")
+    if is_pure_game:
+        st.info("🎮 **Pure Game Mode Active:** Technical drills converted into interactive target-pressure games.")
+        p_drill = GAME_MODE_DRILL_MAP.get(p_drill, p_drill)
+        if s_drill:
+            s_drill = GAME_MODE_DRILL_MAP.get(s_drill, s_drill)
 
     p_complexity = DRILL_COMPLEXITY.get(p_drill, "Medium")
     is_high_budget = (c_balls >= 60 and c_time >= 45)
     
     active_drills = [p_drill]
 
-    # Rule 1: High Resource Budget Unlocks High Complexity Progression
+    # High Resource Budget Progression (Non-pure game modes)
     high_complexity_added = None
-    if is_high_budget:
+    if is_high_budget and not is_pure_game:
         if p_complexity != "High":
             if p_drill in DRILL_SCHEMATICS:
                 if "Putting" in p_drill or "Putter" in p_drill:
@@ -658,7 +708,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
             if high_complexity_added and high_complexity_added not in active_drills:
                 active_drills.append(high_complexity_added)
 
-    # Rule 2: Multi-drill allocation if secondary drill exists and budget allows
+    # Multi-drill allocation if secondary drill exists and budget allows
     if c_balls >= 40 and c_time >= 30 and s_drill and s_drill not in active_drills:
         active_drills.append(s_drill)
 
@@ -673,20 +723,24 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     else:
         st.info(summary_line)
 
-    # Split allocations evenly across active drills
+    # Calculate allocations
     g_balls = res["grind_balls"]
     g_time = res["grind_time"]
     num_drills = len(active_drills)
     
-    balls_per_drill = g_balls // num_drills
-    time_per_drill = g_time // num_drills
+    alloc_balls = res["total_balls"] if is_pure_game else g_balls
+    alloc_time = res["total_time"] if is_pure_game else g_time
+
+    balls_per_drill = alloc_balls // num_drills
+    time_per_drill = alloc_time // num_drills
 
     # Render Active Drills
     for idx, d_name in enumerate(active_drills):
         schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
 
-        # Label designation
-        if d_name == p_drill:
+        if is_pure_game:
+            label = f"🎮 Interactive Target Game: {p_miss if idx == 0 else s_miss}"
+        elif d_name == p_drill:
             label = f"Primary Fault: {p_miss}"
         elif d_name == high_complexity_added:
             label = "Advanced Mechanics Overhaul"
@@ -716,7 +770,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     # Target Course Pressure Block
     gm_balls = res["game_balls"]
     gm_time = res["game_time"]
-    if gm_balls > 0 and gm_time > 0:
+    if gm_balls > 0 and gm_time > 0 and not is_pure_game:
         st.markdown("---")
         st.success(f"⛳ **Final Phase — Target Course Pressure** (`{gm_balls} Balls` | `{gm_time} Mins`)\n\nSimulate real course conditions. Alternate targets and clubs for every single ball while using your full pre-shot routine.")
 
