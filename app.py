@@ -1,4 +1,5 @@
 import json
+import re
 import google.generativeai as genai
 import streamlit as st
 
@@ -587,16 +588,18 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     else:
         st.info(summary_line)
 
-    # Render Active Drills with Clean Indented Formatting
+    # Render Active Drills with Clean Indented Formatting & Bulleted Equipment
     for idx, d_name in enumerate(active_drills, 1):
         schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
 
         st.markdown(f"### 🎯 Drill #{idx}: **{d_name}**")
 
-        # Indented Equipment
+        # Bulleted Equipment List
         st.markdown("**🛠️ Range Equipment Needed**")
-        st.markdown(f'<div style="margin-left: 24px; margin-bottom: 12px;">{schematic["equipment"]}</div>', unsafe_allow_html=True)
-        
+        equip_items = re.split(r',\s*(?![^()]*\))', schematic["equipment"])
+        equip_bullets = "".join([f"<li>{item.strip()}</li>" for item in equip_items if item.strip()])
+        st.markdown(f'<div style="margin-left: 24px; margin-bottom: 12px;"><ul style="margin: 0; padding-left: 20px;">{equip_bullets}</ul></div>', unsafe_allow_html=True)
+
         # Indented Description
         st.markdown("**📖 Setup Description**")
         st.markdown(f'<div style="margin-left: 24px; margin-bottom: 12px;">{schematic["vivid_description"]}</div>', unsafe_allow_html=True)
