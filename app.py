@@ -680,10 +680,12 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     c_time = res["total_time"]
     p_mode = res.get("practice_mode", "Combination / Hybrid (AI Balanced)")
 
-    # Pure Game Mode Conversion Logic
     is_pure_game = (p_mode == "Pure Game Mode (100% Target Pressure)")
+    is_hybrid = (p_mode == "Combination / Hybrid (AI Balanced)")
+
+    # Pure Game Mode Conversion Logic (All drills converted to games)
     if is_pure_game:
-        st.info("🎮 **Pure Game Mode Active:** Technical drills converted into interactive target-pressure games.")
+        st.info("🎮 **Pure Game Mode Active:** All drills converted into interactive target-pressure games.")
         p_drill = GAME_MODE_DRILL_MAP.get(p_drill, p_drill)
         if s_drill:
             s_drill = GAME_MODE_DRILL_MAP.get(s_drill, s_drill)
@@ -693,7 +695,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     
     active_drills = [p_drill]
 
-    # High Resource Budget Progression (Non-pure game modes)
+    # Rule 1: High Resource Budget Progression (Non-pure game modes)
     high_complexity_added = None
     if is_high_budget and not is_pure_game:
         if p_complexity != "High":
@@ -708,16 +710,28 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
             if high_complexity_added and high_complexity_added not in active_drills:
                 active_drills.append(high_complexity_added)
 
-    # Multi-drill allocation if secondary drill exists and budget allows
+    # Rule 2: Multi-drill allocation if secondary drill exists and budget allows
     if c_balls >= 40 and c_time >= 30 and s_drill and s_drill not in active_drills:
         active_drills.append(s_drill)
+
+    # Combination/Hybrid Logic: Convert secondary/subsequent drills to Interactive Games
+    if is_hybrid:
+        # If budget allows only 1 drill, auto-append its game counterpart for a true hybrid experience
+        if len(active_drills) == 1 and p_drill in GAME_MODE_DRILL_MAP:
+            game_pair = GAME_MODE_DRILL_MAP[p_drill]
+            if game_pair != p_drill:
+                active_drills.append(game_pair)
+        
+        # Convert any drill after Drill #1 into an interactive game
+        for i in range(1, len(active_drills)):
+            active_drills[i] = GAME_MODE_DRILL_MAP.get(active_drills[i], active_drills[i])
 
     # Low Resource Warning
     if (c_balls < 40 or c_time < 30) and p_complexity == "High":
         st.warning(f"⚠️ **Low Resource Alert:** `{p_drill}` is High Complexity. Consider focusing on basic feel keys with your limited budget ({c_balls} balls / {c_time} mins).")
 
     # Prescription Summary
-    summary_line = f"💡 **Targeted Prescription:** Circuit optimized across {len(active_drills)} primary focus areas."
+    summary_line = f"💡 **Targeted Prescription:** Circuit optimized across {len(active_drills)} focus areas."
     if rationale:
         st.info(f"{summary_line}\n\n**Why these drills work:** {rationale}")
     else:
@@ -738,19 +752,19 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     for idx, d_name in enumerate(active_drills):
         schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
 
-        if is_pure_game:
-            label = f"🎮 Interactive Target Game: {p_miss if idx == 0 else s_miss}"
+        # Label designation
+        if is_pure_game or (is_hybrid and idx > 0):
+            label = f"🎮 Interactive Target Game: {p_miss if idx == 0 else (s_miss if s_miss else p_miss)}"
         elif d_name == p_drill:
-            label = f"Primary Fault: {p_miss}"
+            label = f"Primary Technical Fault: {p_miss}"
         elif d_name == high_complexity_added:
             label = "Advanced Mechanics Overhaul"
         else:
-            label = f"Secondary Fault: {s_miss if s_miss else 'Technical Polish'}"
+            label = f"Secondary Technical Fault: {s_miss if s_miss else 'Technical Polish'}"
 
         st.markdown(f"### 🎯 Drill #{idx+1}: **{d_name}**")
-        st.caption(
-            f"🔥 **{label}** — `{balls_per_drill} Balls` | `{time_per_drill} Mins` | `@~{res['sec_per_ball']}s/ball`"
-        )
+        st.markdown(f"🔥 **{label}**")
+        st.caption(f"⚡ `{balls_per_drill} Balls` | `{time_per_drill} Mins` | `@~{res['sec_per_ball']}s/ball`")
 
         st.markdown("**🛠️ Range Equipment Needed**")
         equip_items = re.split(r',\s*(?![^()]*\))', schematic["equipment"])
