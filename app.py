@@ -245,7 +245,7 @@ DRILL_SCHEMATICS = {
     "Trail-Hand Push Putting Drill": {
         "equipment": "Putter",
         "vivid_description": "Putt 5-footers using only your dominant trail hand. Extend smooth stroke along target line without snapping wrists shut.",
-        "analogy": " bowling Roll: Smooth single-arm rolling action down lane center without hooking wrist.",
+        "analogy": "🎳 **Bowling Roll:** Smooth single-arm rolling action down lane center without hooking wrist.",
         "pro_tip": "🏆 **Pro Tip:** Keep shoulder line square to prevent pulling across target line."
     },
     "Metal Yardstick Roll Drill": {
@@ -587,19 +587,23 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     else:
         st.info(summary_line)
 
-    # Render Active Drills with Compact Formatting
+    # Render Active Drills with Clean Indented Formatting
     for idx, d_name in enumerate(active_drills, 1):
         schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
 
         st.markdown(f"### 🎯 Drill #{idx}: **{d_name}**")
 
-        st.markdown(f"**🛠️ Range Equipment Needed:** {schematic['equipment']}")
+        # Indented Equipment
+        st.markdown("**🛠️ Range Equipment Needed**")
+        st.markdown(f'<div style="margin-left: 24px; margin-bottom: 12px;">{schematic["equipment"]}</div>', unsafe_allow_html=True)
         
+        # Indented Description
         st.markdown("**📖 Setup Description**")
-        st.write(schematic["vivid_description"])
+        st.markdown(f'<div style="margin-left: 24px; margin-bottom: 12px;">{schematic["vivid_description"]}</div>', unsafe_allow_html=True)
 
+        # Indented Analogy
         st.markdown("**🧠 Mental Analogy**")
-        st.markdown(schematic["analogy"])
+        st.markdown(f'<div style="margin-left: 24px; margin-bottom: 16px;">{schematic["analogy"]}</div>', unsafe_allow_html=True)
 
         st.info(schematic["pro_tip"])
 
