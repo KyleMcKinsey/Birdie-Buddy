@@ -584,7 +584,6 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         st.markdown("**🧠 Mental Analogy**")
         st.markdown(schematic["analogy"])
 
-        st.markdown("**💡 Pro Tip**")
         st.info(schematic["pro_tip"])
 
         if idx < len(active_drills):
