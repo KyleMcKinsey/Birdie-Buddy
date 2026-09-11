@@ -781,12 +781,25 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         if idx < len(active_drills) - 1:
             st.markdown("---")
 
-    # Target Course Pressure Block
+    # Target Course Pressure Block (Fully Formatted)
     gm_balls = res["game_balls"]
     gm_time = res["game_time"]
     if gm_balls > 0 and gm_time > 0 and not is_pure_game:
         st.markdown("---")
-        st.success(f"⛳ **Final Phase — Target Course Pressure** (`{gm_balls} Balls` | `{gm_time} Mins`)\n\nSimulate real course conditions. Alternate targets and clubs for every single ball while using your full pre-shot routine.")
+        st.markdown(f"### ⛳ Drill #{len(active_drills)+1}: **Target Course Pressure Simulation**")
+        st.markdown("🔥 **Final Phase: On-Course Pressure Transfer & Routine Integration**")
+        st.caption(f"⚡ `{gm_balls} Balls` | `{gm_time} Mins` | `@~{res['sec_per_ball']}s/ball`")
+
+        st.markdown("**🛠️ Range Equipment Needed**")
+        render_indented_ul(["Full Golf Bag (All Clubs)", "Laser Rangefinder or Target Flags", "Pre-shot Routine Line"])
+
+        st.markdown("**📖 Setup Description**")
+        render_indented_html("Simulate real course conditions. Alternate target flags and clubs for every single ball. Step away from the mat and execute your complete pre-shot routine before every swing.")
+
+        st.markdown("**🧠 Mental Analogy**")
+        render_indented_html("Sunday Major Final Hole: Treat every single ball like a high-stakes tournament stroke on the course.")
+
+        st.info("🏆 **Pro Tip:** Never hit two balls in a row with the same club or to the same target during this pressure phase.")
 
 elif "diagnosis" in st.session_state:
     st.warning("👈 Please click **'✅ Confirm Selection & Generate Execution Plan'** in Section 2 to generate your plan.")
