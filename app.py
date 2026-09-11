@@ -7,6 +7,20 @@ st.set_page_config(
     page_title="Birdie Buddy MVP", page_icon="⛳", layout="centered"
 )
 
+# --- HELPER FUNCTIONS FOR CLEAN UI INDENTATION ---
+def render_indented_html(content: str, margin_left: int = 24):
+    st.markdown(
+        f"<div style='margin-left: {margin_left}px; margin-top: 4px; margin-bottom: 16px;'>{content}</div>",
+        unsafe_allow_html=True
+    )
+
+def render_indented_ul(items: list, margin_left: int = 24):
+    list_items = "".join([f"<li>{item.strip()}</li>" for item in items if item.strip()])
+    st.markdown(
+        f"<ul style='margin-left: {margin_left}px; margin-top: 4px; margin-bottom: 12px;'>{list_items}</ul>",
+        unsafe_allow_html=True
+    )
+
 st.title("⛳ Birdie Buddy (Phase 1 MVP)")
 st.caption("AI Golf Caddie & Practice Asset Allocator powered by Gemini")
 
@@ -318,6 +332,55 @@ DRILL_SCHEMATICS = {
 }
 
 # -------------------------------------------------------------
+# DRILL COMPLEXITY MAPPING (FOR ADAPTIVE CONSTRAINTS)
+# -------------------------------------------------------------
+DRILL_COMPLEXITY = {
+    # Full Swing
+    "Alignment Stick Gate Drill": "Low",
+    "Pause at Top Drill": "Medium",
+    "Tee Gate Drill": "Low",
+    "Towel Under Armpits Drill": "Low",
+    "Coin Strike Low-Point Drill": "Medium",
+    "Split-Hands Release Drill": "Medium",
+    "Feet-Together Balance Drill": "Low",
+    "Wall-Head Posture Drill": "Medium",
+    "Impact Bag Compression Drill": "High",
+    "Two-Step Pump Lag Drill": "High",
+    # Short Game
+    "Towel Behind Ball Drill": "Low",
+    "Lead Foot Weight Anchor Drill": "Low",
+    "Brush Turf Chipping Drill": "Low",
+    "Coin Lead-Point Pitch Drill": "Medium",
+    "Ruler in Glove Wrist Anchor Drill": "Medium",
+    "Hinge-and-Hold Chipping Drill": "Medium",
+    "Clock System Wedge Drill": "High",
+    "Landing Zone Target Towel Drill": "High",
+    "Trail-Hand Only Pitch Drill": "Medium",
+    "Line in the Sand Drill": "Low",
+    "Dollar Bill Sand Extraction Drill": "Medium",
+    "Open-Face Sand Splash Drill": "High",
+    "Continuous Motion Pendulum Chipping Drill": "Low",
+    "Accelerating Through Impact Gate Drill": "Medium",
+    "Target-Focused Eyes-Up Chipping Drill": "Medium",
+    # Putting
+    "Putting Tee Gate Drill": "Low",
+    "Chalk Line Straight Target Drill": "Medium",
+    "Mirror Alignment Face Drill": "Medium",
+    "Trail-Hand Push Putting Drill": "Low",
+    "Metal Yardstick Roll Drill": "High",
+    "Parallel Rod Putting Channel Drill": "Low",
+    "Ladder Distance Lag Drill": "Medium",
+    "Fringe-to-Fringe Feel Drill": "Low",
+    "Eyes-Closed Distance Perception Drill": "High",
+    "Rubber Band Putter Sweet-Spot Drill": "Medium",
+    "Two-Tee Putter Gate Drill": "Low",
+    "Coin Balance Putter Back Drill": "Medium",
+    "Push-Putting No-Backswing Drill": "Medium",
+    "Short Back Long Through Stroke Drill": "Low",
+    "Coin Balance Motion Stroke Drill": "Low",
+}
+
+# -------------------------------------------------------------
 # STEP 1: MULTI-ISSUE PATH/FACE DIAGNOSTIC
 # -------------------------------------------------------------
 st.subheader("1. Shot Diagnostic (Multi-Fault Detection)")
@@ -440,7 +503,6 @@ if "diagnosis" in st.session_state:
     diag = st.session_state["diagnosis"]
     caddie = st.session_state.get("caddie_name", selected_persona_key)
 
-    # EXPANDED GREEN CADDIE RESPONSE BOX
     intro_text = diag.get("expanded_caddie_intro", "")
     st.success(f"**{caddie}:** \"{intro_text}\"")
 
@@ -570,6 +632,12 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     c_balls = res["total_balls"]
     c_time = res["total_time"]
 
+    # --- ADAPTIVE COMPLEXITY CONSTRAINT LOGIC ---
+    p_complexity = DRILL_COMPLEXITY.get(p_drill, "Medium")
+    complexity_warning = None
+    if (c_balls < 40 or c_time < 30) and p_complexity == "High":
+        complexity_warning = f"⚠️ **Constraint Alert:** `{p_drill}` is a High-complexity mechanics overhaul. Given your limited budget ({c_balls} balls / {c_time} mins), focus strictly on simple feel keys."
+
     # Multi-drill resolution logic
     active_drills = [p_drill]
     if c_balls >= 40 and c_time >= 30 and s_drill and s_drill != p_drill:
@@ -586,7 +654,10 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     else:
         st.info(summary_line)
 
-    # Pre-calculate circuit allocations with dynamic fault labels
+    if complexity_warning:
+        st.warning(complexity_warning)
+
+    # Calculate circuit allocations
     g_balls = res["grind_balls"]
     g_time = res["grind_time"]
 
@@ -600,34 +671,35 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
             {"label": f"Correcting: {p_miss}", "balls": g_balls, "time": g_time}
         ]
 
-    # Render Active Drills with Integrated Circuit Info
+    # Render Active Drills with Integrated Circuit Info & Complexity Badges
     for idx, d_name in enumerate(active_drills):
         schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
         alloc = allocations[idx]
+        complexity = DRILL_COMPLEXITY.get(d_name, "Medium")
 
-        # Integrated Drill Header with Dynamic Fault & Green Pace Formatting
+        badge_color = "🟢" if complexity == "Low" else ("🟡" if complexity == "Medium" else "🔴")
+
         st.markdown(f"### 🎯 Drill #{idx+1}: **{d_name}**")
-        st.caption(f"🔥 **{alloc['label']}** — `{alloc['balls']} Balls` | `{alloc['time']} Mins` | `@~{res['sec_per_ball']}s/ball`")
+        st.caption(
+            f"🔥 **{alloc['label']}** — `{alloc['balls']} Balls` | `{alloc['time']} Mins` | `@~{res['sec_per_ball']}s/ball` | {badge_color} **Complexity:** `{complexity}`"
+        )
 
-        # Indented Equipment List
         st.markdown("**🛠️ Range Equipment Needed**")
-        equip_items = [f"<li>{item.strip()}</li>" for item in re.split(r',\s*(?![^()]*\))', schematic["equipment"]) if item.strip()]
-        st.markdown(f"<ul style='margin-left: 24px; margin-top: 4px; margin-bottom: 12px;'>{''.join(equip_items)}</ul>", unsafe_allow_html=True)
+        equip_items = re.split(r',\s*(?![^()]*\))', schematic["equipment"])
+        render_indented_ul(equip_items)
 
-        # Indented Setup Description
         st.markdown("**📖 Setup Description**")
-        st.markdown(f"<div style='margin-left: 24px; margin-top: 4px; margin-bottom: 16px;'>{schematic['vivid_description']}</div>", unsafe_allow_html=True)
+        render_indented_html(schematic["vivid_description"])
 
-        # Indented Mental Analogy
         st.markdown("**🧠 Mental Analogy**")
-        st.markdown(f"<div style='margin-left: 24px; margin-top: 4px; margin-bottom: 16px;'>{schematic['analogy']}</div>", unsafe_allow_html=True)
+        render_indented_html(schematic["analogy"])
 
         st.info(schematic["pro_tip"])
 
         if idx < len(active_drills) - 1:
             st.markdown("---")
 
-    # Target Course Pressure Block (Only rendered if Game Mode balls are allocated)
+    # Target Course Pressure Block
     gm_balls = res["game_balls"]
     gm_time = res["game_time"]
     if gm_balls > 0 and gm_time > 0:
