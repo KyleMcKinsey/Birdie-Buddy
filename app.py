@@ -549,6 +549,8 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
 
     p_drill = diag.get("recommended_primary_drill", "Alignment Stick Gate Drill")
     s_drill = diag.get("recommended_secondary_drill")
+    p_miss = diag.get("primary_miss", "your main swing fault")
+    s_miss = diag.get("secondary_miss")
 
     c_balls = res["total_balls"]
     c_time = res["total_time"]
@@ -556,19 +558,17 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     # MULTI-DRILL RESOLUTION LOGIC
     active_drills = [p_drill]
 
-    if c_balls < 40 or c_time < 30:
-        session_tier = "⚡ Express Micro-Session (Focus Drill)"
-        adaptation_reason = f"Micro-session detected ({c_balls} balls / {c_time} mins). Prioritizing Primary Drill ({p_drill}) only."
-    else:
+    if c_balls >= 40 and c_time >= 30:
         if s_drill and s_drill != p_drill:
             active_drills.append(s_drill)
-            session_tier = "🔥 Multi-Fault Correction Circuit"
-            adaptation_reason = f"Sufficient resources ({c_balls} balls / {c_time} mins). Addressing Primary ({p_drill}) and Secondary ({s_drill}) swing issues."
-        else:
-            session_tier = "🎯 Deep Focus Primary Calibration"
-            adaptation_reason = f"Single clear fault detected. Allocating full grind duration to primary drill ({p_drill})."
 
-    st.info(f"**{session_tier}:** {adaptation_reason}")
+    # Conversational Dynamic Explanation Callout
+    if len(active_drills) == 2 and s_miss:
+        explanation = f"💡 **{p_drill}** is going to help you fix **{p_miss}**, and **{s_drill}** will help you address **{s_miss}**."
+    else:
+        explanation = f"💡 **{p_drill}** is going to help you target and fix **{p_miss}** during this session."
+
+    st.info(explanation)
 
     # Render Active Drills with Compact Formatting
     for idx, d_name in enumerate(active_drills, 1):
