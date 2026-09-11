@@ -619,7 +619,6 @@ if "confirmed_resources" in st.session_state:
 st.markdown("---")
 st.subheader("3. Adaptive Practice Execution & Setup Guide")
 
-# Category mapping to match high-complexity drill progressions
 HIGH_COMPLEXITY_LOOKUP = {
     "Full Swing": ["Impact Bag Compression Drill", "Two-Step Pump Lag Drill"],
     "Short Game": ["Clock System Wedge Drill", "Landing Zone Target Towel Drill", "Open-Face Sand Splash Drill"],
@@ -639,7 +638,6 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     c_balls = res["total_balls"]
     c_time = res["total_time"]
 
-    # --- ADAPTIVE COMPLEXITY LOGIC ---
     p_complexity = DRILL_COMPLEXITY.get(p_drill, "Medium")
     is_high_budget = (c_balls >= 60 and c_time >= 45)
     
@@ -649,7 +647,6 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     high_complexity_added = None
     if is_high_budget:
         if p_complexity != "High":
-            # Auto-upgrade or append a high complexity drill based on primary drill type
             if p_drill in DRILL_SCHEMATICS:
                 if "Putting" in p_drill or "Putter" in p_drill:
                     high_complexity_added = "Metal Yardstick Roll Drill"
@@ -665,11 +662,9 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     if c_balls >= 40 and c_time >= 30 and s_drill and s_drill not in active_drills:
         active_drills.append(s_drill)
 
-    # Display Alerts / Status Banners
+    # Low Resource Warning
     if (c_balls < 40 or c_time < 30) and p_complexity == "High":
         st.warning(f"⚠️ **Low Resource Alert:** `{p_drill}` is High Complexity. Consider focusing on basic feel keys with your limited budget ({c_balls} balls / {c_time} mins).")
-    elif is_high_budget:
-        st.success(f"🚀 **High-Resource Capital Unlocked ({c_balls} Balls / {c_time} Mins):** High-complexity mechanics overhauls have been added to your circuit for maximum technical ROI.")
 
     # Prescription Summary
     summary_line = f"💡 **Targeted Prescription:** Circuit optimized across {len(active_drills)} primary focus areas."
@@ -689,10 +684,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     # Render Active Drills
     for idx, d_name in enumerate(active_drills):
         schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
-        complexity = DRILL_COMPLEXITY.get(d_name, "Medium")
 
-        badge_color = "🟢" if complexity == "Low" else ("🟡" if complexity == "Medium" else "🔴")
-        
         # Label designation
         if d_name == p_drill:
             label = f"Primary Fault: {p_miss}"
@@ -703,7 +695,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
 
         st.markdown(f"### 🎯 Drill #{idx+1}: **{d_name}**")
         st.caption(
-            f"🔥 **{label}** — `{balls_per_drill} Balls` | `{time_per_drill} Mins` | `@~{res['sec_per_ball']}s/ball` | {badge_color} **Complexity:** `{complexity}`"
+            f"🔥 **{label}** — `{balls_per_drill} Balls` | `{time_per_drill} Mins` | `@~{res['sec_per_ball']}s/ball`"
         )
 
         st.markdown("**🛠️ Range Equipment Needed**")
