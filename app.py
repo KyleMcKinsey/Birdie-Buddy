@@ -396,11 +396,14 @@ if st.button(f"Analyze Shot with {selected_persona_key}"):
         {{
           "diagnosis_category": "Multi-Fault Diagnostic",
           "primary_miss": "string",
+          "primary_cause_breakdown": "string (1-2 educational sentences explaining the common root causes like grip, body turn, or weight transfer)",
           "secondary_miss": "string or null",
+          "secondary_cause_breakdown": "string or null (1-2 educational sentences explaining root causes for secondary miss)",
           "tom_shanks_response": "string (1-2 sentences max, matching your character persona)",
           "confidence_score": 0.95,
           "recommended_primary_drill": "string",
-          "recommended_secondary_drill": "string or null"
+          "recommended_secondary_drill": "string or null",
+          "drill_rationale": "string (2-3 educational sentences bridging how the recommended drill(s) physically fix the identified causes)"
         }}
         """
 
@@ -443,15 +446,23 @@ if "diagnosis" in st.session_state:
         st.markdown("**🎯 Primary Issue**")
         st.warning(diag.get("primary_miss", "Not detected"))
         st.write(f"**Primary Drill:** `{diag.get('recommended_primary_drill')}`")
+        p_causes = diag.get("primary_cause_breakdown")
+        if p_causes:
+            st.caption(f"**Root Causes:** {p_causes}")
+
     with col2:
         st.markdown("**⚠️ Secondary Issue**")
         sec_miss = diag.get("secondary_miss")
         if sec_miss:
             st.info(sec_miss)
+            sec_drill = diag.get("recommended_secondary_drill")
+            st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
+            s_causes = diag.get("secondary_cause_breakdown")
+            if s_causes:
+                st.caption(f"**Root Causes:** {s_causes}")
         else:
             st.info("None Detected")
-        sec_drill = diag.get("recommended_secondary_drill")
-        st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
+            st.write("**Secondary Drill:** `N/A`")
 
     st.markdown("---")
     st.write("**Calibration Loop: Did Gemini's diagnosis match your felt experience?**")
@@ -551,6 +562,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     s_drill = diag.get("recommended_secondary_drill")
     p_miss = diag.get("primary_miss", "your main swing fault")
     s_miss = diag.get("secondary_miss")
+    rationale = diag.get("drill_rationale")
 
     c_balls = res["total_balls"]
     c_time = res["total_time"]
@@ -562,13 +574,16 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         if s_drill and s_drill != p_drill:
             active_drills.append(s_drill)
 
-    # Conversational Dynamic Explanation Callout
+    # Educational Drill Rationale Blue Box
     if len(active_drills) == 2 and s_miss:
-        explanation = f"💡 **{p_drill}** is going to help you fix **{p_miss}**, and **{s_drill}** will help you address **{s_miss}**."
+        summary_line = f"💡 **Targeted Prescription:** **{p_drill}** will address **{p_miss}**, while **{s_drill}** will correct **{s_miss}**."
     else:
-        explanation = f"💡 **{p_drill}** is going to help you target and fix **{p_miss}** during this session."
+        summary_line = f"💡 **Targeted Prescription:** **{p_drill}** will focus on eliminating **{p_miss}**."
 
-    st.info(explanation)
+    if rationale:
+        st.info(f"{summary_line}\n\n**Why these drills work:** {rationale}")
+    else:
+        st.info(summary_line)
 
     # Render Active Drills with Compact Formatting
     for idx, d_name in enumerate(active_drills, 1):
