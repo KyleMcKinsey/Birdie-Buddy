@@ -570,29 +570,44 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     c_balls = res["total_balls"]
     c_time = res["total_time"]
 
-    # MULTI-DRILL RESOLUTION LOGIC
+    # Multi-drill resolution logic
     active_drills = [p_drill]
+    if c_balls >= 40 and c_time >= 30 and s_drill and s_drill != p_drill:
+        active_drills.append(s_drill)
 
-    if c_balls >= 40 and c_time >= 30:
-        if s_drill and s_drill != p_drill:
-            active_drills.append(s_drill)
-
-    # Educational Drill Rationale Blue Box
+    # Prescription Summary Box
     if len(active_drills) == 2 and s_miss:
-        summary_line = f"💡 **Targeted Prescription:** **{p_drill}** will address **{p_miss}**, while **{s_drill}** will correct **{s_miss}**."
+        summary_line = f"💡 **Targeted Prescription:** **{p_drill}** addresses **{p_miss}**, and **{s_drill}** corrects **{s_miss}**."
     else:
-        summary_line = f"💡 **Targeted Prescription:** **{p_drill}** will focus on eliminating **{p_miss}**."
+        summary_line = f"💡 **Targeted Prescription:** **{p_drill}** eliminates **{p_miss}**."
 
     if rationale:
         st.info(f"{summary_line}\n\n**Why these drills work:** {rationale}")
     else:
         st.info(summary_line)
 
-    # Render Active Drills with Indented Subheader Content
-    for idx, d_name in enumerate(active_drills, 1):
-        schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
+    # Pre-calculate circuit allocations
+    g_balls = res["grind_balls"]
+    g_time = res["grind_time"]
 
-        st.markdown(f"### 🎯 Drill #{idx}: **{d_name}**")
+    if len(active_drills) == 2:
+        allocations = [
+            {"label": "Block 1: Primary Fault Correction", "balls": g_balls // 2, "time": g_time // 2},
+            {"label": "Block 2: Secondary Fault Correction", "balls": g_balls - (g_balls // 2), "time": g_time - (g_time // 2)}
+        ]
+    else:
+        allocations = [
+            {"label": "Block 1: Technical Grind", "balls": g_balls, "time": g_time}
+        ]
+
+    # Render Active Drills with Integrated Circuit Info
+    for idx, d_name in enumerate(active_drills):
+        schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
+        alloc = allocations[idx]
+
+        # Integrated Drill Header with Allocation
+        st.markdown(f"### 🎯 Drill #{idx+1}: **{d_name}**")
+        st.caption(f"🔥 **{alloc['label']}** — `{alloc['balls']} Balls` | `{alloc['time']} Mins` @ ~{res['sec_per_ball']}s/ball")
 
         # Indented Equipment List
         st.markdown("**🛠️ Range Equipment Needed**")
@@ -609,42 +624,15 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
 
         st.info(schematic["pro_tip"])
 
-        if idx < len(active_drills):
+        if idx < len(active_drills) - 1:
             st.markdown("---")
 
-    st.markdown("---")
-
-    # Dynamic Execution Protocol
-    g_balls = res["grind_balls"]
+    # Target Course Pressure Block (Only rendered if Game Mode balls are allocated)
     gm_balls = res["game_balls"]
-    g_time = res["grind_time"]
     gm_time = res["game_time"]
-    spb = res["sec_per_ball"]
-
-    if len(active_drills) == 2:
-        d1_balls = g_balls // 2
-        d2_balls = g_balls - d1_balls
-        d1_time = g_time // 2
-        d2_time = g_time - d1_time
-
-        st.success("🔥 **Dual-Fault Circuit Plan**")
-
-        plan_text = f"* **Block 1 Primary Fault Correction ({d1_balls} Balls | {d1_time} Mins):** Execute *{active_drills[0]}*. Fix primary swing error.\n* **Block 2 Secondary Fault Correction ({d2_balls} Balls | {d2_time} Mins):** Execute *{active_drills[1]}*. Address secondary mechanic."
-
-        if gm_balls > 0 and gm_time > 0:
-            plan_text += f"\n* **Block 3 Target Course Pressure ({gm_balls} Balls | {gm_time} Mins):** Target range simulation. Full pre-shot routine per ball."
-
-        st.markdown(plan_text)
-
-    else:
-        st.info("🎯 **Single Drill Focus Plan**")
-
-        plan_text = f"* **Block 1 Technical Grind ({g_balls} Balls | {g_time} Mins):** Paced reps using *{active_drills[0]}* at ~{spb}s per shot."
-
-        if gm_balls > 0 and gm_time > 0:
-            plan_text += f"\n* **Block 2 Target Pressure ({gm_balls} Balls | {gm_time} Mins):** Alternate target flags and clubs on every rep."
-
-        st.markdown(plan_text)
+    if gm_balls > 0 and gm_time > 0:
+        st.markdown("---")
+        st.success(f"⛳ **Final Phase — Block 3: Target Course Pressure** (`{gm_balls} Balls` | `{gm_time} Mins`)\n\nSimulate real course conditions. Alternate targets and clubs for every single ball while using your full pre-shot routine.")
 
 elif "diagnosis" in st.session_state:
     st.warning("👈 Please click **'✅ Confirm Selection & Generate Execution Plan'** in Section 2 to generate your plan.")
