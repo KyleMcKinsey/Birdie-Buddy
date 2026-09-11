@@ -245,7 +245,7 @@ DRILL_SCHEMATICS = {
     "Trail-Hand Push Putting Drill": {
         "equipment": "Putter",
         "vivid_description": "Putt 5-footers using only your dominant trail hand. Extend smooth stroke along target line without snapping wrists shut.",
-        "analogy": "🎳 **Bowling Roll:** Smooth single-arm rolling action down lane center without hooking wrist.",
+        "analogy": " bowling Roll: Smooth single-arm rolling action down lane center without hooking wrist.",
         "pro_tip": "🏆 **Pro Tip:** Keep shoulder line square to prevent pulling across target line."
     },
     "Metal Yardstick Roll Drill": {
@@ -396,10 +396,10 @@ if st.button(f"Analyze Shot with {selected_persona_key}"):
         {{
           "diagnosis_category": "Multi-Fault Diagnostic",
           "primary_miss": "string",
-          "primary_cause_breakdown": "string (2-3 sentences explaining biomechanical root causes in character persona voice)",
+          "primary_cause_breakdown": "string (2-3 concise sentences explaining objective biomechanical/technical root causes without persona styling)",
           "secondary_miss": "string or null",
-          "secondary_cause_breakdown": "string or null (2-3 sentences explaining secondary root causes in character persona voice)",
-          "expanded_caddie_intro": "string (3-4 robust, dramatic sentences strictly in character persona providing a high-level summary diagnosis, witty observations, and inspirational/philosophical guidance)",
+          "secondary_cause_breakdown": "string or null (2-3 concise sentences explaining objective biomechanical/technical root causes without persona styling)",
+          "expanded_caddie_intro": "string (3-4 robust, dramatic sentences strictly in character persona providing a high-level summary diagnosis, witty observations, and inspirational guidance)",
           "confidence_score": 0.95,
           "recommended_primary_drill": "string",
           "recommended_secondary_drill": "string or null",
@@ -440,7 +440,7 @@ if "diagnosis" in st.session_state:
     caddie = st.session_state.get("caddie_name", selected_persona_key)
 
     # EXPANDED GREEN CADDIE RESPONSE BOX
-    intro_text = diag.get("expanded_caddie_intro", diag.get("tom_shanks_response", ""))
+    intro_text = diag.get("expanded_caddie_intro", "")
     st.success(f"**{caddie}:** \"{intro_text}\"")
 
     col1, col2 = st.columns(2)
@@ -450,7 +450,7 @@ if "diagnosis" in st.session_state:
         st.write(f"**Primary Drill:** `{diag.get('recommended_primary_drill')}`")
         p_causes = diag.get("primary_cause_breakdown")
         if p_causes:
-            st.markdown(f"**Caddie Breakdown:** {p_causes}")
+            st.caption(f"**Breakdown:** {p_causes}")
 
     with col2:
         st.markdown("**⚠️ Secondary Issue**")
@@ -461,7 +461,7 @@ if "diagnosis" in st.session_state:
             st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
             s_causes = diag.get("secondary_cause_breakdown")
             if s_causes:
-                st.markdown(f"**Caddie Breakdown:** {s_causes}")
+                st.caption(f"**Breakdown:** {s_causes}")
         else:
             st.info("None Detected")
             st.write("**Secondary Drill:** `N/A`")
