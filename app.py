@@ -588,25 +588,24 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     else:
         st.info(summary_line)
 
-    # Render Active Drills with Flush Bullet Alignment
+    # Render Active Drills with Indented Subheader Content
     for idx, d_name in enumerate(active_drills, 1):
         schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
 
         st.markdown(f"### 🎯 Drill #{idx}: **{d_name}**")
 
-        # Native Bulleted Equipment List (Flush with text margin)
+        # Indented Equipment List
         st.markdown("**🛠️ Range Equipment Needed**")
-        equip_items = re.split(r',\s*(?![^()]*\))', schematic["equipment"])
-        bullet_list = "\n".join([f"* {item.strip()}" for item in equip_items if item.strip()])
-        st.markdown(bullet_list)
+        equip_items = [f"<li>{item.strip()}</li>" for item in re.split(r',\s*(?![^()]*\))', schematic["equipment"]) if item.strip()]
+        st.markdown(f"<ul style='margin-left: 24px; margin-top: 4px; margin-bottom: 12px;'>{''.join(equip_items)}</ul>", unsafe_allow_html=True)
 
-        # Flush Setup Description
+        # Indented Setup Description
         st.markdown("**📖 Setup Description**")
-        st.write(schematic["vivid_description"])
+        st.markdown(f"<div style='margin-left: 24px; margin-top: 4px; margin-bottom: 16px;'>{schematic['vivid_description']}</div>", unsafe_allow_html=True)
 
-        # Flush Mental Analogy (Clean Plain Text)
+        # Indented Mental Analogy
         st.markdown("**🧠 Mental Analogy**")
-        st.write(schematic["analogy"])
+        st.markdown(f"<div style='margin-left: 24px; margin-top: 4px; margin-bottom: 16px;'>{schematic['analogy']}</div>", unsafe_allow_html=True)
 
         st.info(schematic["pro_tip"])
 
