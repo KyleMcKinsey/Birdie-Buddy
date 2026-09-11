@@ -586,18 +586,18 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     else:
         st.info(summary_line)
 
-    # Pre-calculate circuit allocations
+    # Pre-calculate circuit allocations with dynamic fault labels
     g_balls = res["grind_balls"]
     g_time = res["grind_time"]
 
     if len(active_drills) == 2:
         allocations = [
-            {"label": "Block 1: Primary Fault Correction", "balls": g_balls // 2, "time": g_time // 2},
-            {"label": "Block 2: Secondary Fault Correction", "balls": g_balls - (g_balls // 2), "time": g_time - (g_time // 2)}
+            {"label": f"Correcting: {p_miss}", "balls": g_balls // 2, "time": g_time // 2},
+            {"label": f"Correcting: {s_miss}", "balls": g_balls - (g_balls // 2), "time": g_time - (g_time // 2)}
         ]
     else:
         allocations = [
-            {"label": "Block 1: Technical Grind", "balls": g_balls, "time": g_time}
+            {"label": f"Correcting: {p_miss}", "balls": g_balls, "time": g_time}
         ]
 
     # Render Active Drills with Integrated Circuit Info
@@ -605,9 +605,9 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
         alloc = allocations[idx]
 
-        # Integrated Drill Header with Allocation
+        # Integrated Drill Header with Dynamic Fault & Green Pace Formatting
         st.markdown(f"### 🎯 Drill #{idx+1}: **{d_name}**")
-        st.caption(f"🔥 **{alloc['label']}** — `{alloc['balls']} Balls` | `{alloc['time']} Mins` @ ~{res['sec_per_ball']}s/ball")
+        st.caption(f"🔥 **{alloc['label']}** — `{alloc['balls']} Balls` | `{alloc['time']} Mins` | `@~{res['sec_per_ball']}s/ball`")
 
         # Indented Equipment List
         st.markdown("**🛠️ Range Equipment Needed**")
@@ -632,7 +632,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     gm_time = res["game_time"]
     if gm_balls > 0 and gm_time > 0:
         st.markdown("---")
-        st.success(f"⛳ **Final Phase — Block 3: Target Course Pressure** (`{gm_balls} Balls` | `{gm_time} Mins`)\n\nSimulate real course conditions. Alternate targets and clubs for every single ball while using your full pre-shot routine.")
+        st.success(f"⛳ **Final Phase — Target Course Pressure** (`{gm_balls} Balls` | `{gm_time} Mins`)\n\nSimulate real course conditions. Alternate targets and clubs for every single ball while using your full pre-shot routine.")
 
 elif "diagnosis" in st.session_state:
     st.warning("👈 Please click **'✅ Confirm Selection & Generate Execution Plan'** in Section 2 to generate your plan.")
