@@ -332,7 +332,7 @@ st.info(f"**{active_persona['title']}** — {active_persona['description']}")
 
 shot_transcript = st.text_area(
     "Describe your missed shot(s) in detail (Full Swing, Short Game, or Putting):",
-    placeholder="e.g., I sliced my drive into right trees, then chunked my 30-yard chip shot, and missed my 4-foot putt to the right..."
+    placeholder="e.g., I kept hitting shots thin, and missing push right..."
 )
 
 if st.button(f"Analyze Shot with {selected_persona_key}"):
@@ -392,21 +392,18 @@ if st.button(f"Analyze Shot with {selected_persona_key}"):
         - 'Short Back Long Through Stroke Drill'
         - 'Coin Balance Motion Stroke Drill'
 
-        IMPORTANT PERSONA INSTRUCTION:
-        Write ALL educational explanations ('primary_cause_breakdown', 'secondary_cause_breakdown', and 'drill_rationale') STRICTLY in the voice, tone, and character metaphors of {selected_persona_key}.
-
         Output strictly raw JSON matching this structure with no markdown formatting:
         {{
           "diagnosis_category": "Multi-Fault Diagnostic",
           "primary_miss": "string",
-          "primary_cause_breakdown": "string (1-2 sentences written IN CHARACTER explaining common root causes like grip, body turn, or weight transfer)",
+          "primary_cause_breakdown": "string (2-3 sentences explaining biomechanical root causes in character persona voice)",
           "secondary_miss": "string or null",
-          "secondary_cause_breakdown": "string or null (1-2 sentences written IN CHARACTER explaining root causes for secondary miss)",
-          "tom_shanks_response": "string (1-2 sentences max, matching your character persona)",
+          "secondary_cause_breakdown": "string or null (2-3 sentences explaining secondary root causes in character persona voice)",
+          "expanded_caddie_intro": "string (3-4 robust, dramatic sentences strictly in character persona providing a high-level summary diagnosis, witty observations, and inspirational/philosophical guidance)",
           "confidence_score": 0.95,
           "recommended_primary_drill": "string",
           "recommended_secondary_drill": "string or null",
-          "drill_rationale": "string (2-3 full sentences written STRICTLY IN CHARACTER following this exact narrative structure: '[Drill X] is going to help you fix [Primary Miss] by... and [Drill Y] will fix [Secondary Miss] by...' - weave character lore, spells, secret agent jargon, or pirate talk directly into how the physical drills work!)"
+          "drill_rationale": "string (1-2 sentences summarizing how the selected drills resolve these physical issues)"
         }}
         """
 
@@ -442,7 +439,9 @@ if "diagnosis" in st.session_state:
     diag = st.session_state["diagnosis"]
     caddie = st.session_state.get("caddie_name", selected_persona_key)
 
-    st.success(f"**{caddie}:** \"{diag['tom_shanks_response']}\"")
+    # EXPANDED GREEN CADDIE RESPONSE BOX
+    intro_text = diag.get("expanded_caddie_intro", diag.get("tom_shanks_response", ""))
+    st.success(f"**{caddie}:** \"{intro_text}\"")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -451,7 +450,7 @@ if "diagnosis" in st.session_state:
         st.write(f"**Primary Drill:** `{diag.get('recommended_primary_drill')}`")
         p_causes = diag.get("primary_cause_breakdown")
         if p_causes:
-            st.write(f"**Caddie Breakdown:** {p_causes}")
+            st.markdown(f"**Caddie Breakdown:** {p_causes}")
 
     with col2:
         st.markdown("**⚠️ Secondary Issue**")
@@ -462,7 +461,7 @@ if "diagnosis" in st.session_state:
             st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
             s_causes = diag.get("secondary_cause_breakdown")
             if s_causes:
-                st.write(f"**Caddie Breakdown:** {s_causes}")
+                st.markdown(f"**Caddie Breakdown:** {s_causes}")
         else:
             st.info("None Detected")
             st.write("**Secondary Drill:** `N/A`")
@@ -560,7 +559,6 @@ st.subheader("3. Adaptive Practice Execution & Setup Guide")
 if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state:
     diag = st.session_state["diagnosis"]
     res = st.session_state["confirmed_resources"]
-    caddie = st.session_state.get("caddie_name", selected_persona_key)
 
     p_drill = diag.get("recommended_primary_drill", "Alignment Stick Gate Drill")
     s_drill = diag.get("recommended_secondary_drill")
@@ -578,11 +576,16 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         if s_drill and s_drill != p_drill:
             active_drills.append(s_drill)
 
-    # Fully Persona-Infused Blue Callout Box
-    if rationale:
-        st.info(f"💡 **{caddie}'s Training Strategy:**\n\n{rationale}")
+    # Educational Drill Rationale Blue Box
+    if len(active_drills) == 2 and s_miss:
+        summary_line = f"💡 **Targeted Prescription:** **{p_drill}** will address **{p_miss}**, while **{s_drill}** will correct **{s_miss}**."
     else:
-        st.info(f"💡 **{caddie}'s Training Strategy:** **{p_drill}** will help you eliminate **{p_miss}** during this session.")
+        summary_line = f"💡 **Targeted Prescription:** **{p_drill}** will focus on eliminating **{p_miss}**."
+
+    if rationale:
+        st.info(f"{summary_line}\n\n**Why these drills work:** {rationale}")
+    else:
+        st.info(summary_line)
 
     # Render Active Drills with Compact Formatting
     for idx, d_name in enumerate(active_drills, 1):
