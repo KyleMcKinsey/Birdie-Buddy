@@ -11,14 +11,14 @@ st.set_page_config(
 def render_indented_html(content: str, margin_left: int = 24):
     st.markdown(
         f"<div style='margin-left: {margin_left}px; margin-top: 4px; margin-bottom: 16px;'>{content}</div>",
-        unsafe_allow_html=True
+        unsafe_html=True
     )
 
 def render_indented_ul(items: list, margin_left: int = 24):
     list_items = "".join([f"<li>{item.strip()}</li>" for item in items if item.strip()])
     st.markdown(
         f"<ul style='margin-left: {margin_left}px; margin-top: 4px; margin-bottom: 12px;'>{list_items}</ul>",
-        unsafe_allow_html=True
+        unsafe_html=True
     )
 
 def build_export_card(diag, res, active_drills, drill_schematics, caddie):
@@ -34,10 +34,10 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
     lines.append("-" * 50)
     lines.append("\nROUND SWOT SUMMARY:")
     swot = diag.get("swot_analysis", {})
-    lines.append(f"- Strength: {swot.get('strengths', 'N/A')}")
-    lines.append(f"- Weakness: {swot.get('weaknesses', 'N/A')}")
-    lines.append(f"- Opportunity: {swot.get('opportunities', 'N/A')}")
-    lines.append(f"- Threat: {swot.get('threats', 'N/A')}")
+    lines.append(f"- Strength (What Worked): {swot.get('strengths', 'N/A')}")
+    lines.append(f"- Weakness (Main Flaw): {swot.get('weaknesses', 'N/A')}")
+    lines.append(f"- Opportunity (Quick Fix): {swot.get('opportunities', 'N/A')}")
+    lines.append(f"- Threat (Blow-up Risk): {swot.get('threats', 'N/A')}")
     lines.append("\n" + "=" * 50)
     lines.append("DRILL EXECUTION SCHEDULE")
     lines.append("=" * 50)
@@ -90,7 +90,7 @@ PERSONA_DATABASE = {
         You are 'Obi-Wan Kenbogey,' a wise and serene Jedi Master AI golf caddie.
         Tone: Calm, philosophical, dramatic, heroic, slightly cryptic.
         Sample Catchphrases: 'May the Force be with your clubface.', 'These are not the trees you are looking for.', 'Beware the Dark Side—anger leads to an open face.'
-        Analyze shot errors across full swing, short game, and putting using Jedi terminology and wise guidance.
+        Analyze shot errors across full swing, short game, and putting using Jedi terminology and wise guidance. Always explain technical body movements in plain English.
         """
     },
     "Harry Putter": {
@@ -100,7 +100,7 @@ PERSONA_DATABASE = {
         You are 'Harry Putter,' a young wizard AI golf caddie who treats golf clubs like magic wands and shot analysis like Defense Against the Dark Arts.
         Tone: Enthusiastic, spell-casting, British, magical.
         Sample Catchphrases: 'Expecto Fairway-um!', 'Yer a golfer, Harry!', '10 points to Gryffindor if you hit this green.'
-        Analyze shot errors across full swing, short game, and putting using wizarding world terminology and spell metaphors.
+        Analyze shot errors across full swing, short game, and putting using wizarding world terminology. Always explain technical body movements in plain English.
         """
     },
     "James Pond": {
@@ -110,7 +110,7 @@ PERSONA_DATABASE = {
         You are 'James Pond' (Agent 00-Slice), a suave, high-class secret agent AI golf caddie.
         Tone: Cool, sophisticated, covert, tactical, dry British charm.
         Sample Catchphrases: 'Shaken, not stirred—much like your grip pressure.', 'License to slice.', "The name's Pond... James Pond."
-        Analyze shot errors as if evaluating high-stakes tactical intelligence.
+        Analyze shot errors as if evaluating high-stakes tactical intelligence. Always explain technical body movements in plain English.
         """
     },
     "Captain Hack Sparrow": {
@@ -120,7 +120,7 @@ PERSONA_DATABASE = {
         You are 'Captain Hack Sparrow,' an eccentric, wildly unpredictable pirate AI golf caddie.
         Tone: Slurred charm, chaotic, theatrical, witty, rum-obsessed, highly eccentric.
         Sample Catchphrases: 'Why is the fairway always gone?', 'Take what you can, give nothing back—except that ball in the hazard.', 'This shot is either brilliant or mad. Utterly mad.'
-        Analyze shot errors using nautical pirate metaphors.
+        Analyze shot errors using nautical pirate metaphors. Always explain technical body movements in plain English.
         """
     }
 }
@@ -476,7 +476,7 @@ if st.session_state["diag_step"] == 1:
         - Putting: {putting_miss}
         - Round Notes: {round_notes if round_notes else 'None provided'}
 
-        Generate 2 targeted diagnostic follow-up questions in persona voice to pinpoint the overarching biomechanical connection linking these errors (e.g., asking about fatigue, body posture/early extension, wrist flip, or swing tempo changes across the round).
+        Generate 2 targeted diagnostic follow-up questions in persona voice to pinpoint the overarching swing flaw linking these errors. Keep questions easy to understand for an everyday golfer without confusing jargon.
 
         Output strictly raw JSON with no markdown formatting:
         {{
@@ -521,8 +521,8 @@ elif st.session_state["diag_step"] == 2:
 
     st.markdown(f"### 🗣️ {caddie} asks:")
     
-    q1_text = qs.get("question_1", "How did your physical posture or swing tempo shift during the back 9?")
-    q2_text = qs.get("question_2", "Did your iron chunks happen after your driver slice got worse?")
+    q1_text = qs.get("question_1", "How did your posture or swing speed change on the back 9?")
+    q2_text = qs.get("question_2", "Did your fat iron shots start right after your driver began fading?")
 
     st.write(f"**1.** {q1_text}")
     ans1 = st.text_input("Your Answer to Q1:", key="ans1_input", placeholder="e.g., Felt tired on hole 14 and started rushing my downswing")
@@ -548,7 +548,11 @@ elif st.session_state["diag_step"] == 2:
             system_prompt = f"""
             {active_persona['system_instruction']}
 
-            Analyze the user's complete 18-hole round data. Cross-reference errors across categories and isolate the SINGLE primary 'Macro-Fault' (biomechanical root cause responsible for ~80% of damage across the bag) and 1 secondary fault.
+            Analyze the user's complete 18-hole round data. Cross-reference errors across categories and isolate the SINGLE primary 'Macro-Fault' (root cause responsible for ~80% of damage across the bag) and 1 secondary fault.
+
+            CRITICAL PLAIN ENGLISH REQUIREMENT:
+            - ALL root cause explanations MUST be written in everyday, simple golf terms. Avoid complex biomechanical jargon like 'anterior pelvic tilt,' 'early extension,' 'supination,' or 'ulnar deviation.' Explain what the body is actually doing in plain English (e.g., 'your hips thrust forward toward the ball,' or 'your wrists flipped at the last second').
+            - ALL SWOT sections MUST use simple, relatable language tailored to an everyday golfer rather than corporate jargon.
 
             Map faults to the most effective drills from this EXACT list of 40 drills:
             - FULL SWING: 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill', 'Towel Under Armpits Drill', 'Coin Strike Low-Point Drill', 'Split-Hands Release Drill', 'Feet-Together Balance Drill', 'Wall-Head Posture Drill', 'Impact Bag Compression Drill', 'Two-Step Pump Lag Drill'
@@ -558,24 +562,24 @@ elif st.session_state["diag_step"] == 2:
             Output strictly raw JSON with no markdown formatting:
             {{
               "diagnosis_category": "Full-Round Macro Synthesis",
-              "primary_miss": "string (technical short title of primary macro root cause in plain English)",
-              "primary_miss_persona": "string (1 short, witty sentence calling out macro root cause in character)",
-              "primary_cause_breakdown": "string (2-3 concise sentences explaining how this root biomechanical fault caused errors across driver, irons, or short game)",
+              "primary_miss": "string (simple title of primary root cause in plain English)",
+              "primary_miss_persona": "string (1 short, witty sentence calling out primary flaw in character)",
+              "primary_cause_breakdown": "string (2-3 simple, plain-English sentences explaining how this simple swing flaw caused errors across driver, irons, or short game without biomechanical jargon)",
               "secondary_miss": "string or null",
               "secondary_miss_persona": "string or null",
-              "secondary_cause_breakdown": "string or null",
+              "secondary_cause_breakdown": "string or null (2-3 simple, plain-English sentences explaining the secondary flaw without biomechanical jargon)",
               "expanded_caddie_intro": "string (3-4 robust sentences in persona summarizing the round narrative and key strategic takeaway)",
               "caddie_drill_pep_talk": "string (2-3 sentences in persona giving encouraging range advice)",
               "swot_analysis": {{
-                "strengths": "string (1 sentence on strongest area from the round log)",
-                "weaknesses": "string (1 sentence on macro fault destroying strokes)",
-                "opportunities": "string (1 sentence on immediate stroke reduction potential)",
-                "threats": "string (1 sentence on handicap hazard threat on course)"
+                "strengths": "string (1 plain-English sentence: what worked best in your game today)",
+                "weaknesses": "string (1 plain-English sentence: the main swing flaw costing you strokes)",
+                "opportunities": "string (1 plain-English sentence: the easiest quick fix to save 3-5 strokes)",
+                "threats": "string (1 plain-English sentence: the big mistake that will ruin your round if left unfixed)"
               }},
               "confidence_score": 0.95,
               "recommended_primary_drill": "string",
               "recommended_secondary_drill": "string or null",
-              "drill_rationale": "string (1-2 sentences explaining why these drills fix the macro fault)"
+              "drill_rationale": "string (1-2 plain-English sentences explaining why these drills fix the root cause)"
             }}
             """
 
@@ -633,7 +637,7 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
         st.write(f"**Primary Drill:** `{diag.get('recommended_primary_drill')}`")
         p_causes = diag.get("primary_cause_breakdown")
         if p_causes:
-            st.caption(f"**Biomechanical Link:** {p_causes}")
+            st.caption(f"**Root Cause Explanation:** {p_causes}")
 
     with col2:
         st.markdown("**⚠️ Secondary Fault Callout**")
@@ -647,23 +651,23 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
             st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
             s_causes = diag.get("secondary_cause_breakdown")
             if s_causes:
-                st.caption(f"**Biomechanical Link:** {s_causes}")
+                st.caption(f"**Root Cause Explanation:** {s_causes}")
         else:
             st.info("\"No major secondary fault detected. Fix your primary macro-fault to unlock your game!\"")
             st.write("**Secondary Drill:** `N/A`")
 
-    # Dynamic Strategic Round SWOT Analysis
+    # Dynamic Strategic Round SWOT Analysis (Plain English)
     if "swot_analysis" in diag and diag["swot_analysis"]:
         st.markdown("---")
-        st.markdown("### 📊 Strategic Round SWOT Analysis")
+        st.markdown("### 📊 Round SWOT Breakdown (Plain English)")
         swot = diag["swot_analysis"]
         sc1, sc2 = st.columns(2)
         with sc1:
-            st.success(f"**💪 Strength:** {swot.get('strengths', 'N/A')}")
-            st.info(f"**📈 Opportunity:** {swot.get('opportunities', 'N/A')}")
+            st.success(f"**💪 Strength (What Worked):** {swot.get('strengths', 'N/A')}")
+            st.info(f"**📈 Opportunity (Quick Fix):** {swot.get('opportunities', 'N/A')}")
         with sc2:
-            st.warning(f"**⚠️ Weakness:** {swot.get('weaknesses', 'N/A')}")
-            st.error(f"**🎯 Threat to Score:** {swot.get('threats', 'N/A')}")
+            st.warning(f"**⚠️ Weakness (Main Flaw):** {swot.get('weaknesses', 'N/A')}")
+            st.error(f"**🎯 Threat (Blow-up Risk):** {swot.get('threats', 'N/A')}")
 
     st.markdown("---")
     if st.button("🔄 Log Another Round"):
