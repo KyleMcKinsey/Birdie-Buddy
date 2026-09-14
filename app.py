@@ -418,6 +418,8 @@ selected_persona_key = st.selectbox(
     index=0
 )
 
+# Extract only the main name before parenthesis for display throughout the app
+persona_display_name = selected_persona_key.split(" (")[0]
 active_persona = PERSONA_DATABASE[selected_persona_key]
 
 if "diag_step" not in st.session_state:
@@ -451,7 +453,7 @@ if st.session_state["diag_step"] == 1:
             impact_feel = st.selectbox("Impact Sound & Feel:", [NONE_OPT, "Crisp 'click'", "Dull 'thud' / heavy dirt drag", "Harsh vibration on toe/heel", "Stinging hands / thin strike"])
             miss_freq = st.selectbox("Flaw Frequency:", [NONE_OPT, "Driver / Woods Only", "Irons & Wedges Only", "Every Club in Bag"])
 
-    if st.button(f"Analyze Round Narrative with {selected_persona_key}", type="primary"):
+    if st.button(f"Analyze Round Narrative with {persona_display_name}", type="primary"):
         if not user_round_story.strip():
             st.warning("Please type a few words about your round story above so your Caddie can analyze it!")
         else:
@@ -462,7 +464,7 @@ if st.session_state["diag_step"] == 1:
             st.session_state["divot_loc"] = divot_loc
             st.session_state["impact_feel"] = impact_feel
             st.session_state["miss_freq"] = miss_freq
-            st.session_state["caddie_name"] = selected_persona_key
+            st.session_state["caddie_name"] = persona_display_name
 
             question_prompt = f"""
             {active_persona['system_instruction']}
@@ -521,7 +523,7 @@ if st.session_state["diag_step"] == 1:
 # --- STEP 1B: TARGETED MULTI-CHOICE DECISION TREE ---
 elif st.session_state["diag_step"] == 2:
     st.info(f"📖 **Your Round Narrative:** \"{st.session_state.get('user_round_story')}\"")
-    caddie = st.session_state["caddie_name"]
+    caddie = st.session_state.get("caddie_name", persona_display_name)
     qs = st.session_state.get("followup_questions", {})
 
     st.markdown(f"### 🗣️ {caddie} asks based on your story:")
@@ -629,7 +631,7 @@ elif st.session_state["diag_step"] == 2:
 # --- STEP 1C: DIAGNOSTIC & SWOT DISPLAY ---
 if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
     diag = st.session_state["diagnosis"]
-    caddie = st.session_state.get("caddie_name", selected_persona_key)
+    caddie = st.session_state.get("caddie_name", persona_display_name)
 
     intro_text = diag.get("expanded_caddie_intro", "")
     st.success(f"**{caddie}:** \"{intro_text}\"")
@@ -765,7 +767,7 @@ st.subheader("3. Adaptive Practice Execution & Setup Guide")
 if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state:
     diag = st.session_state["diagnosis"]
     res = st.session_state["confirmed_resources"]
-    caddie = st.session_state.get("caddie_name", selected_persona_key)
+    caddie = st.session_state.get("caddie_name", persona_display_name)
 
     p_drill = diag.get("recommended_primary_drill", "Alignment Stick Gate Drill")
     s_drill = diag.get("recommended_secondary_drill")
