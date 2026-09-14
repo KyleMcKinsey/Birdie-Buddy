@@ -553,6 +553,11 @@ if "diagnosis" in st.session_state:
         st.markdown("**🎯 Primary Fault Callout**")
         p_persona_msg = diag.get("primary_miss_persona", diag.get("primary_miss", "Not detected"))
         st.warning(f"\"{p_persona_msg}\"")
+        
+        p_plain = diag.get("primary_miss")
+        if p_plain:
+            st.markdown(f"*({p_plain})*")
+
         st.write(f"**Primary Drill:** `{diag.get('recommended_primary_drill')}`")
         p_causes = diag.get("primary_cause_breakdown")
         if p_causes:
@@ -564,6 +569,8 @@ if "diagnosis" in st.session_state:
         if sec_miss:
             s_persona_msg = diag.get("secondary_miss_persona", sec_miss)
             st.info(f"\"{s_persona_msg}\"")
+            st.markdown(f"*({sec_miss})*")
+
             sec_drill = diag.get("recommended_secondary_drill")
             st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
             s_causes = diag.get("secondary_cause_breakdown")
