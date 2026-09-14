@@ -499,9 +499,11 @@ if st.button(f"Analyze Shot with {selected_persona_key}"):
         Output strictly raw JSON matching this structure with no markdown formatting:
         {{
           "diagnosis_category": "Multi-Fault Diagnostic",
-          "primary_miss": "string",
+          "primary_miss": "string (technical short title of main fault)",
+          "primary_miss_persona": "string (1 short, witty sentence calling out this fault strictly in character without writing character name in quote)",
           "primary_cause_breakdown": "string (2-3 concise sentences explaining objective biomechanical/technical root causes without persona styling)",
-          "secondary_miss": "string or null",
+          "secondary_miss": "string or null (technical short title)",
+          "secondary_miss_persona": "string or null (1 short, witty sentence calling out secondary fault in character without writing character name in quote)",
           "secondary_cause_breakdown": "string or null (2-3 concise sentences explaining objective biomechanical/technical root causes without persona styling)",
           "expanded_caddie_intro": "string (3-4 robust, dramatic sentences strictly in character persona providing a high-level summary diagnosis, witty observations, and inspirational guidance)",
           "confidence_score": 0.95,
@@ -548,25 +550,27 @@ if "diagnosis" in st.session_state:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown(f"**🎯 Primary Issue ({caddie}'s Take)**")
-        st.warning(f"🗣️ **{caddie}:** {diag.get('primary_miss', 'Not detected')}")
+        st.markdown("**🎯 Primary Fault Callout**")
+        p_persona_msg = diag.get("primary_miss_persona", diag.get("primary_miss", "Not detected"))
+        st.warning(f"\"{p_persona_msg}\"")
         st.write(f"**Primary Drill:** `{diag.get('recommended_primary_drill')}`")
         p_causes = diag.get("primary_cause_breakdown")
         if p_causes:
             st.caption(f"**Technical Root Cause:** {p_causes}")
 
     with col2:
-        st.markdown(f"**⚠️ Secondary Issue ({caddie}'s Take)**")
+        st.markdown("**⚠️ Secondary Fault Callout**")
         sec_miss = diag.get("secondary_miss")
         if sec_miss:
-            st.info(f"🗣️ **{caddie}:** {sec_miss}")
+            s_persona_msg = diag.get("secondary_miss_persona", sec_miss)
+            st.info(f"\"{s_persona_msg}\"")
             sec_drill = diag.get("recommended_secondary_drill")
             st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
             s_causes = diag.get("secondary_cause_breakdown")
             if s_causes:
                 st.caption(f"**Technical Root Cause:** {s_causes}")
         else:
-            st.info(f"🗣️ **{caddie}:** Fairway looks clear! No major secondary flaw detected.")
+            st.info("\"Fairway looks clear! No secondary dark side detected in this swing.\"")
             st.write("**Secondary Drill:** `N/A`")
 
     st.markdown("---")
@@ -683,7 +687,6 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     is_pure_game = (p_mode == "Pure Game Mode (100% Target Pressure)")
     is_hybrid = (p_mode == "Combination / Hybrid (AI Balanced)")
 
-    # Pure Game Mode Conversion Logic (All drills converted to games)
     if is_pure_game:
         st.info("🎮 **Pure Game Mode Active:** All drills converted into interactive target-pressure games.")
         p_drill = GAME_MODE_DRILL_MAP.get(p_drill, p_drill)
@@ -695,7 +698,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     
     active_drills = [p_drill]
 
-    # Rule 1: High Resource Budget Progression (Non-pure game modes)
+    # High Resource Budget Progression (Non-pure game modes)
     high_complexity_added = None
     if is_high_budget and not is_pure_game:
         if p_complexity != "High":
@@ -710,19 +713,17 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
             if high_complexity_added and high_complexity_added not in active_drills:
                 active_drills.append(high_complexity_added)
 
-    # Rule 2: Multi-drill allocation if secondary drill exists and budget allows
+    # Multi-drill allocation if secondary drill exists and budget allows
     if c_balls >= 40 and c_time >= 30 and s_drill and s_drill not in active_drills:
         active_drills.append(s_drill)
 
-    # Combination/Hybrid Logic: Convert secondary/subsequent drills to Interactive Games
+    # Hybrid Conversion Logic: Convert secondary/subsequent drills to Interactive Games
     if is_hybrid:
-        # If budget allows only 1 drill, auto-append its game counterpart for a true hybrid experience
         if len(active_drills) == 1 and p_drill in GAME_MODE_DRILL_MAP:
             game_pair = GAME_MODE_DRILL_MAP[p_drill]
             if game_pair != p_drill:
                 active_drills.append(game_pair)
         
-        # Convert any drill after Drill #1 into an interactive game
         for i in range(1, len(active_drills)):
             active_drills[i] = GAME_MODE_DRILL_MAP.get(active_drills[i], active_drills[i])
 
@@ -752,7 +753,6 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     for idx, d_name in enumerate(active_drills):
         schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
 
-        # Label designation
         if is_pure_game or (is_hybrid and idx > 0):
             label = f"🎮 Interactive Target Game: {p_miss if idx == 0 else (s_miss if s_miss else p_miss)}"
         elif d_name == p_drill:
@@ -781,7 +781,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         if idx < len(active_drills) - 1:
             st.markdown("---")
 
-    # Target Course Pressure Block (Fully Formatted)
+    # Target Course Pressure Block (Formatted as standard drill card)
     gm_balls = res["game_balls"]
     gm_time = res["game_time"]
     if gm_balls > 0 and gm_time > 0 and not is_pure_game:
