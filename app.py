@@ -54,7 +54,7 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
         lines.append(f"\nDRILL #{idx+1}: {d_name.upper()}")
         lines.append(f"Target: {balls_per_drill} Balls | {time_per_drill} Mins")
         lines.append(f"Equipment: {schematic['equipment']}")
-        lines.append(f"Setup (Plain English): {schematic['vivid_description']}")
+        lines.append(f"Setup: {schematic['vivid_description']}")
         lines.append(f"Mental Analogy: {schematic['analogy']}")
         lines.append(f"Pro Tip: {schematic['pro_tip'].replace('🏆 **Pro Tip:** ', '')}")
         lines.append("-" * 40)
@@ -83,44 +83,40 @@ genai.configure(api_key=api_key)
 # MOVIE PARODY PERSONA DATABASE
 # -------------------------------------------------------------
 PERSONA_DATABASE = {
-    "Obi-Wan Kenbogey": {
-        "title": "Obi-Wan Kenbogey (Jedi Master of Swing)",
+    "Obi-Wan Kenbogey (Jedi Master of Swing)": {
         "description": "Wise Jedi mentor guiding you away from the Dark Side (the slice) using the Force of swing tempo.",
         "system_instruction": """
         You are 'Obi-Wan Kenbogey,' a wise and serene Jedi Master AI golf caddie.
         Tone: Calm, philosophical, dramatic, heroic, slightly cryptic.
         Sample Catchphrases: 'May the Force be with your clubface.', 'These are not the trees you are looking for.', 'Beware the Dark Side—anger leads to an open face.'
-        Analyze shot errors across full swing, short game, and putting using Jedi terminology and wise guidance. Always explain technical body movements in plain English.
+        Analyze shot errors across full swing, short game, and putting using Jedi terminology and wise guidance.
         """
     },
-    "Harry Putter": {
-        "title": "Harry Putter (The Boy Who Shanked)",
+    "Harry Putter (The Boy Who Shanked)": {
         "description": "Magical prodigy who treats golf clubs like wands and blames Dark Magic for shanked drives and three-putts.",
         "system_instruction": """
         You are 'Harry Putter,' a young wizard AI golf caddie who treats golf clubs like magic wands and shot analysis like Defense Against the Dark Arts.
         Tone: Enthusiastic, spell-casting, British, magical.
         Sample Catchphrases: 'Expecto Fairway-um!', 'Yer a golfer, Harry!', '10 points to Gryffindor if you hit this green.'
-        Analyze shot errors across full swing, short game, and putting using wizarding world terminology. Always explain technical body movements in plain English.
+        Analyze shot errors across full swing, short game, and putting using wizarding world terminology.
         """
     },
-    "James Pond": {
-        "title": "James Pond (Agent 00-Slice)",
+    "James Pond (Agent 00-Slice)": {
         "description": "Suave secret agent who approaches every shot like a high-stakes MI6 espionage mission.",
         "system_instruction": """
         You are 'James Pond' (Agent 00-Slice), a suave, high-class secret agent AI golf caddie.
         Tone: Cool, sophisticated, covert, tactical, dry British charm.
         Sample Catchphrases: 'Shaken, not stirred—much like your grip pressure.', 'License to slice.', "The name's Pond... James Pond."
-        Analyze shot errors as if evaluating high-stakes tactical intelligence. Always explain technical body movements in plain English.
+        Analyze shot errors as if evaluating high-stakes tactical intelligence.
         """
     },
-    "Captain Hack Sparrow": {
-        "title": "Captain Hack Sparrow (Pirate of the Fairway)",
+    "Captain Hack Sparrow (Pirate of the Fairway)": {
         "description": "Eccentric, unpredictable pirate caddie stumbling through hazards with rum-fueled optimism and chaotic strategies.",
         "system_instruction": """
         You are 'Captain Hack Sparrow,' an eccentric, wildly unpredictable pirate AI golf caddie.
         Tone: Slurred charm, chaotic, theatrical, witty, rum-obsessed, highly eccentric.
         Sample Catchphrases: 'Why is the fairway always gone?', 'Take what you can, give nothing back—except that ball in the hazard.', 'This shot is either brilliant or mad. Utterly mad.'
-        Analyze shot errors using nautical pirate metaphors. Always explain technical body movements in plain English.
+        Analyze shot errors using nautical pirate metaphors.
         """
     }
 }
@@ -423,7 +419,6 @@ selected_persona_key = st.selectbox(
 )
 
 active_persona = PERSONA_DATABASE[selected_persona_key]
-st.info(f"**{active_persona['title']}** — {active_persona['description']}")
 
 if "diag_step" not in st.session_state:
     st.session_state["diag_step"] = 1
@@ -476,7 +471,7 @@ if st.session_state["diag_step"] == 1:
         - Putting: {putting_miss}
         - Round Notes: {round_notes if round_notes else 'None provided'}
 
-        Generate 2 targeted diagnostic follow-up questions in persona voice to pinpoint the overarching swing flaw linking these errors. Keep questions easy to understand for an everyday golfer without confusing jargon.
+        Generate 2 targeted diagnostic follow-up questions in persona voice to pinpoint the overarching swing flaw linking these errors.
 
         Output strictly raw JSON with no markdown formatting:
         {{
@@ -550,9 +545,8 @@ elif st.session_state["diag_step"] == 2:
 
             Analyze the user's complete 18-hole round data. Cross-reference errors across categories and isolate the SINGLE primary 'Macro-Fault' (root cause responsible for ~80% of damage across the bag) and 1 secondary fault.
 
-            CRITICAL PLAIN ENGLISH REQUIREMENT:
-            - ALL root cause explanations MUST be written in everyday, simple golf terms. Avoid complex biomechanical jargon like 'anterior pelvic tilt,' 'early extension,' 'supination,' or 'ulnar deviation.' Explain what the body is actually doing in plain English (e.g., 'your hips thrust forward toward the ball,' or 'your wrists flipped at the last second').
-            - ALL SWOT sections MUST use simple, relatable language tailored to an everyday golfer rather than corporate jargon.
+            BIOMECHANICAL & MECHANICS REQUIREMENT:
+            - In the 'primary_cause_breakdown' and 'secondary_cause_breakdown' sections (Root Cause Explanation), incorporate clear biomechanical explanations and anatomical terms where applicable (e.g., lead wrist flexion/extension, early extension, pelvic rotation/stall, shoulder plane tilt, or low-point control) so the golfer understands the precise physical body mechanics causing the swing flaw.
 
             Map faults to the most effective drills from this EXACT list of 40 drills:
             - FULL SWING: 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill', 'Towel Under Armpits Drill', 'Coin Strike Low-Point Drill', 'Split-Hands Release Drill', 'Feet-Together Balance Drill', 'Wall-Head Posture Drill', 'Impact Bag Compression Drill', 'Two-Step Pump Lag Drill'
@@ -562,24 +556,24 @@ elif st.session_state["diag_step"] == 2:
             Output strictly raw JSON with no markdown formatting:
             {{
               "diagnosis_category": "Full-Round Macro Synthesis",
-              "primary_miss": "string (simple title of primary root cause in plain English)",
+              "primary_miss": "string (title of primary root cause)",
               "primary_miss_persona": "string (1 short, witty sentence calling out primary flaw in character)",
-              "primary_cause_breakdown": "string (2-3 simple, plain-English sentences explaining how this simple swing flaw caused errors across driver, irons, or short game without biomechanical jargon)",
+              "primary_cause_breakdown": "string (2-3 sentences incorporating explicit biomechanical explanations and physical movement breakdowns causing the miss)",
               "secondary_miss": "string or null",
               "secondary_miss_persona": "string or null",
-              "secondary_cause_breakdown": "string or null (2-3 simple, plain-English sentences explaining the secondary flaw without biomechanical jargon)",
+              "secondary_cause_breakdown": "string or null (2-3 sentences incorporating explicit biomechanical explanations where applicable)",
               "expanded_caddie_intro": "string (3-4 robust sentences in persona summarizing the round narrative and key strategic takeaway)",
               "caddie_drill_pep_talk": "string (2-3 sentences in persona giving encouraging range advice)",
               "swot_analysis": {{
-                "strengths": "string (1 plain-English sentence: what worked best in your game today)",
-                "weaknesses": "string (1 plain-English sentence: the main swing flaw costing you strokes)",
-                "opportunities": "string (1 plain-English sentence: the easiest quick fix to save 3-5 strokes)",
-                "threats": "string (1 plain-English sentence: the big mistake that will ruin your round if left unfixed)"
+                "strengths": "string (1 sentence: what worked best in your game today)",
+                "weaknesses": "string (1 sentence: the main swing flaw costing you strokes)",
+                "opportunities": "string (1 sentence: the easiest quick fix to save 3-5 strokes)",
+                "threats": "string (1 sentence: the big mistake that will ruin your round if left unfixed)"
               }},
               "confidence_score": 0.95,
               "recommended_primary_drill": "string",
               "recommended_secondary_drill": "string or null",
-              "drill_rationale": "string (1-2 plain-English sentences explaining why these drills fix the root cause)"
+              "drill_rationale": "string (1-2 sentences explaining why these drills fix the root cause)"
             }}
             """
 
@@ -656,10 +650,10 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
             st.info("\"No major secondary fault detected. Fix your primary macro-fault to unlock your game!\"")
             st.write("**Secondary Drill:** `N/A`")
 
-    # Dynamic Strategic Round SWOT Analysis (Plain English)
+    # Strategic Round SWOT Analysis
     if "swot_analysis" in diag and diag["swot_analysis"]:
         st.markdown("---")
-        st.markdown("### 📊 Round SWOT Breakdown (Plain English)")
+        st.markdown("### 📊 Round SWOT Breakdown")
         swot = diag["swot_analysis"]
         sc1, sc2 = st.columns(2)
         with sc1:
@@ -851,7 +845,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         equip_items = re.split(r',\s*(?![^()]*\))', schematic["equipment"])
         render_indented_ul(equip_items)
 
-        st.markdown("**📖 Setup Description (Plain English Mechanics)**")
+        st.markdown("**📖 Setup Description Mechanics**")
         render_indented_html(schematic["vivid_description"])
 
         st.markdown("**🧠 Mental Analogy**")
@@ -873,7 +867,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         st.markdown("**🛠️ Range Equipment Needed**")
         render_indented_ul(["Full Golf Bag (All Clubs)", "Laser Rangefinder or Target Flags", "Pre-shot Routine Line"])
 
-        st.markdown("**📖 Setup Description (Plain English Mechanics)**")
+        st.markdown("**📖 Setup Description Mechanics**")
         render_indented_html("Simulate real course conditions. Alternate target flags and clubs for every single ball. Step away from the mat and execute your complete pre-shot routine before every swing.")
 
         st.markdown("**🧠 Mental Analogy**")
