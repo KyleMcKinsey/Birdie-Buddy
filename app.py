@@ -408,9 +408,9 @@ GAME_MODE_DRILL_MAP = {
 }
 
 # -------------------------------------------------------------
-# STEP 1: BALL-FLIGHT & SENSORY CONTACT DIAGNOSTIC
+# STEP 1: HYBRID STORY + MULTI-CHOICE DIAGNOSTIC
 # -------------------------------------------------------------
-st.subheader("1. Ball-Flight & Sensory Contact Diagnostic")
+st.subheader("1. Round Story & Diagnostic Intake")
 
 selected_persona_key = st.selectbox(
     "Choose Your Movie Caddie Persona:",
@@ -423,113 +423,108 @@ active_persona = PERSONA_DATABASE[selected_persona_key]
 if "diag_step" not in st.session_state:
     st.session_state["diag_step"] = 1
 
-# --- STEP 1A: SENSORY & OUTCOME INTAKE ---
+# --- STEP 1A: FREE TEXT STORY & OPTIONAL SELECTORS ---
 if st.session_state["diag_step"] == 1:
-    st.markdown("### 🎯 Tell Us What You Saw & Felt")
-    st.caption("No technical golf jargon required—select your observable ball flights and contact feel below.")
+    st.markdown("### 🗣️ Tell Us How Your Round Went")
+    st.caption("Talk naturally about what happened during your round—your misses, feelings, or blow-up holes. The AI Caddie will pinpoint key themes and ask two targeted follow-up questions.")
 
-    col_s1, col_s2 = st.columns(2)
-    with col_s1:
-        start_dir = st.selectbox(
-            "1. Ball Start Direction (Relative to Target):",
-            ["Starts Straight at Target", "Pulls Left of Target", "Pushes Right of Target"]
-        )
-        curvature = st.selectbox(
-            "2. Curvature in Flight:",
-            ["Flies Straight (No curve)", "Curves Softly Right (Fade)", "Curves Sharply Right (Slice)", "Curves Left (Draw / Hook)"]
-        )
-        club_category = st.selectbox(
-            "3. Primary Problem Area:",
-            ["Driver / Tee Shots", "Mid / Long Irons", "Short Game / Wedges", "Putting Greens"]
-        )
+    user_round_story = st.text_area(
+        "Describe your round in your own words:",
+        height=120,
+        placeholder="e.g., I played 18 holes today and couldn't hit a fairway with my driver—everything kept slicing hard into the trees on the right. My irons felt okay, but I hit two fat wedge shots into the water hazard on hole 7..."
+    )
 
-    with col_s2:
-        divot_loc = st.selectbox(
-            "4. Divot Location / Turf Interaction:",
-            ["Clean Contact (Divot starts after ball)", "Heavy / Fat (Turf struck 1-2 inches before ball)", "Thin / Skulled (No divot, struck top of ball)", "Hard Mat / Pure Turf Sweep"]
-        )
-        impact_feel = st.selectbox(
-            "5. Impact Sound & Feel:",
-            ["Crisp 'click' in center face", "Dull 'thud' / heavy dirt drag", "Harsh vibration on toe/heel", "Stinging hands / thin top strike"]
-        )
-        miss_freq = st.selectbox(
-            "6. Flaw Consistency Across Bag:",
-            ["Only happens on Driver / Woods", "Only happens on Irons & Wedges", "Happens on Every Club in the Bag"]
-        )
+    with st.expander("⚙️ Optional: Tweak Observable Ball-Flight Selectors", expanded=False):
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            start_dir = st.selectbox("Start Direction:", ["Starts Straight at Target", "Pulls Left of Target", "Pushes Right of Target"])
+            curvature = st.selectbox("Flight Curvature:", ["Flies Straight (No curve)", "Curves Softly Right (Fade)", "Curves Sharply Right (Slice)", "Curves Left (Draw / Hook)"])
+            club_category = st.selectbox("Main Problem Area:", ["Driver / Tee Shots", "Mid / Long Irons", "Short Game / Wedges", "Putting Greens"])
+        with col_s2:
+            divot_loc = st.selectbox("Divot Location:", ["Clean Contact (Divot after ball)", "Heavy / Fat (Turf 1-2 inches before ball)", "Thin / Skulled (Top of ball)", "Hard Mat / Pure Turf Sweep"])
+            impact_feel = st.selectbox("Impact Sound & Feel:", ["Crisp 'click'", "Dull 'thud' / heavy dirt drag", "Harsh vibration on toe/heel", "Stinging hands / thin strike"])
+            miss_freq = st.selectbox("Flaw Frequency:", ["Driver / Woods Only", "Irons & Wedges Only", "Every Club in Bag"])
 
-    if st.button(f"Analyze Ball Flight with {selected_persona_key}", type="primary"):
-        st.session_state["start_dir"] = start_dir
-        st.session_state["curvature"] = curvature
-        st.session_state["club_category"] = club_category
-        st.session_state["divot_loc"] = divot_loc
-        st.session_state["impact_feel"] = impact_feel
-        st.session_state["miss_freq"] = miss_freq
-        st.session_state["caddie_name"] = selected_persona_key
+    if st.button(f"Analyze Round Narrative with {selected_persona_key}", type="primary"):
+        if not user_round_story.strip():
+            st.warning("Please type a few words about your round story above so your Caddie can analyze it!")
+        else:
+            st.session_state["user_round_story"] = user_round_story
+            st.session_state["start_dir"] = start_dir
+            st.session_state["curvature"] = curvature
+            st.session_state["club_category"] = club_category
+            st.session_state["divot_loc"] = divot_loc
+            st.session_state["impact_feel"] = impact_feel
+            st.session_state["miss_freq"] = miss_freq
+            st.session_state["caddie_name"] = selected_persona_key
 
-        question_prompt = f"""
-        {active_persona['system_instruction']}
+            question_prompt = f"""
+            {active_persona['system_instruction']}
 
-        The golfer logged their observable ball flight and sensory contact matrix:
-        - Start Direction: {start_dir}
-        - Flight Curvature: {curvature}
-        - Problem Area: {club_category}
-        - Divot Location: {divot_loc}
-        - Impact Feel: {impact_feel}
-        - Consistency: {miss_freq}
+            The golfer provided this open-ended story about their round:
+            "{user_round_story}"
 
-        Generate 2 diagnostic decision-tree follow-up questions in persona voice.
-        For EACH question, provide 3 short, concrete multiple-choice options (Option A, Option B, Option C) so the user doesn't have to type anything.
+            Quick observable settings:
+            - Start Direction: {start_dir}
+            - Flight Curvature: {curvature}
+            - Problem Area: {club_category}
+            - Divot Location: {divot_loc}
+            - Impact Feel: {impact_feel}
+            - Consistency: {miss_freq}
 
-        Output strictly raw JSON with no markdown formatting:
-        {{
-          "question_1": "string (Question 1 in persona voice)",
-          "options_q1": ["Option A string", "Option B string", "Option C string"],
-          "question_2": "string (Question 2 in persona voice)",
-          "options_q2": ["Option A string", "Option B string", "Option C string"]
-        }}
-        """
+            Based directly on their story and attributes, craft 2 targeted diagnostic decision-tree follow-up questions in persona voice.
+            For EACH question, provide 3 short, concrete multiple-choice options (Option A, Option B, Option C) to clarify their biomechanical root cause without typing.
 
-        try:
-            flash_models = [
-                m.name for m in genai.list_models()
-                if 'generateContent' in m.supported_generation_methods and 'flash' in m.name.lower()
-            ]
-            flash_models.sort(reverse=True)
+            Output strictly raw JSON with no markdown formatting:
+            {{
+              "question_1": "string (Question 1 directly addressing a key detail in their story)",
+              "options_q1": ["Option A string", "Option B string", "Option C string"],
+              "question_2": "string (Question 2 addressing secondary mechanic or feel)",
+              "options_q2": ["Option A string", "Option B string", "Option C string"]
+            }}
+            """
 
-            q_res = None
-            for model_name in flash_models:
-                try:
-                    model = genai.GenerativeModel(model_name)
-                    res = model.generate_content(question_prompt)
-                    if res and res.text:
-                        q_res = res
-                        break
-                except Exception:
-                    continue
+            try:
+                flash_models = [
+                    m.name for m in genai.list_models()
+                    if 'generateContent' in m.supported_generation_methods and 'flash' in m.name.lower()
+                ]
+                flash_models.sort(reverse=True)
 
-            if q_res:
-                clean_q_json = q_res.text.replace("```json", "").replace("```", "").strip()
-                st.session_state["followup_questions"] = json.loads(clean_q_json)
-                st.session_state["diag_step"] = 2
-                st.rerun()
-            else:
-                st.error("Unable to generate diagnostic questions. Please check your API key.")
-        except Exception as e:
-            st.error(f"Error generating follow-up questions: {e}")
+                q_res = None
+                for model_name in flash_models:
+                    try:
+                        model = genai.GenerativeModel(model_name)
+                        res = model.generate_content(question_prompt)
+                        if res and res.text:
+                            q_res = res
+                            break
+                    except Exception:
+                        continue
 
-# --- STEP 1B: MULTI-CHOICE DECISION TREE ---
+                if q_res:
+                    clean_q_json = q_res.text.replace("```json", "").replace("```", "").strip()
+                    st.session_state["followup_questions"] = json.loads(clean_q_json)
+                    st.session_state["diag_step"] = 2
+                    st.rerun()
+                else:
+                    st.error("Unable to generate diagnostic questions. Please check your API key.")
+            except Exception as e:
+                st.error(f"Error generating follow-up questions: {e}")
+
+# --- STEP 1B: TARGETED MULTI-CHOICE DECISION TREE ---
 elif st.session_state["diag_step"] == 2:
-    st.info(f"📍 **Logged Flight Profile:** Start: {st.session_state['start_dir']} | Curve: {st.session_state['curvature']} | Divot: {st.session_state['divot_loc']} | Feel: {st.session_state['impact_feel']}")
+    st.info(f"📖 **Your Round Narrative:** \"{st.session_state.get('user_round_story')}\"")
     caddie = st.session_state["caddie_name"]
     qs = st.session_state.get("followup_questions", {})
 
-    st.markdown(f"### 🗣️ {caddie} asks (Select the closest answer):")
+    st.markdown(f"### 🗣️ {caddie} asks based on your story:")
 
-    q1_text = qs.get("question_1", "When your ball curves sharply, how does your body position feel at finish?")
+    q1_text = qs.get("question_1", "When your ball curves off line, what does your finish position feel like?")
     q1_opts = qs.get("options_q1", ["Hanging back on trail foot", "Losing balance forward", "Rotated fully to target"])
 
-    q2_text = qs.get("question_2", "What happens when you try to swing softer to fix contact?")
-    q2_opts = qs.get("options_q2", ["Contact gets worse / fatter", "Ball goes straight but loses 30 yards", "Shot stays exactly the same"])
+    q2_text = qs.get("question_2", "When you try to compensate, what usually happens next?")
+    q2_opts = qs.get("options_q2", ["Contact gets heavier / fatter", "Ball goes straight but loses 30 yards", "Shot stays exactly the same"])
 
     st.markdown(f"**1. {q1_text}**")
     ans1_selected = st.radio("Q1 Choice:", options=q1_opts, key="ans1_radio", label_visibility="collapsed")
@@ -541,7 +536,8 @@ elif st.session_state["diag_step"] == 2:
     with col_btn1:
         if st.button("🔍 Synthesize Biomechanical Root Cause", type="primary"):
             full_round_input = f"""
-            Ball Start Direction: {st.session_state['start_dir']}
+            User Story: "{st.session_state.get('user_round_story')}"
+            Start Direction: {st.session_state['start_dir']}
             Flight Curvature: {st.session_state['curvature']}
             Problem Area: {st.session_state['club_category']}
             Divot / Turf Location: {st.session_state['divot_loc']}
@@ -555,12 +551,11 @@ elif st.session_state["diag_step"] == 2:
             {active_persona['system_instruction']}
 
             Act as an expert biomechanical golf instructor AI.
-            Translate the user's observable ball flights and sensory contact symptoms into strict anatomical and mechanical terms:
-            - Start Direction + Curvature -> Face Angle vs Swing Path mechanics (e.g., open face relative to outside-in path).
-            - Divot Location + Sound -> Low-Point location and Angle of Attack (e.g., trail-side tilt, early uncocking/scooping, pelvic stall).
-            - Impact Feel -> Off-center strike location (toe/heel) or wrist position at impact.
+            Translate the user's round narrative and decision tree answers into strict anatomical and mechanical terms:
+            - Start Direction + Curvature + User Story -> Face Angle vs Swing Path mechanics.
+            - Divot Location + Impact Feel -> Low-Point location and Angle of Attack.
 
-            Incorporate explicit biomechanical explanations (e.g., lead wrist extension/flexion, early extension, pelvic rotation stall, shoulder plane tilt) into the 'primary_cause_breakdown' and 'secondary_cause_breakdown' fields.
+            Incorporate explicit biomechanical explanations into 'primary_cause_breakdown' and 'secondary_cause_breakdown'.
 
             Map faults to the most effective drills from this EXACT list of 40 drills:
             - FULL SWING: 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill', 'Towel Under Armpits Drill', 'Coin Strike Low-Point Drill', 'Split-Hands Release Drill', 'Feet-Together Balance Drill', 'Wall-Head Posture Drill', 'Impact Bag Compression Drill', 'Two-Step Pump Lag Drill'
@@ -569,17 +564,17 @@ elif st.session_state["diag_step"] == 2:
 
             Output strictly raw JSON with no markdown formatting:
             {{
-              "diagnosis_category": "Biomechanical Flight Translation",
+              "diagnosis_category": "Biomechanical Narrative Translation",
               "primary_miss": "string (title of primary root cause)",
               "primary_miss_persona": "string (1 short, witty sentence calling out primary flaw in character)",
-              "primary_cause_breakdown": "string (2-3 sentences incorporating explicit biomechanical explanations of face-to-path and low-point mechanics)",
+              "primary_cause_breakdown": "string (2-3 sentences incorporating explicit biomechanical explanations)",
               "secondary_miss": "string or null",
               "secondary_miss_persona": "string or null",
               "secondary_cause_breakdown": "string or null (2-3 sentences incorporating explicit biomechanical explanations)",
-              "expanded_caddie_intro": "string (3-4 robust sentences in persona summarizing ball flight diagnostic and strategic key)",
+              "expanded_caddie_intro": "string (3-4 robust sentences in persona referencing their story and strategic fix)",
               "caddie_drill_pep_talk": "string (2-3 sentences in persona giving encouraging range advice)",
               "swot_analysis": {{
-                "strengths": "string (1 sentence: what worked best in ball flight)",
+                "strengths": "string (1 sentence: what worked best according to narrative)",
                 "weaknesses": "string (1 sentence: main physical swing flaw costing accuracy)",
                 "opportunities": "string (1 sentence: easiest quick mechanical fix)",
                 "threats": "string (1 sentence: big mistake causing severe missed shots)"
@@ -602,7 +597,7 @@ elif st.session_state["diag_step"] == 2:
                 for model_name in flash_models:
                     try:
                         model = genai.GenerativeModel(model_name)
-                        res = model.generate_content(f"{system_prompt}\n\nFlight Matrix Input:\n{full_round_input}")
+                        res = model.generate_content(f"{system_prompt}\n\nRound Context:\n{full_round_input}")
                         if res and res.text:
                             response = res
                             break
@@ -678,7 +673,7 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
             st.error(f"**🎯 Threat (Blow-up Risk):** {swot.get('threats', 'N/A')}")
 
     st.markdown("---")
-    if st.button("🔄 Log Another Ball Flight Matrix"):
+    if st.button("🔄 Describe Another Round"):
         st.session_state["diag_step"] = 1
         st.rerun()
 
