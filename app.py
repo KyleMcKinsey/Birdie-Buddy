@@ -548,25 +548,25 @@ if "diagnosis" in st.session_state:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("**🎯 Primary Issue**")
-        st.warning(diag.get("primary_miss", "Not detected"))
+        st.markdown(f"**🎯 Primary Issue ({caddie}'s Take)**")
+        st.warning(f"🗣️ **{caddie}:** {diag.get('primary_miss', 'Not detected')}")
         st.write(f"**Primary Drill:** `{diag.get('recommended_primary_drill')}`")
         p_causes = diag.get("primary_cause_breakdown")
         if p_causes:
-            st.caption(f"**Breakdown:** {p_causes}")
+            st.caption(f"**Technical Root Cause:** {p_causes}")
 
     with col2:
-        st.markdown("**⚠️ Secondary Issue**")
+        st.markdown(f"**⚠️ Secondary Issue ({caddie}'s Take)**")
         sec_miss = diag.get("secondary_miss")
         if sec_miss:
-            st.info(sec_miss)
+            st.info(f"🗣️ **{caddie}:** {sec_miss}")
             sec_drill = diag.get("recommended_secondary_drill")
             st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
             s_causes = diag.get("secondary_cause_breakdown")
             if s_causes:
-                st.caption(f"**Breakdown:** {s_causes}")
+                st.caption(f"**Technical Root Cause:** {s_causes}")
         else:
-            st.info("None Detected")
+            st.info(f"🗣️ **{caddie}:** Fairway looks clear! No major secondary flaw detected.")
             st.write("**Secondary Drill:** `N/A`")
 
     st.markdown("---")
