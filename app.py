@@ -11,14 +11,14 @@ st.set_page_config(
 def render_indented_html(content: str, margin_left: int = 24):
     st.markdown(
         f"<div style='margin-left: {margin_left}px; margin-top: 4px; margin-bottom: 16px;'>{content}</div>",
-        unsafe_html=True
+        unsafe_allow_html=True
     )
 
 def render_indented_ul(items: list, margin_left: int = 24):
     list_items = "".join([f"<li>{item.strip()}</li>" for item in items if item.strip()])
     st.markdown(
         f"<ul style='margin-left: {margin_left}px; margin-top: 4px; margin-bottom: 12px;'>{list_items}</ul>",
-        unsafe_html=True
+        unsafe_allow_html=True
     )
 
 def build_export_card(diag, res, active_drills, drill_schematics, caddie):
