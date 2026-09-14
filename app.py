@@ -423,6 +423,12 @@ active_persona = PERSONA_DATABASE[selected_persona_key]
 if "diag_step" not in st.session_state:
     st.session_state["diag_step"] = 1
 
+NONE_OPT = "-- Not Specified --"
+
+def format_selector_value(val: str) -> str:
+    """Formats optional selector for Gemini prompt: ignores if unselected."""
+    return "Not specified by user (derive exclusively from round story text)" if val == NONE_OPT else val
+
 # --- STEP 1A: FREE TEXT STORY & OPTIONAL SELECTORS ---
 if st.session_state["diag_step"] == 1:
     st.markdown("### 🗣️ Tell Us How Your Round Went")
@@ -434,16 +440,16 @@ if st.session_state["diag_step"] == 1:
         placeholder="e.g., I played 18 holes today and couldn't hit a fairway with my driver—everything kept slicing hard into the trees on the right. My irons felt okay, but I hit two fat wedge shots into the water hazard on hole 7..."
     )
 
-    with st.expander("⚙️ Optional: Tweak Observable Ball-Flight Selectors", expanded=False):
+    with st.expander("⚙️ Optional: Tweak Observable Ball-Flight Selectors (Default: None)", expanded=False):
         col_s1, col_s2 = st.columns(2)
         with col_s1:
-            start_dir = st.selectbox("Start Direction:", ["Starts Straight at Target", "Pulls Left of Target", "Pushes Right of Target"])
-            curvature = st.selectbox("Flight Curvature:", ["Flies Straight (No curve)", "Curves Softly Right (Fade)", "Curves Sharply Right (Slice)", "Curves Left (Draw / Hook)"])
-            club_category = st.selectbox("Main Problem Area:", ["Driver / Tee Shots", "Mid / Long Irons", "Short Game / Wedges", "Putting Greens"])
+            start_dir = st.selectbox("Start Direction:", [NONE_OPT, "Starts Straight at Target", "Pulls Left of Target", "Pushes Right of Target"])
+            curvature = st.selectbox("Flight Curvature:", [NONE_OPT, "Flies Straight (No curve)", "Curves Softly Right (Fade)", "Curves Sharply Right (Slice)", "Curves Left (Draw / Hook)"])
+            club_category = st.selectbox("Main Problem Area:", [NONE_OPT, "Driver / Tee Shots", "Mid / Long Irons", "Short Game / Wedges", "Putting Greens"])
         with col_s2:
-            divot_loc = st.selectbox("Divot Location:", ["Clean Contact (Divot after ball)", "Heavy / Fat (Turf 1-2 inches before ball)", "Thin / Skulled (Top of ball)", "Hard Mat / Pure Turf Sweep"])
-            impact_feel = st.selectbox("Impact Sound & Feel:", ["Crisp 'click'", "Dull 'thud' / heavy dirt drag", "Harsh vibration on toe/heel", "Stinging hands / thin strike"])
-            miss_freq = st.selectbox("Flaw Frequency:", ["Driver / Woods Only", "Irons & Wedges Only", "Every Club in Bag"])
+            divot_loc = st.selectbox("Divot Location:", [NONE_OPT, "Clean Contact (Divot after ball)", "Heavy / Fat (Turf 1-2 inches before ball)", "Thin / Skulled (Top of ball)", "Hard Mat / Pure Turf Sweep"])
+            impact_feel = st.selectbox("Impact Sound & Feel:", [NONE_OPT, "Crisp 'click'", "Dull 'thud' / heavy dirt drag", "Harsh vibration on toe/heel", "Stinging hands / thin strike"])
+            miss_freq = st.selectbox("Flaw Frequency:", [NONE_OPT, "Driver / Woods Only", "Irons & Wedges Only", "Every Club in Bag"])
 
     if st.button(f"Analyze Round Narrative with {selected_persona_key}", type="primary"):
         if not user_round_story.strip():
@@ -464,13 +470,13 @@ if st.session_state["diag_step"] == 1:
             The golfer provided this open-ended story about their round:
             "{user_round_story}"
 
-            Quick observable settings:
-            - Start Direction: {start_dir}
-            - Flight Curvature: {curvature}
-            - Problem Area: {club_category}
-            - Divot Location: {divot_loc}
-            - Impact Feel: {impact_feel}
-            - Consistency: {miss_freq}
+            Optional observable settings (if marked 'Not specified', rely strictly on the story text above):
+            - Start Direction: {format_selector_value(start_dir)}
+            - Flight Curvature: {format_selector_value(curvature)}
+            - Problem Area: {format_selector_value(club_category)}
+            - Divot Location: {format_selector_value(divot_loc)}
+            - Impact Feel: {format_selector_value(impact_feel)}
+            - Consistency: {format_selector_value(miss_freq)}
 
             Based directly on their story and attributes, craft 2 targeted diagnostic decision-tree follow-up questions in persona voice.
             For EACH question, provide 3 short, concrete multiple-choice options (Option A, Option B, Option C) to clarify their biomechanical root cause without typing.
@@ -537,12 +543,12 @@ elif st.session_state["diag_step"] == 2:
         if st.button("🔍 Synthesize Biomechanical Root Cause", type="primary"):
             full_round_input = f"""
             User Story: "{st.session_state.get('user_round_story')}"
-            Start Direction: {st.session_state['start_dir']}
-            Flight Curvature: {st.session_state['curvature']}
-            Problem Area: {st.session_state['club_category']}
-            Divot / Turf Location: {st.session_state['divot_loc']}
-            Impact Sound & Feel: {st.session_state['impact_feel']}
-            Miss Frequency: {st.session_state['miss_freq']}
+            Start Direction: {format_selector_value(st.session_state['start_dir'])}
+            Flight Curvature: {format_selector_value(st.session_state['curvature'])}
+            Problem Area: {format_selector_value(st.session_state['club_category'])}
+            Divot / Turf Location: {format_selector_value(st.session_state['divot_loc'])}
+            Impact Sound & Feel: {format_selector_value(st.session_state['impact_feel'])}
+            Miss Frequency: {format_selector_value(st.session_state['miss_freq'])}
             Decision Tree Q1: {q1_text} -> Selected: {ans1_selected}
             Decision Tree Q2: {q2_text} -> Selected: {ans2_selected}
             """
