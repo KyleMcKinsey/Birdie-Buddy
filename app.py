@@ -27,12 +27,12 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
     lines.append("⛳ BIRDIE BUDDY RANGE PRACTICE CARD")
     lines.append("=" * 50)
     lines.append(f"Caddie Persona: {caddie}")
-    lines.append(f"Primary Fault: {diag.get('primary_miss', 'N/A')}")
+    lines.append(f"Primary Macro-Fault: {diag.get('primary_miss', 'N/A')}")
     if diag.get('secondary_miss'):
         lines.append(f"Secondary Fault: {diag.get('secondary_miss')}")
     lines.append(f"Total Allocation: {res['total_balls']} Balls | {res['total_time']} Mins (@ {res['sec_per_ball']}s/ball)")
     lines.append("-" * 50)
-    lines.append("\nSWING SWOT SUMMARY:")
+    lines.append("\nROUND SWOT SUMMARY:")
     swot = diag.get("swot_analysis", {})
     lines.append(f"- Strength: {swot.get('strengths', 'N/A')}")
     lines.append(f"- Weakness: {swot.get('weaknesses', 'N/A')}")
@@ -376,94 +376,45 @@ DRILL_SCHEMATICS = {
     }
 }
 
-# -------------------------------------------------------------
-# DRILL COMPLEXITY MAPPING
-# -------------------------------------------------------------
 DRILL_COMPLEXITY = {
-    # Full Swing
-    "Alignment Stick Gate Drill": "Low",
-    "Pause at Top Drill": "Medium",
-    "Tee Gate Drill": "Low",
-    "Towel Under Armpits Drill": "Low",
-    "Coin Strike Low-Point Drill": "Medium",
-    "Split-Hands Release Drill": "Medium",
-    "Feet-Together Balance Drill": "Low",
-    "Wall-Head Posture Drill": "Medium",
-    "Impact Bag Compression Drill": "High",
-    "Two-Step Pump Lag Drill": "High",
-    # Short Game
-    "Towel Behind Ball Drill": "Low",
-    "Lead Foot Weight Anchor Drill": "Low",
-    "Brush Turf Chipping Drill": "Low",
-    "Coin Lead-Point Pitch Drill": "Medium",
-    "Ruler in Glove Wrist Anchor Drill": "Medium",
-    "Hinge-and-Hold Chipping Drill": "Medium",
-    "Clock System Wedge Drill": "High",
-    "Landing Zone Target Towel Drill": "High",
-    "Trail-Hand Only Pitch Drill": "Medium",
-    "Line in the Sand Drill": "Low",
-    "Dollar Bill Sand Extraction Drill": "Medium",
-    "Open-Face Sand Splash Drill": "High",
-    "Continuous Motion Pendulum Chipping Drill": "Low",
-    "Accelerating Through Impact Gate Drill": "Medium",
-    "Target-Focused Eyes-Up Chipping Drill": "Medium",
-    # Putting
-    "Putting Tee Gate Drill": "Low",
-    "Chalk Line Straight Target Drill": "Medium",
-    "Mirror Alignment Face Drill": "Medium",
-    "Trail-Hand Push Putting Drill": "Low",
-    "Metal Yardstick Roll Drill": "High",
-    "Parallel Rod Putting Channel Drill": "Low",
-    "Ladder Distance Lag Drill": "Medium",
-    "Fringe-to-Fringe Feel Drill": "Low",
-    "Eyes-Closed Distance Perception Drill": "High",
-    "Rubber Band Putter Sweet-Spot Drill": "Medium",
-    "Two-Tee Putter Gate Drill": "Low",
-    "Coin Balance Putter Back Drill": "Medium",
-    "Push-Putting No-Backswing Drill": "Medium",
-    "Short Back Long Through Stroke Drill": "Low",
-    "Coin Balance Motion Stroke Drill": "Low",
+    "Alignment Stick Gate Drill": "Low", "Pause at Top Drill": "Medium", "Tee Gate Drill": "Low",
+    "Towel Under Armpits Drill": "Low", "Coin Strike Low-Point Drill": "Medium", "Split-Hands Release Drill": "Medium",
+    "Feet-Together Balance Drill": "Low", "Wall-Head Posture Drill": "Medium", "Impact Bag Compression Drill": "High",
+    "Two-Step Pump Lag Drill": "High", "Towel Behind Ball Drill": "Low", "Lead Foot Weight Anchor Drill": "Low",
+    "Brush Turf Chipping Drill": "Low", "Coin Lead-Point Pitch Drill": "Medium", "Ruler in Glove Wrist Anchor Drill": "Medium",
+    "Hinge-and-Hold Chipping Drill": "Medium", "Clock System Wedge Drill": "High", "Landing Zone Target Towel Drill": "High",
+    "Trail-Hand Only Pitch Drill": "Medium", "Line in the Sand Drill": "Low", "Dollar Bill Sand Extraction Drill": "Medium",
+    "Open-Face Sand Splash Drill": "High", "Continuous Motion Pendulum Chipping Drill": "Low", "Accelerating Through Impact Gate Drill": "Medium",
+    "Target-Focused Eyes-Up Chipping Drill": "Medium", "Putting Tee Gate Drill": "Low", "Chalk Line Straight Target Drill": "Medium",
+    "Mirror Alignment Face Drill": "Medium", "Trail-Hand Push Putting Drill": "Low", "Metal Yardstick Roll Drill": "High",
+    "Parallel Rod Putting Channel Drill": "Low", "Ladder Distance Lag Drill": "Medium", "Fringe-to-Fringe Feel Drill": "Low",
+    "Eyes-Closed Distance Perception Drill": "High", "Rubber Band Putter Sweet-Spot Drill": "Medium", "Two-Tee Putter Gate Drill": "Low",
+    "Coin Balance Putter Back Drill": "Medium", "Push-Putting No-Backswing Drill": "Medium", "Short Back Long Through Stroke Drill": "Low",
+    "Coin Balance Motion Stroke Drill": "Low"
 }
 
-# -------------------------------------------------------------
-# GAME MODE DRILL CONVERSION MAP
-# -------------------------------------------------------------
 GAME_MODE_DRILL_MAP = {
-    "Alignment Stick Gate Drill": "Tee Gate Drill",
-    "Pause at Top Drill": "Tee Gate Drill",
-    "Towel Under Armpits Drill": "Tee Gate Drill",
-    "Coin Strike Low-Point Drill": "Tee Gate Drill",
-    "Split-Hands Release Drill": "Tee Gate Drill",
-    "Feet-Together Balance Drill": "Tee Gate Drill",
-    "Wall-Head Posture Drill": "Tee Gate Drill",
-    "Impact Bag Compression Drill": "Tee Gate Drill",
-    "Two-Step Pump Lag Drill": "Tee Gate Drill",
-    "Towel Behind Ball Drill": "Landing Zone Target Towel Drill",
-    "Lead Foot Weight Anchor Drill": "Landing Zone Target Towel Drill",
-    "Brush Turf Chipping Drill": "Target-Focused Eyes-Up Chipping Drill",
-    "Coin Lead-Point Pitch Drill": "Landing Zone Target Towel Drill",
-    "Ruler in Glove Wrist Anchor Drill": "Target-Focused Eyes-Up Chipping Drill",
-    "Hinge-and-Hold Chipping Drill": "Clock System Wedge Drill",
-    "Trail-Hand Only Pitch Drill": "Target-Focused Eyes-Up Chipping Drill",
-    "Line in the Sand Drill": "Dollar Bill Sand Extraction Drill",
-    "Continuous Motion Pendulum Chipping Drill": "Target-Focused Eyes-Up Chipping Drill",
-    "Accelerating Through Impact Gate Drill": "Clock System Wedge Drill",
-    "Mirror Alignment Face Drill": "Putting Tee Gate Drill",
-    "Trail-Hand Push Putting Drill": "Ladder Distance Lag Drill",
-    "Metal Yardstick Roll Drill": "Chalk Line Straight Target Drill",
-    "Parallel Rod Putting Channel Drill": "Putting Tee Gate Drill",
-    "Fringe-to-Fringe Feel Drill": "Ladder Distance Lag Drill",
-    "Rubber Band Putter Sweet-Spot Drill": "Two-Tee Putter Gate Drill",
-    "Coin Balance Putter Back Drill": "Putting Tee Gate Drill",
-    "Push-Putting No-Backswing Drill": "Ladder Distance Lag Drill",
-    "Short Back Long Through Stroke Drill": "Ladder Distance Lag Drill",
-    "Coin Balance Motion Stroke Drill": "Ladder Distance Lag Drill",
+    "Alignment Stick Gate Drill": "Tee Gate Drill", "Pause at Top Drill": "Tee Gate Drill",
+    "Towel Under Armpits Drill": "Tee Gate Drill", "Coin Strike Low-Point Drill": "Tee Gate Drill",
+    "Split-Hands Release Drill": "Tee Gate Drill", "Feet-Together Balance Drill": "Tee Gate Drill",
+    "Wall-Head Posture Drill": "Tee Gate Drill", "Impact Bag Compression Drill": "Tee Gate Drill",
+    "Two-Step Pump Lag Drill": "Tee Gate Drill", "Towel Behind Ball Drill": "Landing Zone Target Towel Drill",
+    "Lead Foot Weight Anchor Drill": "Landing Zone Target Towel Drill", "Brush Turf Chipping Drill": "Target-Focused Eyes-Up Chipping Drill",
+    "Coin Lead-Point Pitch Drill": "Landing Zone Target Towel Drill", "Ruler in Glove Wrist Anchor Drill": "Target-Focused Eyes-Up Chipping Drill",
+    "Hinge-and-Hold Chipping Drill": "Clock System Wedge Drill", "Trail-Hand Only Pitch Drill": "Target-Focused Eyes-Up Chipping Drill",
+    "Line in the Sand Drill": "Dollar Bill Sand Extraction Drill", "Continuous Motion Pendulum Chipping Drill": "Target-Focused Eyes-Up Chipping Drill",
+    "Accelerating Through Impact Gate Drill": "Clock System Wedge Drill", "Mirror Alignment Face Drill": "Putting Tee Gate Drill",
+    "Trail-Hand Push Putting Drill": "Ladder Distance Lag Drill", "Metal Yardstick Roll Drill": "Chalk Line Straight Target Drill",
+    "Parallel Rod Putting Channel Drill": "Putting Tee Gate Drill", "Fringe-to-Fringe Feel Drill": "Ladder Distance Lag Drill",
+    "Rubber Band Putter Sweet-Spot Drill": "Two-Tee Putter Gate Drill", "Coin Balance Putter Back Drill": "Putting Tee Gate Drill",
+    "Push-Putting No-Backswing Drill": "Ladder Distance Lag Drill", "Short Back Long Through Stroke Drill": "Ladder Distance Lag Drill",
+    "Coin Balance Motion Stroke Drill": "Ladder Distance Lag Drill"
 }
 
 # -------------------------------------------------------------
-# STEP 1: INTERACTIVE MULTI-STEP SHOT DIAGNOSTIC
+# STEP 1: FULL-ROUND PATTERN DIAGNOSTIC & SWOT
 # -------------------------------------------------------------
-st.subheader("1. Interactive Shot Diagnostic & SWOT")
+st.subheader("1. Full-Round Pattern Diagnostic & SWOT")
 
 selected_persona_key = st.selectbox(
     "Choose Your Movie Caddie Persona:",
@@ -474,55 +425,58 @@ selected_persona_key = st.selectbox(
 active_persona = PERSONA_DATABASE[selected_persona_key]
 st.info(f"**{active_persona['title']}** — {active_persona['description']}")
 
-# Initialize diagnostic session state tracking
 if "diag_step" not in st.session_state:
     st.session_state["diag_step"] = 1
 
-# --- STEP 1A: INITIAL INPUT ---
+# --- STEP 1A: MULTI-CATEGORY ROUND LOG INTAKE ---
 if st.session_state["diag_step"] == 1:
-    col_diag1, col_diag2 = st.columns(2)
-    with col_diag1:
-        selected_club = st.selectbox(
-            "Club Type Used:",
-            ["Driver / Fairway Wood", "Mid/Long Iron (3-6 Iron)", "Short Iron / Wedge (7-LW)", "Putter"]
+    st.markdown("### 📊 Log Your Round Trends Across the Bag")
+
+    col_r1, col_r2 = st.columns(2)
+    with col_r1:
+        tee_miss = st.selectbox(
+            "Tee Shots (Driver / Woods):",
+            ["Solid / On Target", "Slice / High Fade (Curves Right)", "Hook / Pull Draw (Curves Left)", "Push Right", "Pop-up / Sky Ball", "Mixed Misses"]
         )
-    with col_diag2:
-        selected_miss_type = st.selectbox(
-            "Primary Shot Result / Flight:",
-            [
-                "Slice / High Fade (Curves Right)",
-                "Hook / Low Draw (Curves Left)",
-                "Fat / Chunk (Hits Turf First)",
-                "Thin / Bladed (Hits Ball Top)",
-                "Push (Straight Right)",
-                "Pull (Straight Left)",
-                "Shank (Hosel Strike)",
-                "Three-Putt / Distance Control",
-                "Other / Mixed Misses"
-            ]
+        iron_miss = st.selectbox(
+            "Iron Play (Approach Shots):",
+            ["Solid / Pure Contact", "Fat / Heavy Turf Contact", "Thin / Bladed Top", "Shank / Hosel Strike", "Pull Left / Push Right", "Mixed Contact"]
         )
 
-    shot_transcript = st.text_area(
-        "Initial Notes / Felt Experience (Optional):",
-        placeholder="e.g., Started right and sliced, felt off the heel of the club..."
+    with col_r2:
+        short_game_miss = st.selectbox(
+            "Short Game (Chipping & Pitching):",
+            ["Solid / Good Distance Control", "Chunky / Stubbed Chips", "Bladed / Skulled Over Green", "Bunker Trapped / Stuck in Sand", "Poor Distance Perception"]
+        )
+        putting_miss = st.selectbox(
+            "Putting Greens:",
+            ["Solid / Good Touch", "Missed Short Putts Inside 6ft", "Three-Putt / Poor Lag Distance", "Push / Pull Directional Flaw", "Inconsistent Putter Face Roll"]
+        )
+
+    round_notes = st.text_area(
+        "Round Context / Fatigue / Specific Hole Stories (Optional):",
+        placeholder="e.g., Driver started slicing badly on back 9 after fatigue set in. Fat irons started happening around hole 12..."
     )
 
-    if st.button(f"Start Diagnostic with {selected_persona_key}"):
-        st.session_state["initial_club"] = selected_club
-        st.session_state["initial_miss"] = selected_miss_type
-        st.session_state["initial_notes"] = shot_transcript
+    if st.button(f"Analyze Full Round with {selected_persona_key}", type="primary"):
+        st.session_state["tee_miss"] = tee_miss
+        st.session_state["iron_miss"] = iron_miss
+        st.session_state["short_game_miss"] = short_game_miss
+        st.session_state["putting_miss"] = putting_miss
+        st.session_state["round_notes"] = round_notes
         st.session_state["caddie_name"] = selected_persona_key
 
-        # Prompt Gemini to generate 2 tailored diagnostic questions
         question_prompt = f"""
         {active_persona['system_instruction']}
 
-        The golfer selected:
-        - Club: {selected_club}
-        - Observed Miss: {selected_miss_type}
-        - User Notes: {shot_transcript if shot_transcript else 'None provided'}
+        The golfer logged their 18-hole round misses across categories:
+        - Tee Shots: {tee_miss}
+        - Iron Play: {iron_miss}
+        - Short Game: {short_game_miss}
+        - Putting: {putting_miss}
+        - Round Notes: {round_notes if round_notes else 'None provided'}
 
-        Generate 2 brief, targeted follow-up questions in character persona voice to pinpoint the exact root mechanics (e.g. asking about start line vs curvature, contact point on clubface, divot direction, or tempo/wrist action).
+        Generate 2 targeted diagnostic follow-up questions in persona voice to pinpoint the overarching biomechanical connection linking these errors (e.g., asking about fatigue, body posture/early extension, wrist flip, or swing tempo changes across the round).
 
         Output strictly raw JSON with no markdown formatting:
         {{
@@ -559,112 +513,69 @@ if st.session_state["diag_step"] == 1:
         except Exception as e:
             st.error(f"Error generating follow-up questions: {e}")
 
-# --- STEP 1B: INTERACTIVE FOLLOW-UP QUESTIONS ---
+# --- STEP 1B: INTERACTIVE ROUND FOLLOW-UP QUESTIONS ---
 elif st.session_state["diag_step"] == 2:
-    st.info(f"📍 **Initial Setup:** {st.session_state['initial_club']} | Miss: {st.session_state['initial_miss']}")
+    st.info(f"📍 **Logged Round Profile:** Tee: {st.session_state['tee_miss']} | Irons: {st.session_state['iron_miss']} | Short Game: {st.session_state['short_game_miss']} | Putting: {st.session_state['putting_miss']}")
     caddie = st.session_state["caddie_name"]
     qs = st.session_state.get("followup_questions", {})
 
     st.markdown(f"### 🗣️ {caddie} asks:")
     
-    q1_text = qs.get("question_1", "How did the ball launch off the clubface?")
-    q2_text = qs.get("question_2", "Where on the turf or clubface was the primary contact?")
+    q1_text = qs.get("question_1", "How did your physical posture or swing tempo shift during the back 9?")
+    q2_text = qs.get("question_2", "Did your iron chunks happen after your driver slice got worse?")
 
     st.write(f"**1.** {q1_text}")
-    ans1 = st.text_input("Your Answer to Q1:", key="ans1_input", placeholder="e.g., Started straight then turned sharply right")
+    ans1 = st.text_input("Your Answer to Q1:", key="ans1_input", placeholder="e.g., Felt tired on hole 14 and started rushing my downswing")
 
     st.write(f"**2.** {q2_text}")
-    ans2 = st.text_input("Your Answer to Q2:", key="ans2_input", placeholder="e.g., Deep divot pointing way left of target")
+    ans2 = st.text_input("Your Answer to Q2:", key="ans2_input", placeholder="e.g., Yes, when driver went right I tried flipping my wrists on irons")
 
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
-        if st.button("🔍 Finalize Swing Analysis", type="primary"):
-            full_user_input = f"""
-            Club Used: {st.session_state['initial_club']}
-            Observed Miss: {st.session_state['initial_miss']}
-            Initial Notes: {st.session_state['initial_notes']}
+        if st.button("🔍 Synthesize Full-Round Root Cause", type="primary"):
+            full_round_input = f"""
+            Tee Shots: {st.session_state['tee_miss']}
+            Iron Play: {st.session_state['iron_miss']}
+            Short Game: {st.session_state['short_game_miss']}
+            Putting: {st.session_state['putting_miss']}
+            Notes: {st.session_state['round_notes']}
             Follow-up Q1: {q1_text}
-            User Answer Q1: {ans1}
+            Answer Q1: {ans1}
             Follow-up Q2: {q2_text}
-            User Answer Q2: {ans2}
+            Answer Q2: {ans2}
             """
 
             system_prompt = f"""
             {active_persona['system_instruction']}
 
-            Analyze the user's detailed shot inputs and answers. Identify up to TWO swing mechanics issues across Full Swing, Short Game, or Putting:
-            1. Primary Miss / Fault (Required)
-            2. Secondary Miss / Fault (Optional, set to null if only one clear fault exists)
+            Analyze the user's complete 18-hole round data. Cross-reference errors across categories and isolate the SINGLE primary 'Macro-Fault' (biomechanical root cause responsible for ~80% of damage across the bag) and 1 secondary fault.
 
-            Map both faults to the most effective drills from this EXACT list of 40 drills:
+            Map faults to the most effective drills from this EXACT list of 40 drills:
+            - FULL SWING: 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill', 'Towel Under Armpits Drill', 'Coin Strike Low-Point Drill', 'Split-Hands Release Drill', 'Feet-Together Balance Drill', 'Wall-Head Posture Drill', 'Impact Bag Compression Drill', 'Two-Step Pump Lag Drill'
+            - SHORT GAME: 'Towel Behind Ball Drill', 'Lead Foot Weight Anchor Drill', 'Brush Turf Chipping Drill', 'Coin Lead-Point Pitch Drill', 'Ruler in Glove Wrist Anchor Drill', 'Hinge-and-Hold Chipping Drill', 'Clock System Wedge Drill', 'Landing Zone Target Towel Drill', 'Trail-Hand Only Pitch Drill', 'Line in the Sand Drill', 'Dollar Bill Sand Extraction Drill', 'Open-Face Sand Splash Drill', 'Continuous Motion Pendulum Chipping Drill', 'Accelerating Through Impact Gate Drill', 'Target-Focused Eyes-Up Chipping Drill'
+            - PUTTING: 'Putting Tee Gate Drill', 'Chalk Line Straight Target Drill', 'Mirror Alignment Face Drill', 'Trail-Hand Push Putting Drill', 'Metal Yardstick Roll Drill', 'Parallel Rod Putting Channel Drill', 'Ladder Distance Lag Drill', 'Fringe-to-Fringe Feel Drill', 'Eyes-Closed Distance Perception Drill', 'Rubber Band Putter Sweet-Spot Drill', 'Two-Tee Putter Gate Drill', 'Coin Balance Putter Back Drill', 'Push-Putting No-Backswing Drill', 'Short Back Long Through Stroke Drill', 'Coin Balance Motion Stroke Drill'
 
-            FULL SWING:
-            - 'Alignment Stick Gate Drill'
-            - 'Pause at Top Drill'
-            - 'Tee Gate Drill'
-            - 'Towel Under Armpits Drill'
-            - 'Coin Strike Low-Point Drill'
-            - 'Split-Hands Release Drill'
-            - 'Feet-Together Balance Drill'
-            - 'Wall-Head Posture Drill'
-            - 'Impact Bag Compression Drill'
-            - 'Two-Step Pump Lag Drill'
-
-            SHORT GAME (CHIPPING/PITCHING/SAND):
-            - 'Towel Behind Ball Drill'
-            - 'Lead Foot Weight Anchor Drill'
-            - 'Brush Turf Chipping Drill'
-            - 'Coin Lead-Point Pitch Drill'
-            - 'Ruler in Glove Wrist Anchor Drill'
-            - 'Hinge-and-Hold Chipping Drill'
-            - 'Clock System Wedge Drill'
-            - 'Landing Zone Target Towel Drill'
-            - 'Trail-Hand Only Pitch Drill'
-            - 'Line in the Sand Drill'
-            - 'Dollar Bill Sand Extraction Drill'
-            - 'Open-Face Sand Splash Drill'
-            - 'Continuous Motion Pendulum Chipping Drill'
-            - 'Accelerating Through Impact Gate Drill'
-            - 'Target-Focused Eyes-Up Chipping Drill'
-
-            PUTTING:
-            - 'Putting Tee Gate Drill'
-            - 'Chalk Line Straight Target Drill'
-            - 'Mirror Alignment Face Drill'
-            - 'Trail-Hand Push Putting Drill'
-            - 'Metal Yardstick Roll Drill'
-            - 'Parallel Rod Putting Channel Drill'
-            - 'Ladder Distance Lag Drill'
-            - 'Fringe-to-Fringe Feel Drill'
-            - 'Eyes-Closed Distance Perception Drill'
-            - 'Rubber Band Putter Sweet-Spot Drill'
-            - 'Two-Tee Putter Gate Drill'
-            - 'Coin Balance Putter Back Drill'
-            - 'Push-Putting No-Backswing Drill'
-            - 'Short Back Long Through Stroke Drill'
-            - 'Coin Balance Motion Stroke Drill'
-
-            Output strictly raw JSON matching this structure with no markdown formatting:
+            Output strictly raw JSON with no markdown formatting:
             {{
-              "diagnosis_category": "Multi-Fault Diagnostic",
-              "primary_miss": "string (technical short title of main fault in plain English)",
-              "primary_miss_persona": "string (1 short, witty sentence calling out this fault strictly in character without writing persona name in quote)",
-              "primary_cause_breakdown": "string (2-3 concise sentences explaining objective biomechanical/technical root causes without persona styling)",
-              "secondary_miss": "string or null (technical short title in plain English)",
-              "secondary_miss_persona": "string or null (1 short, witty sentence calling out secondary fault in character without writing persona name in quote)",
-              "secondary_cause_breakdown": "string or null (2-3 concise sentences explaining objective biomechanical/technical root causes without persona styling)",
-              "expanded_caddie_intro": "string (3-4 robust, dramatic sentences strictly in character persona providing a high-level summary diagnosis, witty observations, and inspirational guidance)",
-              "caddie_drill_pep_talk": "string (2-3 sentences in character persona giving an encouraging strategy pep-talk for today's range drills)",
+              "diagnosis_category": "Full-Round Macro Synthesis",
+              "primary_miss": "string (technical short title of primary macro root cause in plain English)",
+              "primary_miss_persona": "string (1 short, witty sentence calling out macro root cause in character)",
+              "primary_cause_breakdown": "string (2-3 concise sentences explaining how this root biomechanical fault caused errors across driver, irons, or short game)",
+              "secondary_miss": "string or null",
+              "secondary_miss_persona": "string or null",
+              "secondary_cause_breakdown": "string or null",
+              "expanded_caddie_intro": "string (3-4 robust sentences in persona summarizing the round narrative and key strategic takeaway)",
+              "caddie_drill_pep_talk": "string (2-3 sentences in persona giving encouraging range advice)",
               "swot_analysis": {{
-                "strengths": "string (1 concise sentence highlighting what the user is attempting well or fundamental asset)",
-                "weaknesses": "string (1 concise sentence on current primary technical/mechanical flaw)",
-                "opportunities": "string (1 concise sentence on immediate scoring gains if drill circuit is completed)",
-                "threats": "string (1 concise sentence on on-course scoring risks/hazard threats if uncorrected)"
+                "strengths": "string (1 sentence on strongest area from the round log)",
+                "weaknesses": "string (1 sentence on macro fault destroying strokes)",
+                "opportunities": "string (1 sentence on immediate stroke reduction potential)",
+                "threats": "string (1 sentence on handicap hazard threat on course)"
               }},
               "confidence_score": 0.95,
               "recommended_primary_drill": "string",
               "recommended_secondary_drill": "string or null",
-              "drill_rationale": "string (1-2 sentences summarizing how the selected drills resolve these physical issues)"
+              "drill_rationale": "string (1-2 sentences explaining why these drills fix the macro fault)"
             }}
             """
 
@@ -679,7 +590,7 @@ elif st.session_state["diag_step"] == 2:
                 for model_name in flash_models:
                     try:
                         model = genai.GenerativeModel(model_name)
-                        res = model.generate_content(f"{system_prompt}\n\nUser Input:\n{full_user_input}")
+                        res = model.generate_content(f"{system_prompt}\n\nFull Round Input:\n{full_round_input}")
                         if res and res.text:
                             response = res
                             break
@@ -695,14 +606,14 @@ elif st.session_state["diag_step"] == 2:
                 st.session_state["diag_step"] = 3
                 st.rerun()
             except Exception as e:
-                st.error(f"Error executing diagnosis: {e}")
+                st.error(f"Error executing round diagnosis: {e}")
 
     with col_btn2:
         if st.button("↺ Start Over"):
             st.session_state["diag_step"] = 1
             st.rerun()
 
-# --- STEP 1C: DIAGNOSTIC RESULTS & SWOT DISPLAY ---
+# --- STEP 1C: FULL-ROUND DIAGNOSTIC & SWOT DISPLAY ---
 if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
     diag = st.session_state["diagnosis"]
     caddie = st.session_state.get("caddie_name", selected_persona_key)
@@ -712,7 +623,7 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("**🎯 Primary Fault Callout**")
+        st.markdown("**🎯 Primary Macro-Fault (Root Cause)**")
         p_persona_msg = diag.get("primary_miss_persona", diag.get("primary_miss", "Not detected"))
         st.warning(f"\"{p_persona_msg}\"")
         p_plain = diag.get("primary_miss")
@@ -722,7 +633,7 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
         st.write(f"**Primary Drill:** `{diag.get('recommended_primary_drill')}`")
         p_causes = diag.get("primary_cause_breakdown")
         if p_causes:
-            st.caption(f"**Technical Root Cause:** {p_causes}")
+            st.caption(f"**Biomechanical Link:** {p_causes}")
 
     with col2:
         st.markdown("**⚠️ Secondary Fault Callout**")
@@ -736,15 +647,15 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
             st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
             s_causes = diag.get("secondary_cause_breakdown")
             if s_causes:
-                st.caption(f"**Technical Root Cause:** {s_causes}")
+                st.caption(f"**Biomechanical Link:** {s_causes}")
         else:
-            st.info("\"Fairway looks clear! No secondary dark side detected in this swing.\"")
+            st.info("\"No major secondary fault detected. Fix your primary macro-fault to unlock your game!\"")
             st.write("**Secondary Drill:** `N/A`")
 
-    # Dynamic Strategic Swing SWOT Analysis
+    # Dynamic Strategic Round SWOT Analysis
     if "swot_analysis" in diag and diag["swot_analysis"]:
         st.markdown("---")
-        st.markdown("### 📊 Strategic Swing SWOT Analysis")
+        st.markdown("### 📊 Strategic Round SWOT Analysis")
         swot = diag["swot_analysis"]
         sc1, sc2 = st.columns(2)
         with sc1:
@@ -755,11 +666,9 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
             st.error(f"**🎯 Threat to Score:** {swot.get('threats', 'N/A')}")
 
     st.markdown("---")
-    col_re1, col_re2 = st.columns(2)
-    with col_re1:
-        if st.button("🔄 Diagnose Another Shot"):
-            st.session_state["diag_step"] = 1
-            st.rerun()
+    if st.button("🔄 Log Another Round"):
+        st.session_state["diag_step"] = 1
+        st.rerun()
 
 # -------------------------------------------------------------
 # STEP 2: PRACTICE ASSET ALLOCATION & CONSTRAINTS
@@ -819,7 +728,7 @@ if st.button("✅ Confirm Selection & Generate Execution Plan", type="primary"):
         "game_pct": game_pct,
         "practice_mode": practice_mode
     }
-    st.success("Resource constraints locked in! Drill execution plan generated below.")
+    st.success("Resource constraints locked in! Practice execution plan generated below.")
 
 if "confirmed_resources" in st.session_state:
     res_data = st.session_state["confirmed_resources"]
@@ -870,7 +779,6 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     
     active_drills = [p_drill]
 
-    # High Resource Budget Progression (Non-pure game modes)
     high_complexity_added = None
     if is_high_budget and not is_pure_game:
         if p_complexity != "High":
@@ -885,11 +793,9 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
             if high_complexity_added and high_complexity_added not in active_drills:
                 active_drills.append(high_complexity_added)
 
-    # Multi-drill allocation if secondary drill exists and budget allows
     if c_balls >= 40 and c_time >= 30 and s_drill and s_drill not in active_drills:
         active_drills.append(s_drill)
 
-    # Hybrid Conversion Logic: Convert secondary/subsequent drills to Interactive Games
     if is_hybrid:
         if len(active_drills) == 1 and p_drill in GAME_MODE_DRILL_MAP:
             game_pair = GAME_MODE_DRILL_MAP[p_drill]
@@ -899,22 +805,18 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         for i in range(1, len(active_drills)):
             active_drills[i] = GAME_MODE_DRILL_MAP.get(active_drills[i], active_drills[i])
 
-    # Low Resource Warning
     if (c_balls < 40 or c_time < 30) and p_complexity == "High":
-        st.warning(f"⚠️ **Low Resource Alert:** `{p_drill}` is High Complexity. Consider focusing on basic feel keys with your limited budget ({c_balls} balls / {c_time} mins).")
+        st.warning(f"⚠️ **Low Resource Alert:** `{p_drill}` is High Complexity. Focus on basic feel keys with your limited budget ({c_balls} balls / {c_time} mins).")
 
-    # Persona Strategy Pep Talk
     if pep_talk:
         st.success(f"🗣️ **{caddie}'s Practice Strategy:** \"{pep_talk}\"")
 
-    # Prescription Summary
     summary_line = f"💡 **Targeted Prescription:** Circuit optimized across {len(active_drills)} focus areas."
     if rationale:
         st.info(f"{summary_line}\n\n**Why these drills work:** {rationale}")
     else:
         st.info(summary_line)
 
-    # Calculate allocations
     g_balls = res["grind_balls"]
     g_time = res["grind_time"]
     num_drills = len(active_drills)
@@ -925,7 +827,6 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     balls_per_drill = alloc_balls // num_drills if num_drills > 0 else alloc_balls
     time_per_drill = alloc_time // num_drills if num_drills > 0 else alloc_time
 
-    # Render Active Drills
     for idx, d_name in enumerate(active_drills):
         schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
 
@@ -957,7 +858,6 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         if idx < len(active_drills) - 1:
             st.markdown("---")
 
-    # Target Course Pressure Block
     gm_balls = res["game_balls"]
     gm_time = res["game_time"]
     if gm_balls > 0 and gm_time > 0 and not is_pure_game:
@@ -977,7 +877,6 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
 
         st.info("🏆 **Pro Tip:** Never hit two balls in a row with the same club or to the same target during this pressure phase.")
 
-    # Export Practice Card Feature
     st.markdown("---")
     st.markdown("### 📥 Take Your Plan to the Range")
     export_card_text = build_export_card(diag, res, active_drills, DRILL_SCHEMATICS, caddie)
@@ -991,4 +890,4 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
 elif "diagnosis" in st.session_state:
     st.warning("👈 Please click **'✅ Confirm Selection & Generate Execution Plan'** in Section 2 to generate your plan.")
 else:
-    st.caption("Run a shot diagnosis in Section 1 and confirm resources in Section 2 to get started!")
+    st.caption("Run a full-round diagnosis in Section 1 and confirm resources in Section 2 to get started!")
