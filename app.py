@@ -461,9 +461,9 @@ GAME_MODE_DRILL_MAP = {
 }
 
 # -------------------------------------------------------------
-# STEP 1: GUIDED SHOT DIAGNOSTIC & SWING SWOT
+# STEP 1: INTERACTIVE MULTI-STEP SHOT DIAGNOSTIC
 # -------------------------------------------------------------
-st.subheader("1. Guided Shot Diagnostic & SWOT")
+st.subheader("1. Interactive Shot Diagnostic & SWOT")
 
 selected_persona_key = st.selectbox(
     "Choose Your Movie Caddie Persona:",
@@ -474,144 +474,236 @@ selected_persona_key = st.selectbox(
 active_persona = PERSONA_DATABASE[selected_persona_key]
 st.info(f"**{active_persona['title']}** — {active_persona['description']}")
 
-col_diag1, col_diag2 = st.columns(2)
-with col_diag1:
-    selected_club = st.selectbox(
-        "Club Type Used:",
-        ["Driver / Fairway Wood", "Mid/Long Iron (3-6 Iron)", "Short Iron / Wedge (7-LW)", "Putter"]
+# Initialize diagnostic session state tracking
+if "diag_step" not in st.session_state:
+    st.session_state["diag_step"] = 1
+
+# --- STEP 1A: INITIAL INPUT ---
+if st.session_state["diag_step"] == 1:
+    col_diag1, col_diag2 = st.columns(2)
+    with col_diag1:
+        selected_club = st.selectbox(
+            "Club Type Used:",
+            ["Driver / Fairway Wood", "Mid/Long Iron (3-6 Iron)", "Short Iron / Wedge (7-LW)", "Putter"]
+        )
+    with col_diag2:
+        selected_miss_type = st.selectbox(
+            "Primary Shot Result / Flight:",
+            [
+                "Slice / High Fade (Curves Right)",
+                "Hook / Low Draw (Curves Left)",
+                "Fat / Chunk (Hits Turf First)",
+                "Thin / Bladed (Hits Ball Top)",
+                "Push (Straight Right)",
+                "Pull (Straight Left)",
+                "Shank (Hosel Strike)",
+                "Three-Putt / Distance Control",
+                "Other / Mixed Misses"
+            ]
+        )
+
+    shot_transcript = st.text_area(
+        "Initial Notes / Felt Experience (Optional):",
+        placeholder="e.g., Started right and sliced, felt off the heel of the club..."
     )
-with col_diag2:
-    selected_miss_type = st.selectbox(
-        "Primary Shot Result / Flight:",
-        [
-            "Slice / High Fade (Curves Right)",
-            "Hook / Low Draw (Curves Left)",
-            "Fat / Chunk (Hits Turf First)",
-            "Thin / Bladed (Hits Ball Top)",
-            "Push (Straight Right)",
-            "Pull (Straight Left)",
-            "Shank (Hosel Strike)",
-            "Three-Putt / Distance Control",
-            "Other / Mixed Misses"
-        ]
-    )
 
-shot_transcript = st.text_area(
-    "Additional Details / Felt Experience (Optional):",
-    placeholder="e.g., Felt like my hands were racing ahead, ball started right and kept slicing off the planet..."
-)
-
-if st.button(f"Analyze Shot with {selected_persona_key}"):
-    full_user_input = f"Club Used: {selected_club}\nObserved Miss: {selected_miss_type}\nUser Description: {shot_transcript if shot_transcript else 'N/A'}"
-    
-    system_prompt = f"""
-    {active_persona['system_instruction']}
-
-    Analyze the user's input regarding their missed shot. Identify up to TWO swing mechanics issues across Full Swing, Short Game, or Putting:
-    1. Primary Miss / Fault (Required)
-    2. Secondary Miss / Fault (Optional, set to null if only one clear fault exists)
-
-    Map both faults to the most effective drills from this EXACT list of 40 drills:
-
-    FULL SWING:
-    - 'Alignment Stick Gate Drill'
-    - 'Pause at Top Drill'
-    - 'Tee Gate Drill'
-    - 'Towel Under Armpits Drill'
-    - 'Coin Strike Low-Point Drill'
-    - 'Split-Hands Release Drill'
-    - 'Feet-Together Balance Drill'
-    - 'Wall-Head Posture Drill'
-    - 'Impact Bag Compression Drill'
-    - 'Two-Step Pump Lag Drill'
-
-    SHORT GAME (CHIPPING/PITCHING/SAND):
-    - 'Towel Behind Ball Drill'
-    - 'Lead Foot Weight Anchor Drill'
-    - 'Brush Turf Chipping Drill'
-    - 'Coin Lead-Point Pitch Drill'
-    - 'Ruler in Glove Wrist Anchor Drill'
-    - 'Hinge-and-Hold Chipping Drill'
-    - 'Clock System Wedge Drill'
-    - 'Landing Zone Target Towel Drill'
-    - 'Trail-Hand Only Pitch Drill'
-    - 'Line in the Sand Drill'
-    - 'Dollar Bill Sand Extraction Drill'
-    - 'Open-Face Sand Splash Drill'
-    - 'Continuous Motion Pendulum Chipping Drill'
-    - 'Accelerating Through Impact Gate Drill'
-    - 'Target-Focused Eyes-Up Chipping Drill'
-
-    PUTTING:
-    - 'Putting Tee Gate Drill'
-    - 'Chalk Line Straight Target Drill'
-    - 'Mirror Alignment Face Drill'
-    - 'Trail-Hand Push Putting Drill'
-    - 'Metal Yardstick Roll Drill'
-    - 'Parallel Rod Putting Channel Drill'
-    - 'Ladder Distance Lag Drill'
-    - 'Fringe-to-Fringe Feel Drill'
-    - 'Eyes-Closed Distance Perception Drill'
-    - 'Rubber Band Putter Sweet-Spot Drill'
-    - 'Two-Tee Putter Gate Drill'
-    - 'Coin Balance Putter Back Drill'
-    - 'Push-Putting No-Backswing Drill'
-    - 'Short Back Long Through Stroke Drill'
-    - 'Coin Balance Motion Stroke Drill'
-
-    Output strictly raw JSON matching this structure with no markdown formatting:
-    {{
-      "diagnosis_category": "Multi-Fault Diagnostic",
-      "primary_miss": "string (technical short title of main fault in plain English)",
-      "primary_miss_persona": "string (1 short, witty sentence calling out this fault strictly in character without writing persona name in quote)",
-      "primary_cause_breakdown": "string (2-3 concise sentences explaining objective biomechanical/technical root causes without persona styling)",
-      "secondary_miss": "string or null (technical short title in plain English)",
-      "secondary_miss_persona": "string or null (1 short, witty sentence calling out secondary fault in character without writing persona name in quote)",
-      "secondary_cause_breakdown": "string or null (2-3 concise sentences explaining objective biomechanical/technical root causes without persona styling)",
-      "expanded_caddie_intro": "string (3-4 robust, dramatic sentences strictly in character persona providing a high-level summary diagnosis, witty observations, and inspirational guidance)",
-      "caddie_drill_pep_talk": "string (2-3 sentences in character persona giving an encouraging strategy pep-talk for today's range drills)",
-      "swot_analysis": {{
-        "strengths": "string (1 concise sentence highlighting what the user is attempting well or fundamental asset)",
-        "weaknesses": "string (1 concise sentence on current primary technical/mechanical flaw)",
-        "opportunities": "string (1 concise sentence on immediate scoring gains if drill circuit is completed)",
-        "threats": "string (1 concise sentence on on-course scoring risks/hazard threats if uncorrected)"
-      }},
-      "confidence_score": 0.95,
-      "recommended_primary_drill": "string",
-      "recommended_secondary_drill": "string or null",
-      "drill_rationale": "string (1-2 sentences summarizing how the selected drills resolve these physical issues)"
-    }}
-    """
-
-    try:
-        flash_models = [
-            m.name for m in genai.list_models()
-            if 'generateContent' in m.supported_generation_methods and 'flash' in m.name.lower()
-        ]
-        flash_models.sort(reverse=True)
-
-        response = None
-        for model_name in flash_models:
-            try:
-                model = genai.GenerativeModel(model_name)
-                res = model.generate_content(f"{system_prompt}\n\nUser Input:\n{full_user_input}")
-                if res and res.text:
-                    response = res
-                    break
-            except Exception:
-                continue
-
-        if response is None:
-            st.error("No active Gemini Flash model found for this API key.")
-            st.stop()
-
-        clean_json = response.text.replace("```json", "").replace("```", "").strip()
-        st.session_state["diagnosis"] = json.loads(clean_json)
+    if st.button(f"Start Diagnostic with {selected_persona_key}"):
+        st.session_state["initial_club"] = selected_club
+        st.session_state["initial_miss"] = selected_miss_type
+        st.session_state["initial_notes"] = shot_transcript
         st.session_state["caddie_name"] = selected_persona_key
-    except Exception as e:
-        st.error(f"Error parsing Gemini response: {e}")
 
-if "diagnosis" in st.session_state:
+        # Prompt Gemini to generate 2 tailored diagnostic questions
+        question_prompt = f"""
+        {active_persona['system_instruction']}
+
+        The golfer selected:
+        - Club: {selected_club}
+        - Observed Miss: {selected_miss_type}
+        - User Notes: {shot_transcript if shot_transcript else 'None provided'}
+
+        Generate 2 brief, targeted follow-up questions in character persona voice to pinpoint the exact root mechanics (e.g. asking about start line vs curvature, contact point on clubface, divot direction, or tempo/wrist action).
+
+        Output strictly raw JSON with no markdown formatting:
+        {{
+          "question_1": "string (Question 1 in persona voice)",
+          "question_2": "string (Question 2 in persona voice)"
+        }}
+        """
+
+        try:
+            flash_models = [
+                m.name for m in genai.list_models()
+                if 'generateContent' in m.supported_generation_methods and 'flash' in m.name.lower()
+            ]
+            flash_models.sort(reverse=True)
+
+            q_res = None
+            for model_name in flash_models:
+                try:
+                    model = genai.GenerativeModel(model_name)
+                    res = model.generate_content(question_prompt)
+                    if res and res.text:
+                        q_res = res
+                        break
+                except Exception:
+                    continue
+
+            if q_res:
+                clean_q_json = q_res.text.replace("```json", "").replace("```", "").strip()
+                st.session_state["followup_questions"] = json.loads(clean_q_json)
+                st.session_state["diag_step"] = 2
+                st.rerun()
+            else:
+                st.error("Unable to generate diagnostic questions. Please check your API key.")
+        except Exception as e:
+            st.error(f"Error generating follow-up questions: {e}")
+
+# --- STEP 1B: INTERACTIVE FOLLOW-UP QUESTIONS ---
+elif st.session_state["diag_step"] == 2:
+    st.info(f"📍 **Initial Setup:** {st.session_state['initial_club']} | Miss: {st.session_state['initial_miss']}")
+    caddie = st.session_state["caddie_name"]
+    qs = st.session_state.get("followup_questions", {})
+
+    st.markdown(f"### 🗣️ {caddie} asks:")
+    
+    q1_text = qs.get("question_1", "How did the ball launch off the clubface?")
+    q2_text = qs.get("question_2", "Where on the turf or clubface was the primary contact?")
+
+    st.write(f"**1.** {q1_text}")
+    ans1 = st.text_input("Your Answer to Q1:", key="ans1_input", placeholder="e.g., Started straight then turned sharply right")
+
+    st.write(f"**2.** {q2_text}")
+    ans2 = st.text_input("Your Answer to Q2:", key="ans2_input", placeholder="e.g., Deep divot pointing way left of target")
+
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        if st.button("🔍 Finalize Swing Analysis", type="primary"):
+            full_user_input = f"""
+            Club Used: {st.session_state['initial_club']}
+            Observed Miss: {st.session_state['initial_miss']}
+            Initial Notes: {st.session_state['initial_notes']}
+            Follow-up Q1: {q1_text}
+            User Answer Q1: {ans1}
+            Follow-up Q2: {q2_text}
+            User Answer Q2: {ans2}
+            """
+
+            system_prompt = f"""
+            {active_persona['system_instruction']}
+
+            Analyze the user's detailed shot inputs and answers. Identify up to TWO swing mechanics issues across Full Swing, Short Game, or Putting:
+            1. Primary Miss / Fault (Required)
+            2. Secondary Miss / Fault (Optional, set to null if only one clear fault exists)
+
+            Map both faults to the most effective drills from this EXACT list of 40 drills:
+
+            FULL SWING:
+            - 'Alignment Stick Gate Drill'
+            - 'Pause at Top Drill'
+            - 'Tee Gate Drill'
+            - 'Towel Under Armpits Drill'
+            - 'Coin Strike Low-Point Drill'
+            - 'Split-Hands Release Drill'
+            - 'Feet-Together Balance Drill'
+            - 'Wall-Head Posture Drill'
+            - 'Impact Bag Compression Drill'
+            - 'Two-Step Pump Lag Drill'
+
+            SHORT GAME (CHIPPING/PITCHING/SAND):
+            - 'Towel Behind Ball Drill'
+            - 'Lead Foot Weight Anchor Drill'
+            - 'Brush Turf Chipping Drill'
+            - 'Coin Lead-Point Pitch Drill'
+            - 'Ruler in Glove Wrist Anchor Drill'
+            - 'Hinge-and-Hold Chipping Drill'
+            - 'Clock System Wedge Drill'
+            - 'Landing Zone Target Towel Drill'
+            - 'Trail-Hand Only Pitch Drill'
+            - 'Line in the Sand Drill'
+            - 'Dollar Bill Sand Extraction Drill'
+            - 'Open-Face Sand Splash Drill'
+            - 'Continuous Motion Pendulum Chipping Drill'
+            - 'Accelerating Through Impact Gate Drill'
+            - 'Target-Focused Eyes-Up Chipping Drill'
+
+            PUTTING:
+            - 'Putting Tee Gate Drill'
+            - 'Chalk Line Straight Target Drill'
+            - 'Mirror Alignment Face Drill'
+            - 'Trail-Hand Push Putting Drill'
+            - 'Metal Yardstick Roll Drill'
+            - 'Parallel Rod Putting Channel Drill'
+            - 'Ladder Distance Lag Drill'
+            - 'Fringe-to-Fringe Feel Drill'
+            - 'Eyes-Closed Distance Perception Drill'
+            - 'Rubber Band Putter Sweet-Spot Drill'
+            - 'Two-Tee Putter Gate Drill'
+            - 'Coin Balance Putter Back Drill'
+            - 'Push-Putting No-Backswing Drill'
+            - 'Short Back Long Through Stroke Drill'
+            - 'Coin Balance Motion Stroke Drill'
+
+            Output strictly raw JSON matching this structure with no markdown formatting:
+            {{
+              "diagnosis_category": "Multi-Fault Diagnostic",
+              "primary_miss": "string (technical short title of main fault in plain English)",
+              "primary_miss_persona": "string (1 short, witty sentence calling out this fault strictly in character without writing persona name in quote)",
+              "primary_cause_breakdown": "string (2-3 concise sentences explaining objective biomechanical/technical root causes without persona styling)",
+              "secondary_miss": "string or null (technical short title in plain English)",
+              "secondary_miss_persona": "string or null (1 short, witty sentence calling out secondary fault in character without writing persona name in quote)",
+              "secondary_cause_breakdown": "string or null (2-3 concise sentences explaining objective biomechanical/technical root causes without persona styling)",
+              "expanded_caddie_intro": "string (3-4 robust, dramatic sentences strictly in character persona providing a high-level summary diagnosis, witty observations, and inspirational guidance)",
+              "caddie_drill_pep_talk": "string (2-3 sentences in character persona giving an encouraging strategy pep-talk for today's range drills)",
+              "swot_analysis": {{
+                "strengths": "string (1 concise sentence highlighting what the user is attempting well or fundamental asset)",
+                "weaknesses": "string (1 concise sentence on current primary technical/mechanical flaw)",
+                "opportunities": "string (1 concise sentence on immediate scoring gains if drill circuit is completed)",
+                "threats": "string (1 concise sentence on on-course scoring risks/hazard threats if uncorrected)"
+              }},
+              "confidence_score": 0.95,
+              "recommended_primary_drill": "string",
+              "recommended_secondary_drill": "string or null",
+              "drill_rationale": "string (1-2 sentences summarizing how the selected drills resolve these physical issues)"
+            }}
+            """
+
+            try:
+                flash_models = [
+                    m.name for m in genai.list_models()
+                    if 'generateContent' in m.supported_generation_methods and 'flash' in m.name.lower()
+                ]
+                flash_models.sort(reverse=True)
+
+                response = None
+                for model_name in flash_models:
+                    try:
+                        model = genai.GenerativeModel(model_name)
+                        res = model.generate_content(f"{system_prompt}\n\nUser Input:\n{full_user_input}")
+                        if res and res.text:
+                            response = res
+                            break
+                    except Exception:
+                        continue
+
+                if response is None:
+                    st.error("No active Gemini Flash model found.")
+                    st.stop()
+
+                clean_json = response.text.replace("```json", "").replace("```", "").strip()
+                st.session_state["diagnosis"] = json.loads(clean_json)
+                st.session_state["diag_step"] = 3
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error executing diagnosis: {e}")
+
+    with col_btn2:
+        if st.button("↺ Start Over"):
+            st.session_state["diag_step"] = 1
+            st.rerun()
+
+# --- STEP 1C: DIAGNOSTIC RESULTS & SWOT DISPLAY ---
+if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
     diag = st.session_state["diagnosis"]
     caddie = st.session_state.get("caddie_name", selected_persona_key)
 
@@ -663,16 +755,11 @@ if "diagnosis" in st.session_state:
             st.error(f"**🎯 Threat to Score:** {swot.get('threats', 'N/A')}")
 
     st.markdown("---")
-    st.write("**Calibration Loop: Did Gemini's diagnosis match your felt experience?**")
-    match_flag = st.radio("Diagnosis Match:", ["Matched", "Overridden"], horizontal=True)
-
-    if match_flag == "Overridden":
-        user_felt = st.text_input("Describe your actual felt experience:")
-        if st.button("Log Override"):
-            st.info("Override recorded for continuous improvement calibration.")
-    else:
-        if st.button("Confirm Match"):
-            st.success("Diagnosis confirmed and logged.")
+    col_re1, col_re2 = st.columns(2)
+    with col_re1:
+        if st.button("🔄 Diagnose Another Shot"):
+            st.session_state["diag_step"] = 1
+            st.rerun()
 
 # -------------------------------------------------------------
 # STEP 2: PRACTICE ASSET ALLOCATION & CONSTRAINTS
