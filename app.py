@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Birdie Buddy MVP", page_icon="⛳", layout="centered"
 )
 
-# --- HELPER FUNCTIONS FOR CLEAN UI INDENTATION ---
+# --- HELPER FUNCTIONS FOR CLEAN UI & EXPORTS ---
 def render_indented_html(content: str, margin_left: int = 24):
     st.markdown(
         f"<div style='margin-left: {margin_left}px; margin-top: 4px; margin-bottom: 16px;'>{content}</div>",
@@ -20,6 +20,51 @@ def render_indented_ul(items: list, margin_left: int = 24):
         f"<ul style='margin-left: {margin_left}px; margin-top: 4px; margin-bottom: 12px;'>{list_items}</ul>",
         unsafe_allow_html=True
     )
+
+def build_export_card(diag, res, active_drills, drill_schematics, caddie):
+    lines = []
+    lines.append("=" * 50)
+    lines.append("⛳ BIRDIE BUDDY RANGE PRACTICE CARD")
+    lines.append("=" * 50)
+    lines.append(f"Caddie Persona: {caddie}")
+    lines.append(f"Primary Fault: {diag.get('primary_miss', 'N/A')}")
+    if diag.get('secondary_miss'):
+        lines.append(f"Secondary Fault: {diag.get('secondary_miss')}")
+    lines.append(f"Total Allocation: {res['total_balls']} Balls | {res['total_time']} Mins (@ {res['sec_per_ball']}s/ball)")
+    lines.append("-" * 50)
+    lines.append("\nSWING SWOT SUMMARY:")
+    swot = diag.get("swot_analysis", {})
+    lines.append(f"- Strength: {swot.get('strengths', 'N/A')}")
+    lines.append(f"- Weakness: {swot.get('weaknesses', 'N/A')}")
+    lines.append(f"- Opportunity: {swot.get('opportunities', 'N/A')}")
+    lines.append(f"- Threat: {swot.get('threats', 'N/A')}")
+    lines.append("\n" + "=" * 50)
+    lines.append("DRILL EXECUTION SCHEDULE")
+    lines.append("=" * 50)
+
+    num_drills = len(active_drills)
+    is_pure_game = (res.get("practice_mode") == "Pure Game Mode (100% Target Pressure)")
+    alloc_balls = res["total_balls"] if is_pure_game else res["grind_balls"]
+    alloc_time = res["total_time"] if is_pure_game else res["grind_time"]
+    balls_per_drill = alloc_balls // num_drills if num_drills > 0 else alloc_balls
+    time_per_drill = alloc_time // num_drills if num_drills > 0 else alloc_time
+
+    for idx, d_name in enumerate(active_drills):
+        schematic = drill_schematics.get(d_name, drill_schematics["Alignment Stick Gate Drill"])
+        lines.append(f"\nDRILL #{idx+1}: {d_name.upper()}")
+        lines.append(f"Target: {balls_per_drill} Balls | {time_per_drill} Mins")
+        lines.append(f"Equipment: {schematic['equipment']}")
+        lines.append(f"Setup (Plain English): {schematic['vivid_description']}")
+        lines.append(f"Mental Analogy: {schematic['analogy']}")
+        lines.append(f"Pro Tip: {schematic['pro_tip'].replace('🏆 **Pro Tip:** ', '')}")
+        lines.append("-" * 40)
+
+    if res["game_balls"] > 0 and not is_pure_game:
+        lines.append(f"\nFINAL PHASE: Target Course Pressure Simulation")
+        lines.append(f"Target: {res['game_balls']} Balls | {res['game_time']} Mins")
+        lines.append("Instructions: Alternate clubs & flags for every single ball. Execute full pre-shot routine.")
+
+    return "\n".join(lines)
 
 st.title("⛳ Birdie Buddy (Phase 1 MVP)")
 st.caption("AI Golf Caddie & Practice Asset Allocator powered by Gemini")
@@ -384,7 +429,6 @@ DRILL_COMPLEXITY = {
 # GAME MODE DRILL CONVERSION MAP
 # -------------------------------------------------------------
 GAME_MODE_DRILL_MAP = {
-    # Full Swing Technical -> Target Challenge
     "Alignment Stick Gate Drill": "Tee Gate Drill",
     "Pause at Top Drill": "Tee Gate Drill",
     "Towel Under Armpits Drill": "Tee Gate Drill",
@@ -394,8 +438,6 @@ GAME_MODE_DRILL_MAP = {
     "Wall-Head Posture Drill": "Tee Gate Drill",
     "Impact Bag Compression Drill": "Tee Gate Drill",
     "Two-Step Pump Lag Drill": "Tee Gate Drill",
-
-    # Short Game Technical -> Target Challenge
     "Towel Behind Ball Drill": "Landing Zone Target Towel Drill",
     "Lead Foot Weight Anchor Drill": "Landing Zone Target Towel Drill",
     "Brush Turf Chipping Drill": "Target-Focused Eyes-Up Chipping Drill",
@@ -406,8 +448,6 @@ GAME_MODE_DRILL_MAP = {
     "Line in the Sand Drill": "Dollar Bill Sand Extraction Drill",
     "Continuous Motion Pendulum Chipping Drill": "Target-Focused Eyes-Up Chipping Drill",
     "Accelerating Through Impact Gate Drill": "Clock System Wedge Drill",
-
-    # Putting Technical -> Target Challenge
     "Mirror Alignment Face Drill": "Putting Tee Gate Drill",
     "Trail-Hand Push Putting Drill": "Ladder Distance Lag Drill",
     "Metal Yardstick Roll Drill": "Chalk Line Straight Target Drill",
@@ -421,9 +461,9 @@ GAME_MODE_DRILL_MAP = {
 }
 
 # -------------------------------------------------------------
-# STEP 1: MULTI-ISSUE PATH/FACE DIAGNOSTIC
+# STEP 1: GUIDED SHOT DIAGNOSTIC & SWING SWOT
 # -------------------------------------------------------------
-st.subheader("1. Shot Diagnostic (Multi-Fault Detection)")
+st.subheader("1. Guided Shot Diagnostic & SWOT")
 
 selected_persona_key = st.selectbox(
     "Choose Your Movie Caddie Persona:",
@@ -434,112 +474,142 @@ selected_persona_key = st.selectbox(
 active_persona = PERSONA_DATABASE[selected_persona_key]
 st.info(f"**{active_persona['title']}** — {active_persona['description']}")
 
+col_diag1, col_diag2 = st.columns(2)
+with col_diag1:
+    selected_club = st.selectbox(
+        "Club Type Used:",
+        ["Driver / Fairway Wood", "Mid/Long Iron (3-6 Iron)", "Short Iron / Wedge (7-LW)", "Putter"]
+    )
+with col_diag2:
+    selected_miss_type = st.selectbox(
+        "Primary Shot Result / Flight:",
+        [
+            "Slice / High Fade (Curves Right)",
+            "Hook / Low Draw (Curves Left)",
+            "Fat / Chunk (Hits Turf First)",
+            "Thin / Bladed (Hits Ball Top)",
+            "Push (Straight Right)",
+            "Pull (Straight Left)",
+            "Shank (Hosel Strike)",
+            "Three-Putt / Distance Control",
+            "Other / Mixed Misses"
+        ]
+    )
+
 shot_transcript = st.text_area(
-    "Describe your missed shot(s) in detail (Full Swing, Short Game, or Putting):",
-    placeholder="e.g., I kept hitting shots thin, and missing push right..."
+    "Additional Details / Felt Experience (Optional):",
+    placeholder="e.g., Felt like my hands were racing ahead, ball started right and kept slicing off the planet..."
 )
 
 if st.button(f"Analyze Shot with {selected_persona_key}"):
-    if shot_transcript:
-        system_prompt = f"""
-        {active_persona['system_instruction']}
+    full_user_input = f"Club Used: {selected_club}\nObserved Miss: {selected_miss_type}\nUser Description: {shot_transcript if shot_transcript else 'N/A'}"
+    
+    system_prompt = f"""
+    {active_persona['system_instruction']}
 
-        Analyze the user's input regarding their missed shot. Identify up to TWO swing mechanics issues across Full Swing, Short Game, or Putting:
-        1. Primary Miss / Fault (Required)
-        2. Secondary Miss / Fault (Optional, set to null if only one clear fault exists)
+    Analyze the user's input regarding their missed shot. Identify up to TWO swing mechanics issues across Full Swing, Short Game, or Putting:
+    1. Primary Miss / Fault (Required)
+    2. Secondary Miss / Fault (Optional, set to null if only one clear fault exists)
 
-        Map both faults to the most effective drills from this EXACT list of 40 drills:
+    Map both faults to the most effective drills from this EXACT list of 40 drills:
 
-        FULL SWING:
-        - 'Alignment Stick Gate Drill'
-        - 'Pause at Top Drill'
-        - 'Tee Gate Drill'
-        - 'Towel Under Armpits Drill'
-        - 'Coin Strike Low-Point Drill'
-        - 'Split-Hands Release Drill'
-        - 'Feet-Together Balance Drill'
-        - 'Wall-Head Posture Drill'
-        - 'Impact Bag Compression Drill'
-        - 'Two-Step Pump Lag Drill'
+    FULL SWING:
+    - 'Alignment Stick Gate Drill'
+    - 'Pause at Top Drill'
+    - 'Tee Gate Drill'
+    - 'Towel Under Armpits Drill'
+    - 'Coin Strike Low-Point Drill'
+    - 'Split-Hands Release Drill'
+    - 'Feet-Together Balance Drill'
+    - 'Wall-Head Posture Drill'
+    - 'Impact Bag Compression Drill'
+    - 'Two-Step Pump Lag Drill'
 
-        SHORT GAME (CHIPPING/PITCHING/SAND):
-        - 'Towel Behind Ball Drill'
-        - 'Lead Foot Weight Anchor Drill'
-        - 'Brush Turf Chipping Drill'
-        - 'Coin Lead-Point Pitch Drill'
-        - 'Ruler in Glove Wrist Anchor Drill'
-        - 'Hinge-and-Hold Chipping Drill'
-        - 'Clock System Wedge Drill'
-        - 'Landing Zone Target Towel Drill'
-        - 'Trail-Hand Only Pitch Drill'
-        - 'Line in the Sand Drill'
-        - 'Dollar Bill Sand Extraction Drill'
-        - 'Open-Face Sand Splash Drill'
-        - 'Continuous Motion Pendulum Chipping Drill'
-        - 'Accelerating Through Impact Gate Drill'
-        - 'Target-Focused Eyes-Up Chipping Drill'
+    SHORT GAME (CHIPPING/PITCHING/SAND):
+    - 'Towel Behind Ball Drill'
+    - 'Lead Foot Weight Anchor Drill'
+    - 'Brush Turf Chipping Drill'
+    - 'Coin Lead-Point Pitch Drill'
+    - 'Ruler in Glove Wrist Anchor Drill'
+    - 'Hinge-and-Hold Chipping Drill'
+    - 'Clock System Wedge Drill'
+    - 'Landing Zone Target Towel Drill'
+    - 'Trail-Hand Only Pitch Drill'
+    - 'Line in the Sand Drill'
+    - 'Dollar Bill Sand Extraction Drill'
+    - 'Open-Face Sand Splash Drill'
+    - 'Continuous Motion Pendulum Chipping Drill'
+    - 'Accelerating Through Impact Gate Drill'
+    - 'Target-Focused Eyes-Up Chipping Drill'
 
-        PUTTING:
-        - 'Putting Tee Gate Drill'
-        - 'Chalk Line Straight Target Drill'
-        - 'Mirror Alignment Face Drill'
-        - 'Trail-Hand Push Putting Drill'
-        - 'Metal Yardstick Roll Drill'
-        - 'Parallel Rod Putting Channel Drill'
-        - 'Ladder Distance Lag Drill'
-        - 'Fringe-to-Fringe Feel Drill'
-        - 'Eyes-Closed Distance Perception Drill'
-        - 'Rubber Band Putter Sweet-Spot Drill'
-        - 'Two-Tee Putter Gate Drill'
-        - 'Coin Balance Putter Back Drill'
-        - 'Push-Putting No-Backswing Drill'
-        - 'Short Back Long Through Stroke Drill'
-        - 'Coin Balance Motion Stroke Drill'
+    PUTTING:
+    - 'Putting Tee Gate Drill'
+    - 'Chalk Line Straight Target Drill'
+    - 'Mirror Alignment Face Drill'
+    - 'Trail-Hand Push Putting Drill'
+    - 'Metal Yardstick Roll Drill'
+    - 'Parallel Rod Putting Channel Drill'
+    - 'Ladder Distance Lag Drill'
+    - 'Fringe-to-Fringe Feel Drill'
+    - 'Eyes-Closed Distance Perception Drill'
+    - 'Rubber Band Putter Sweet-Spot Drill'
+    - 'Two-Tee Putter Gate Drill'
+    - 'Coin Balance Putter Back Drill'
+    - 'Push-Putting No-Backswing Drill'
+    - 'Short Back Long Through Stroke Drill'
+    - 'Coin Balance Motion Stroke Drill'
 
-        Output strictly raw JSON matching this structure with no markdown formatting:
-        {{
-          "diagnosis_category": "Multi-Fault Diagnostic",
-          "primary_miss": "string (technical short title of main fault)",
-          "primary_miss_persona": "string (1 short, witty sentence calling out this fault strictly in character without writing character name in quote)",
-          "primary_cause_breakdown": "string (2-3 concise sentences explaining objective biomechanical/technical root causes without persona styling)",
-          "secondary_miss": "string or null (technical short title)",
-          "secondary_miss_persona": "string or null (1 short, witty sentence calling out secondary fault in character without writing character name in quote)",
-          "secondary_cause_breakdown": "string or null (2-3 concise sentences explaining objective biomechanical/technical root causes without persona styling)",
-          "expanded_caddie_intro": "string (3-4 robust, dramatic sentences strictly in character persona providing a high-level summary diagnosis, witty observations, and inspirational guidance)",
-          "confidence_score": 0.95,
-          "recommended_primary_drill": "string",
-          "recommended_secondary_drill": "string or null",
-          "drill_rationale": "string (1-2 sentences summarizing how the selected drills resolve these physical issues)"
-        }}
-        """
+    Output strictly raw JSON matching this structure with no markdown formatting:
+    {{
+      "diagnosis_category": "Multi-Fault Diagnostic",
+      "primary_miss": "string (technical short title of main fault in plain English)",
+      "primary_miss_persona": "string (1 short, witty sentence calling out this fault strictly in character without writing persona name in quote)",
+      "primary_cause_breakdown": "string (2-3 concise sentences explaining objective biomechanical/technical root causes without persona styling)",
+      "secondary_miss": "string or null (technical short title in plain English)",
+      "secondary_miss_persona": "string or null (1 short, witty sentence calling out secondary fault in character without writing persona name in quote)",
+      "secondary_cause_breakdown": "string or null (2-3 concise sentences explaining objective biomechanical/technical root causes without persona styling)",
+      "expanded_caddie_intro": "string (3-4 robust, dramatic sentences strictly in character persona providing a high-level summary diagnosis, witty observations, and inspirational guidance)",
+      "caddie_drill_pep_talk": "string (2-3 sentences in character persona giving an encouraging strategy pep-talk for today's range drills)",
+      "swot_analysis": {{
+        "strengths": "string (1 concise sentence highlighting what the user is attempting well or fundamental asset)",
+        "weaknesses": "string (1 concise sentence on current primary technical/mechanical flaw)",
+        "opportunities": "string (1 concise sentence on immediate scoring gains if drill circuit is completed)",
+        "threats": "string (1 concise sentence on on-course scoring risks/hazard threats if uncorrected)"
+      }},
+      "confidence_score": 0.95,
+      "recommended_primary_drill": "string",
+      "recommended_secondary_drill": "string or null",
+      "drill_rationale": "string (1-2 sentences summarizing how the selected drills resolve these physical issues)"
+    }}
+    """
 
-        try:
-            flash_models = [
-                m.name for m in genai.list_models()
-                if 'generateContent' in m.supported_generation_methods and 'flash' in m.name.lower()
-            ]
-            flash_models.sort(reverse=True)
+    try:
+        flash_models = [
+            m.name for m in genai.list_models()
+            if 'generateContent' in m.supported_generation_methods and 'flash' in m.name.lower()
+        ]
+        flash_models.sort(reverse=True)
 
-            response = None
-            for model_name in flash_models:
-                try:
-                    model = genai.GenerativeModel(model_name)
-                    res = model.generate_content(f"{system_prompt}\n\nUser Input: {shot_transcript}")
-                    if res and res.text:
-                        response = res
-                        break
-                except Exception:
-                    continue
+        response = None
+        for model_name in flash_models:
+            try:
+                model = genai.GenerativeModel(model_name)
+                res = model.generate_content(f"{system_prompt}\n\nUser Input:\n{full_user_input}")
+                if res and res.text:
+                    response = res
+                    break
+            except Exception:
+                continue
 
-            if response is None:
-                st.error("No active Gemini Flash model found for this API key.")
-                st.stop()
+        if response is None:
+            st.error("No active Gemini Flash model found for this API key.")
+            st.stop()
 
-            clean_json = response.text.replace("```json", "").replace("```", "").strip()
-            st.session_state["diagnosis"] = json.loads(clean_json)
-            st.session_state["caddie_name"] = selected_persona_key
-        except Exception as e:
-            st.error(f"Error parsing Gemini response: {e}")
+        clean_json = response.text.replace("```json", "").replace("```", "").strip()
+        st.session_state["diagnosis"] = json.loads(clean_json)
+        st.session_state["caddie_name"] = selected_persona_key
+    except Exception as e:
+        st.error(f"Error parsing Gemini response: {e}")
 
 if "diagnosis" in st.session_state:
     diag = st.session_state["diagnosis"]
@@ -553,7 +623,6 @@ if "diagnosis" in st.session_state:
         st.markdown("**🎯 Primary Fault Callout**")
         p_persona_msg = diag.get("primary_miss_persona", diag.get("primary_miss", "Not detected"))
         st.warning(f"\"{p_persona_msg}\"")
-        
         p_plain = diag.get("primary_miss")
         if p_plain:
             st.markdown(f"*({p_plain})*")
@@ -579,6 +648,19 @@ if "diagnosis" in st.session_state:
         else:
             st.info("\"Fairway looks clear! No secondary dark side detected in this swing.\"")
             st.write("**Secondary Drill:** `N/A`")
+
+    # Dynamic Strategic Swing SWOT Analysis
+    if "swot_analysis" in diag and diag["swot_analysis"]:
+        st.markdown("---")
+        st.markdown("### 📊 Strategic Swing SWOT Analysis")
+        swot = diag["swot_analysis"]
+        sc1, sc2 = st.columns(2)
+        with sc1:
+            st.success(f"**💪 Strength:** {swot.get('strengths', 'N/A')}")
+            st.info(f"**📈 Opportunity:** {swot.get('opportunities', 'N/A')}")
+        with sc2:
+            st.warning(f"**⚠️ Weakness:** {swot.get('weaknesses', 'N/A')}")
+            st.error(f"**🎯 Threat to Score:** {swot.get('threats', 'N/A')}")
 
     st.markdown("---")
     st.write("**Calibration Loop: Did Gemini's diagnosis match your felt experience?**")
@@ -671,21 +753,17 @@ if "confirmed_resources" in st.session_state:
 st.markdown("---")
 st.subheader("3. Adaptive Practice Execution & Setup Guide")
 
-HIGH_COMPLEXITY_LOOKUP = {
-    "Full Swing": ["Impact Bag Compression Drill", "Two-Step Pump Lag Drill"],
-    "Short Game": ["Clock System Wedge Drill", "Landing Zone Target Towel Drill", "Open-Face Sand Splash Drill"],
-    "Putting": ["Metal Yardstick Roll Drill", "Eyes-Closed Distance Perception Drill"]
-}
-
 if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state:
     diag = st.session_state["diagnosis"]
     res = st.session_state["confirmed_resources"]
+    caddie = st.session_state.get("caddie_name", selected_persona_key)
 
     p_drill = diag.get("recommended_primary_drill", "Alignment Stick Gate Drill")
     s_drill = diag.get("recommended_secondary_drill")
     p_miss = diag.get("primary_miss", "your main swing fault")
     s_miss = diag.get("secondary_miss")
     rationale = diag.get("drill_rationale")
+    pep_talk = diag.get("caddie_drill_pep_talk")
 
     c_balls = res["total_balls"]
     c_time = res["total_time"]
@@ -738,6 +816,10 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     if (c_balls < 40 or c_time < 30) and p_complexity == "High":
         st.warning(f"⚠️ **Low Resource Alert:** `{p_drill}` is High Complexity. Consider focusing on basic feel keys with your limited budget ({c_balls} balls / {c_time} mins).")
 
+    # Persona Strategy Pep Talk
+    if pep_talk:
+        st.success(f"🗣️ **{caddie}'s Practice Strategy:** \"{pep_talk}\"")
+
     # Prescription Summary
     summary_line = f"💡 **Targeted Prescription:** Circuit optimized across {len(active_drills)} focus areas."
     if rationale:
@@ -753,21 +835,21 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     alloc_balls = res["total_balls"] if is_pure_game else g_balls
     alloc_time = res["total_time"] if is_pure_game else g_time
 
-    balls_per_drill = alloc_balls // num_drills
-    time_per_drill = alloc_time // num_drills
+    balls_per_drill = alloc_balls // num_drills if num_drills > 0 else alloc_balls
+    time_per_drill = alloc_time // num_drills if num_drills > 0 else alloc_time
 
     # Render Active Drills
     for idx, d_name in enumerate(active_drills):
         schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
 
         if is_pure_game or (is_hybrid and idx > 0):
-            label = f"🎮 Interactive Target Game: {p_miss if idx == 0 else (s_miss if s_miss else p_miss)}"
+            label = f"🎮 Interactive Target Game (Addressing: {p_miss if idx == 0 else (s_miss if s_miss else p_miss)})"
         elif d_name == p_drill:
-            label = f"Primary Technical Fault: {p_miss}"
+            label = f"Primary Technical Drill (Addressing: {p_miss})"
         elif d_name == high_complexity_added:
             label = "Advanced Mechanics Overhaul"
         else:
-            label = f"Secondary Technical Fault: {s_miss if s_miss else 'Technical Polish'}"
+            label = f"Secondary Technical Drill (Addressing: {s_miss if s_miss else 'Technical Polish'})"
 
         st.markdown(f"### 🎯 Drill #{idx+1}: **{d_name}**")
         st.markdown(f"🔥 **{label}**")
@@ -777,7 +859,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         equip_items = re.split(r',\s*(?![^()]*\))', schematic["equipment"])
         render_indented_ul(equip_items)
 
-        st.markdown("**📖 Setup Description**")
+        st.markdown("**📖 Setup Description (Plain English Mechanics)**")
         render_indented_html(schematic["vivid_description"])
 
         st.markdown("**🧠 Mental Analogy**")
@@ -788,7 +870,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         if idx < len(active_drills) - 1:
             st.markdown("---")
 
-    # Target Course Pressure Block (Formatted as standard drill card)
+    # Target Course Pressure Block
     gm_balls = res["game_balls"]
     gm_time = res["game_time"]
     if gm_balls > 0 and gm_time > 0 and not is_pure_game:
@@ -800,13 +882,24 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         st.markdown("**🛠️ Range Equipment Needed**")
         render_indented_ul(["Full Golf Bag (All Clubs)", "Laser Rangefinder or Target Flags", "Pre-shot Routine Line"])
 
-        st.markdown("**📖 Setup Description**")
+        st.markdown("**📖 Setup Description (Plain English Mechanics)**")
         render_indented_html("Simulate real course conditions. Alternate target flags and clubs for every single ball. Step away from the mat and execute your complete pre-shot routine before every swing.")
 
         st.markdown("**🧠 Mental Analogy**")
         render_indented_html("Sunday Major Final Hole: Treat every single ball like a high-stakes tournament stroke on the course.")
 
         st.info("🏆 **Pro Tip:** Never hit two balls in a row with the same club or to the same target during this pressure phase.")
+
+    # Export Practice Card Feature
+    st.markdown("---")
+    st.markdown("### 📥 Take Your Plan to the Range")
+    export_card_text = build_export_card(diag, res, active_drills, DRILL_SCHEMATICS, caddie)
+    st.download_button(
+        label="Download Printable Range Practice Card (.txt)",
+        data=export_card_text,
+        file_name="birdie_buddy_practice_plan.txt",
+        mime="text/plain"
+    )
 
 elif "diagnosis" in st.session_state:
     st.warning("👈 Please click **'✅ Confirm Selection & Generate Execution Plan'** in Section 2 to generate your plan.")
