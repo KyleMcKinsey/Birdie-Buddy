@@ -192,12 +192,11 @@ if not df_history.empty:
         clear_history_csv()
         st.rerun()
 
-# Color-coded interactive table preview
+# Color-coded interactive table preview with text wrapping
     with st.sidebar.expander("👁️ View Practice Log", expanded=False):
-        # Create a working copy for display adjustments
         df_display = df_history.copy()
 
-        # 1. Clean Date/Time in-place and rename to Date (keeps position #1)
+        # 1. Keep Date first and clean timestamp
         if "Date/Time" in df_display.columns:
             df_display["Date/Time"] = (
                 df_display["Date/Time"].astype(str).str.split(" ").str[0]
@@ -211,7 +210,6 @@ if not df_history.empty:
             df_display = df_display.drop(columns=["Caddie"])
 
         def style_practice_log(df):
-            # Badge styles for Practice Modes
             def color_mode(val):
                 v = str(val)
                 if "Grind" in v:
@@ -222,20 +220,26 @@ if not df_history.empty:
                     return "background-color: #dbeafe; color: #1e40af; font-weight: bold;"
                 return ""
 
-            # Highlight Focus Drills
             def color_drills(val):
                 if val and str(val) != "N/A":
                     return "background-color: #e0e7ff; color: #3730a3; font-weight: bold;"
                 return "color: #9ca3af; font-style: italic;"
 
-            # Highlight Faults
             def color_faults(val):
                 if val and str(val) != "N/A":
                     return "background-color: #fef3c7; color: #92400e; font-weight: bold;"
                 return "color: #9ca3af; font-style: italic;"
 
             try:
-                styler = df.style
+                # Force cell text wrapping via Styler CSS
+                styler = df.style.set_properties(
+                    **{
+                        "white-space": "normal",
+                        "word-wrap": "break-word",
+                        "vertical-align": "top",
+                    }
+                )
+
                 if "Practice Mode" in df.columns:
                     styler = styler.map(color_mode, subset=["Practice Mode"])
 
