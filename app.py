@@ -192,7 +192,7 @@ if not df_history.empty:
         clear_history_csv()
         st.rerun()
 
-# Color-coded interactive table preview with text wrapping
+# Color-coded interactive table preview with full HTML text wrapping
     with st.sidebar.expander("👁️ View Practice Log", expanded=False):
         df_display = df_history.copy()
 
@@ -209,53 +209,62 @@ if not df_history.empty:
         if "Caddie" in df_display.columns:
             df_display = df_display.drop(columns=["Caddie"])
 
+        # 3. Rename columns directly for HTML output
+        rename_map = {
+            "Date": "Date 📅",
+            "Primary Fault": "Primary Fault 🎯",
+            "Primary Drill": "Primary Drill 🛠️",
+            "Secondary Fault": "Secondary Fault ⚠️",
+            "Secondary Drill": "Secondary Drill 🔧",
+            "Practice Mode": "Mode 🎮",
+            "Total Balls": "Balls ⛳",
+            "Total Time (mins)": "Time (m) ⏱️",
+            "ROI Strategy": "ROI Fix 📈",
+        }
+        df_display = df_display.rename(columns=rename_map)
+
         def style_practice_log(df):
             def color_mode(val):
                 v = str(val)
                 if "Grind" in v:
-                    return "background-color: #ffedd5; color: #9a3412; font-weight: bold;"
+                    return "background-color: #ffedd5; color: #9a3412; font-weight: bold; white-space: normal;"
                 elif "Game" in v:
-                    return "background-color: #d1fae5; color: #065f46; font-weight: bold;"
+                    return "background-color: #d1fae5; color: #065f46; font-weight: bold; white-space: normal;"
                 elif "Combination" in v or "Hybrid" in v:
-                    return "background-color: #dbeafe; color: #1e40af; font-weight: bold;"
-                return ""
+                    return "background-color: #dbeafe; color: #1e40af; font-weight: bold; white-space: normal;"
+                return "white-space: normal;"
 
             def color_drills(val):
                 if val and str(val) != "N/A":
-                    return "background-color: #e0e7ff; color: #3730a3; font-weight: bold;"
-                return "color: #9ca3af; font-style: italic;"
+                    return "background-color: #e0e7ff; color: #3730a3; font-weight: bold; white-space: normal;"
+                return "color: #9ca3af; font-style: italic; white-space: normal;"
 
             def color_faults(val):
                 if val and str(val) != "N/A":
-                    return "background-color: #fef3c7; color: #92400e; font-weight: bold;"
-                return "color: #9ca3af; font-style: italic;"
+                    return "background-color: #fef3c7; color: #92400e; font-weight: bold; white-space: normal;"
+                return "color: #9ca3af; font-style: italic; white-space: normal;"
 
             try:
-                # Force cell text wrapping via Styler CSS
+                # Force table cells to wrap text naturally
                 styler = df.style.set_properties(
                     **{
                         "white-space": "normal",
                         "word-wrap": "break-word",
+                        "min-width": "110px",
                         "vertical-align": "top",
+                        "padding": "6px",
                     }
                 )
 
-                if "Practice Mode" in df.columns:
-                    styler = styler.map(color_mode, subset=["Practice Mode"])
+                mode_col = [c for c in df.columns if "Mode" in c]
+                if mode_col:
+                    styler = styler.map(color_mode, subset=mode_col)
 
-                drill_cols = [
-                    c
-                    for c in ["Primary Drill", "Secondary Drill"]
-                    if c in df.columns
-                ]
+                drill_cols = [c for c in df.columns if "Drill" in c]
                 if drill_cols:
                     styler = styler.map(color_drills, subset=drill_cols)
 
-                fault_cols = [
-                    c
-                    for c in ["Primary Fault", "Secondary Fault"]
-                    if c in df.columns
-                ]
+                fault_cols = [c for c in df.columns if "Fault" in c]
                 if fault_cols:
                     styler = styler.map(color_faults, subset=fault_cols)
 
@@ -264,6 +273,12 @@ if not df_history.empty:
                 return df
 
         styled_df = style_practice_log(df_display)
+
+        # Render direct HTML to enforce line wrapping and styling rules
+        st.markdown(
+            f'<div style="overflow-x: auto; max-height: 500px; font-size: 0.85rem;">{styled_df.to_html()}</div>',
+            unsafe_allow_html=True,
+        )
 
         st.dataframe(
             styled_df,
