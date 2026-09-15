@@ -197,12 +197,12 @@ if not df_history.empty:
         # Create a working copy for display adjustments
         df_display = df_history.copy()
 
-        # 1. Format date to exclude time (YYYY-MM-DD)
+        # 1. Clean Date/Time in-place and rename to Date (keeps position #1)
         if "Date/Time" in df_display.columns:
-            df_display["Date"] = (
+            df_display["Date/Time"] = (
                 df_display["Date/Time"].astype(str).str.split(" ").str[0]
             )
-            df_display = df_display.drop(columns=["Date/Time"])
+            df_display = df_display.rename(columns={"Date/Time": "Date"})
 
         # 2. Remove Caddie column
         if "Caddie Persona" in df_display.columns:
