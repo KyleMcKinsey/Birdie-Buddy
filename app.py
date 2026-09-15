@@ -10,7 +10,8 @@ st.set_page_config(
     page_title="Birdie Buddy MVP", page_icon="⛳", layout="centered"
 )
 
-CSV_FILE = "birdie_buddy_practice_history.csv"
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+CSV_FILE = os.path.join(APP_DIR, "birdie_buddy_practice_history.csv")
 
 
 # --- PERSISTENT SPREADSHEET HELPERS ---
