@@ -194,29 +194,64 @@ if not df_history.empty:
 
     # Color-coded interactive table preview
     with st.sidebar.expander("👁️ View Practice Log", expanded=False):
-        def highlight_cols(val):
-            if val == "N/A" or not val:
-                return "color: #888888; font-style: italic;"
-            return "background-color: #1e3a8a22; font-weight: bold;"
 
-        styled_df = df_history.style.map(
-            highlight_cols, subset=["Primary Fault", "Primary Drill"]
-        )
+        def style_practice_log(df):
+            # Badge styles for Practice Modes
+            def color_mode(val):
+                v = str(val)
+                if "Grind" in v:
+                    return "background-color: #ffedd5; color: #9a3412; font-weight: bold; border-radius: 4px;"
+                elif "Game" in v:
+                    return "background-color: #d1fae5; color: #065f46; font-weight: bold; border-radius: 4px;"
+                elif "Combination" in v or "Hybrid" in v:
+                    return "background-color: #dbeafe; color: #1e40af; font-weight: bold; border-radius: 4px;"
+                return ""
+
+            # Highlight Focus Drills
+            def color_drills(val):
+                if val and val != "N/A":
+                    return "background-color: #e0e7ff; color: #3730a3; font-weight: bold;"
+                return "color: #9ca3af; font-style: italic;"
+
+            # Highlight Faults
+            def color_faults(val):
+                if val and val != "N/A":
+                    return "background-color: #fef3c7; color: #92400e; font-weight: bold;"
+                return "color: #9ca3af; font-style: italic;"
+
+            # Apply conditional styles
+            styler = (
+                df.style.map(color_mode, subset=["Practice Mode"])
+                .map(color_drills, subset=["Primary Drill", "Secondary Drill"])
+                .map(color_faults, subset=["Primary Fault", "Secondary Fault"])
+                .background_gradient(
+                    cmap="Blues", subset=["Total Balls", "Total Time (mins)"]
+                )
+            )
+            return styler
+
+        styled_df = style_practice_log(df_history)
 
         st.dataframe(
             styled_df,
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Date/Time": st.column_config.TextColumn("Date/Time"),
+                "Date/Time": st.column_config.TextColumn("Date/Time 📅"),
                 "Caddie Persona": st.column_config.TextColumn("Caddie 🧙"),
                 "Primary Fault": st.column_config.TextColumn("Primary Fault 🎯"),
                 "Primary Drill": st.column_config.TextColumn("Primary Drill 🛠️"),
-                "Secondary Fault": st.column_config.TextColumn("Secondary Fault ⚠️"),
-                "Secondary Drill": st.column_config.TextColumn("Secondary Drill 🔧"),
+                "Secondary Fault": st.column_config.TextColumn(
+                    "Secondary Fault ⚠️"
+                ),
+                "Secondary Drill": st.column_config.TextColumn(
+                    "Secondary Drill 🔧"
+                ),
                 "Practice Mode": st.column_config.TextColumn("Mode 🎮"),
                 "Total Balls": st.column_config.NumberColumn("Balls ⛳"),
-                "Total Time (mins)": st.column_config.NumberColumn("Time (m) ⏱️"),
+                "Total Time (mins)": st.column_config.NumberColumn(
+                    "Time (m) ⏱️"
+                ),
                 "ROI Strategy": st.column_config.TextColumn("ROI Fix 📈"),
             },
         )
