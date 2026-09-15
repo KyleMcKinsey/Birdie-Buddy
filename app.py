@@ -953,6 +953,10 @@ game_balls = int(total_balls * game_pct)
 grind_time = int(total_time * grind_pct)
 game_time = int(total_time * game_pct)
 
+# Display success feedback after refresh
+if st.session_state.get("plan_logged_success"):
+    st.success("Practice plan generated and logged to CSV spreadsheet successfully!")
+
 # --- STRICT BUTTON EVENT TRIGGER FOR PRACTICE HISTORY LOGGING ---
 if st.button("✅ Confirm Selection & Generate Execution Plan", type="primary"):
     st.session_state["confirmed_resources"] = {
@@ -982,7 +986,8 @@ if st.button("✅ Confirm Selection & Generate Execution Plan", type="primary"):
         roi_opportunity=swot_opp,
     )
 
-    st.success("Practice plan generated and logged to CSV spreadsheet successfully!")
+    st.session_state["plan_logged_success"] = True
+    st.rerun()  # Forces Streamlit to instantly re-render with the CSV populated in the sidebar!
 
 if "confirmed_resources" in st.session_state:
     res_data = st.session_state["confirmed_resources"]
