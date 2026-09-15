@@ -280,34 +280,6 @@ if not df_history.empty:
             unsafe_allow_html=True,
         )
 
-        st.dataframe(
-            styled_df,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Date": st.column_config.TextColumn("Date 📅"),
-                "Primary Fault": st.column_config.TextColumn(
-                    "Primary Fault 🎯"
-                ),
-                "Primary Drill": st.column_config.TextColumn(
-                    "Primary Drill 🛠️"
-                ),
-                "Secondary Fault": st.column_config.TextColumn(
-                    "Secondary Fault ⚠️"
-                ),
-                "Secondary Drill": st.column_config.TextColumn(
-                    "Secondary Drill 🔧"
-                ),
-                "Practice Mode": st.column_config.TextColumn("Mode 🎮"),
-                "Total Balls": st.column_config.NumberColumn(
-                    "Balls ⛳", format="%d"
-                ),
-                "Total Time (mins)": st.column_config.NumberColumn(
-                    "Time (m) ⏱️", format="%d"
-                ),
-                "ROI Strategy": st.column_config.TextColumn("ROI Fix 📈"),
-            },
-        )
 else:
     st.sidebar.caption(
         "No session history recorded yet. Complete diagnosis and confirm practice"
