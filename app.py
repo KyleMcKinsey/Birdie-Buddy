@@ -89,7 +89,7 @@ PERSONA_DATABASE = {
         You are 'Bogey-Wan Kenobi,' a wise and serene Jedi Master AI golf caddie.
         Tone: Calm, philosophical, dramatic, heroic, slightly cryptic.
         Sample Catchphrases: 'May the Force be with your clubface.', 'These are not the trees you are looking for.', 'Beware the Dark Side—anger leads to an open face.'
-        Analyze shot errors across full swing, short game, and putting using Jedi terminology and wise guidance.
+        Analyze shot errors and mental focus across full swing, short game, putting, and mindset using Jedi terminology and wise guidance.
         """
     },
     "Harry Putter (The Boy Who Shanked)": {
@@ -98,7 +98,7 @@ PERSONA_DATABASE = {
         You are 'Harry Putter,' a young wizard AI golf caddie who treats golf clubs like magic wands and shot analysis like Defense Against the Dark Arts.
         Tone: Enthusiastic, spell-casting, British, magical.
         Sample Catchphrases: 'Expecto Fairway-um!', 'Yer a golfer, Harry!', '10 points to Gryffindor if you hit this green.'
-        Analyze shot errors across full swing, short game, and putting using wizarding world terminology.
+        Analyze shot errors and mental focus across full swing, short game, putting, and mindset using wizarding world terminology.
         """
     },
     "James Pond (Agent 00-Slice)": {
@@ -107,7 +107,7 @@ PERSONA_DATABASE = {
         You are 'James Pond' (Agent 00-Slice), a suave, high-class secret agent AI golf caddie.
         Tone: Cool, sophisticated, covert, tactical, dry British charm.
         Sample Catchphrases: 'Shaken, not stirred—much like your grip pressure.', 'License to slice.', "The name's Pond... James Pond."
-        Analyze shot errors as if evaluating high-stakes tactical intelligence.
+        Analyze shot errors and mental composure as if evaluating high-stakes tactical intelligence under pressure.
         """
     },
     "Captain Hack Sparrow (Pirate of the Fairway)": {
@@ -116,13 +116,13 @@ PERSONA_DATABASE = {
         You are 'Captain Hack Sparrow,' an eccentric, wildly unpredictable pirate AI golf caddie.
         Tone: Slurred charm, chaotic, theatrical, witty, rum-obsessed, highly eccentric.
         Sample Catchphrases: 'Why is the fairway always gone?', 'Take what you can, give nothing back—except that ball in the hazard.', 'This shot is either brilliant or mad. Utterly mad.'
-        Analyze shot errors using nautical pirate metaphors.
+        Analyze shot errors and mental blow-ups using nautical pirate metaphors.
         """
     }
 }
 
 # -------------------------------------------------------------
-# EXPANDED KNOWLEDGE BASE & SCHEMATICS (40 DRILLS)
+# EXPANDED KNOWLEDGE BASE & SCHEMATICS (45 DRILLS INCL. MENTAL)
 # -------------------------------------------------------------
 DRILL_SCHEMATICS = {
     # --- FULL SWING DRILLS (10) ---
@@ -369,6 +369,38 @@ DRILL_SCHEMATICS = {
         "vivid_description": "Place quarter on grass 1 inch behind ball. Focus on sweeping putter sole smoothly over coin without touching.",
         "analogy": "Gliding Hovercraft: Promotes level, smooth putter sweep through impact.",
         "pro_tip": "🏆 **Pro Tip:** Keeps putter low to turf for pure top-spin roll."
+    },
+
+    # --- MENTAL GAME & MINDSET DRILLS (5) ---
+    "1-2-3 Box Breathing Reset Drill": {
+        "equipment": "None (Breathwork)",
+        "vivid_description": "Inhale for 4 seconds, hold for 4 seconds, and exhale for 4 seconds before stepping into your pre-shot setup. Settle heart rate and lower heart beat.",
+        "analogy": "System Reboot Button: Clears mental noise and anxiety before entering the target execution area.",
+        "pro_tip": "🏆 **Pro Tip:** Exhale fully through your nose right before placing your clubface behind the ball."
+    },
+    "Post-Shot Acceptance Hold Drill": {
+        "equipment": "Golf Club, 3-Second Count",
+        "vivid_description": "Hold your balanced finish pose for 3 full seconds post-impact regardless of where the ball flies. Observe result with zero emotional outburst.",
+        "analogy": "Neutral Journalist: Document the ball flight as unbiased data rather than judging yourself.",
+        "pro_tip": "🏆 **Pro Tip:** Smile or take a deep exhale as soon as your 3-second hold finishes to release tension."
+    },
+    "Positive Box Pre-Shot Routine Drill": {
+        "equipment": "1 Alignment Rod or Line on Ground",
+        "vivid_description": "Step behind the line into the 'Think Box' to calculate wind, yardage, and shot shape. Step across the line into the 'Play Box' with 100% commitment and zero swing thoughts.",
+        "analogy": "Crossing into the Boxing Ring: Make all decisions outside the ring; inside the ring is pure execution.",
+        "pro_tip": "🏆 **Pro Tip:** If a doubt enters your mind inside the Play Box, back off and step back behind the line."
+    },
+    "Target Visual Anchoring Drill": {
+        "equipment": "Target Flag / Specific Micro-Target",
+        "vivid_description": "Pick a micro-target (e.g., a specific leaf on a tree behind the flag pin) rather than a general area. Lock eyes onto it for 3 seconds before looking down to swing.",
+        "analogy": "Sniper Crosshairs: Aim at a thread, hit a button; aim at a house, miss the neighborhood.",
+        "pro_tip": "🏆 **Pro Tip:** Keep the vivid image of that micro-target in your mind's eye during backswing."
+    },
+    "Mantra & Thought Neutralizer Drill": {
+        "equipment": "Personal 2-Word Cue",
+        "vivid_description": "Repeat a rhythmic two-word cadence (e.g., 'Smooth... Turn...') quietly during backswing and downswing to crowd out negative thoughts.",
+        "analogy": "Noise-Canceling Headphones: Block out intrusive internal doubt and fear of failure.",
+        "pro_tip": "🏆 **Pro Tip:** Sync your rhythm so word 1 is backswing start and word 2 is impact release."
     }
 }
 
@@ -386,7 +418,10 @@ DRILL_COMPLEXITY = {
     "Parallel Rod Putting Channel Drill": "Low", "Ladder Distance Lag Drill": "Medium", "Fringe-to-Fringe Feel Drill": "Low",
     "Eyes-Closed Distance Perception Drill": "High", "Rubber Band Putter Sweet-Spot Drill": "Medium", "Two-Tee Putter Gate Drill": "Low",
     "Coin Balance Putter Back Drill": "Medium", "Push-Putting No-Backswing Drill": "Medium", "Short Back Long Through Stroke Drill": "Low",
-    "Coin Balance Motion Stroke Drill": "Low"
+    "Coin Balance Motion Stroke Drill": "Low",
+    "1-2-3 Box Breathing Reset Drill": "Low", "Post-Shot Acceptance Hold Drill": "Low",
+    "Positive Box Pre-Shot Routine Drill": "Medium", "Target Visual Anchoring Drill": "Low",
+    "Mantra & Thought Neutralizer Drill": "Medium"
 }
 
 GAME_MODE_DRILL_MAP = {
@@ -404,7 +439,12 @@ GAME_MODE_DRILL_MAP = {
     "Parallel Rod Putting Channel Drill": "Putting Tee Gate Drill", "Fringe-to-Fringe Feel Drill": "Ladder Distance Lag Drill",
     "Rubber Band Putter Sweet-Spot Drill": "Two-Tee Putter Gate Drill", "Coin Balance Putter Back Drill": "Putting Tee Gate Drill",
     "Push-Putting No-Backswing Drill": "Ladder Distance Lag Drill", "Short Back Long Through Stroke Drill": "Ladder Distance Lag Drill",
-    "Coin Balance Motion Stroke Drill": "Ladder Distance Lag Drill"
+    "Coin Balance Motion Stroke Drill": "Ladder Distance Lag Drill",
+    "1-2-3 Box Breathing Reset Drill": "Positive Box Pre-Shot Routine Drill",
+    "Post-Shot Acceptance Hold Drill": "Positive Box Pre-Shot Routine Drill",
+    "Positive Box Pre-Shot Routine Drill": "Target Visual Anchoring Drill",
+    "Target Visual Anchoring Drill": "Target Visual Anchoring Drill",
+    "Mantra & Thought Neutralizer Drill": "Positive Box Pre-Shot Routine Drill"
 }
 
 # -------------------------------------------------------------
@@ -434,24 +474,24 @@ def format_selector_value(val: str) -> str:
 # --- STEP 1A: FREE TEXT STORY & OPTIONAL SELECTORS ---
 if st.session_state["diag_step"] == 1:
     st.markdown("### 🗣️ Tell Us How Your Round Went")
-    st.caption("Talk naturally about what happened during your round—your misses, feelings, or blow-up holes. The AI Caddie will pinpoint key themes and ask two targeted follow-up questions.")
+    st.caption("Talk naturally about what happened during your round—your misses, feelings, mental blow-ups, or frustration. The AI Caddie will pinpoint key themes and ask two targeted follow-up questions.")
 
     user_round_story = st.text_area(
         "Describe your round in your own words:",
         height=120,
-        placeholder="e.g., I played 18 holes today and couldn't hit a fairway with my driver—everything kept slicing hard into the trees on the right. My irons felt okay, but I hit two fat wedge shots into the water hazard on hole 7..."
+        placeholder="e.g., I played 18 holes today and couldn't hit a fairway with my driver—everything kept slicing hard into the trees on the right. I got super frustrated on hole 6 after a bad double bogey and completely lost my mental focus for the next 4 holes..."
     )
 
-    with st.expander("⚙️ Optional: Tweak Observable Ball-Flight Selectors (Default: None)", expanded=False):
+    with st.expander("⚙️ Optional: Tweak Observable Ball-Flight & Focus Selectors (Default: None)", expanded=False):
         col_s1, col_s2 = st.columns(2)
         with col_s1:
             start_dir = st.selectbox("Start Direction:", [NONE_OPT, "Starts Straight at Target", "Pulls Left of Target", "Pushes Right of Target"])
             curvature = st.selectbox("Flight Curvature:", [NONE_OPT, "Flies Straight (No curve)", "Curves Softly Right (Fade)", "Curves Sharply Right (Slice)", "Curves Left (Draw / Hook)"])
-            club_category = st.selectbox("Main Problem Area:", [NONE_OPT, "Driver / Tee Shots", "Mid / Long Irons", "Short Game / Wedges", "Putting Greens"])
+            club_category = st.selectbox("Main Problem Area:", [NONE_OPT, "Driver / Tee Shots", "Mid / Long Irons", "Short Game / Wedges", "Putting Greens", "Mental Game / Focus / Temper"])
         with col_s2:
             divot_loc = st.selectbox("Divot Location:", [NONE_OPT, "Clean Contact (Divot after ball)", "Heavy / Fat (Turf 1-2 inches before ball)", "Thin / Skulled (Top of ball)", "Hard Mat / Pure Turf Sweep"])
             impact_feel = st.selectbox("Impact Sound & Feel:", [NONE_OPT, "Crisp 'click'", "Dull 'thud' / heavy dirt drag", "Harsh vibration on toe/heel", "Stinging hands / thin strike"])
-            miss_freq = st.selectbox("Flaw Frequency:", [NONE_OPT, "Driver / Woods Only", "Irons & Wedges Only", "Every Club in Bag"])
+            miss_freq = st.selectbox("Flaw Frequency:", [NONE_OPT, "Driver / Woods Only", "Irons & Wedges Only", "Under Tournament Pressure Only", "Every Club in Bag"])
 
     if st.button(f"Analyze Round Narrative with {persona_display_name}", type="primary"):
         if not user_round_story.strip():
@@ -481,13 +521,14 @@ if st.session_state["diag_step"] == 1:
             - Consistency: {format_selector_value(miss_freq)}
 
             Based directly on their story and attributes, craft 2 targeted diagnostic decision-tree follow-up questions in persona voice.
-            For EACH question, provide 3 short, concrete multiple-choice options (Option A, Option B, Option C) to clarify their biomechanical root cause without typing.
+            Address physical biomechanics or mental composure/focus issues depending on what they described.
+            For EACH question, provide 3 short, concrete multiple-choice options (Option A, Option B, Option C) to clarify their root cause without typing.
 
             Output strictly raw JSON with no markdown formatting:
             {{
               "question_1": "string (Question 1 directly addressing a key detail in their story)",
               "options_q1": ["Option A string", "Option B string", "Option C string"],
-              "question_2": "string (Question 2 addressing secondary mechanic or feel)",
+              "question_2": "string (Question 2 addressing secondary mechanic or mental reaction)",
               "options_q2": ["Option A string", "Option B string", "Option C string"]
             }}
             """
@@ -528,11 +569,11 @@ elif st.session_state["diag_step"] == 2:
 
     st.markdown(f"### 🗣️ {caddie} asks based on your story:")
 
-    q1_text = qs.get("question_1", "When your ball curves off line, what does your finish position feel like?")
-    q1_opts = qs.get("options_q1", ["Hanging back on trail foot", "Losing balance forward", "Rotated fully to target"])
+    q1_text = qs.get("question_1", "When your shot goes off line or a bad hole occurs, how do you react mentally?")
+    q1_opts = qs.get("options_q1", ["I get angry and rush my next shot", "I overthink mechanical swing keys", "I stay calm and stick to routine"])
 
     q2_text = qs.get("question_2", "When you try to compensate, what usually happens next?")
-    q2_opts = qs.get("options_q2", ["Contact gets heavier / fatter", "Ball goes straight but loses 30 yards", "Shot stays exactly the same"])
+    q2_opts = qs.get("options_q2", ["Contact gets heavier / fatter", "Ball goes straight but loses distance", "Shot stays exactly the same"])
 
     st.markdown(f"**1. {q1_text}**")
     ans1_selected = st.radio("Q1 Choice:", options=q1_opts, key="ans1_radio", label_visibility="collapsed")
@@ -542,7 +583,7 @@ elif st.session_state["diag_step"] == 2:
 
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
-        if st.button("🔍 Synthesize Biomechanical Root Cause", type="primary"):
+        if st.button("🔍 Synthesize Root Cause & Mindset Diagnosis", type="primary"):
             full_round_input = f"""
             User Story: "{st.session_state.get('user_round_story')}"
             Start Direction: {format_selector_value(st.session_state['start_dir'])}
@@ -558,39 +599,41 @@ elif st.session_state["diag_step"] == 2:
             system_prompt = f"""
             {active_persona['system_instruction']}
 
-            Act as an expert biomechanical golf instructor AI.
-            Translate the user's round narrative and decision tree answers into strict anatomical and mechanical terms:
-            - Start Direction + Curvature + User Story -> Face Angle vs Swing Path mechanics.
+            Act as an expert biomechanical & sports psychology golf instructor AI.
+            Translate the user's round narrative and decision tree answers into strict physical mechanics or psychological root causes:
+            - Start Direction + Curvature + Story -> Face Angle vs Swing Path mechanics.
             - Divot Location + Impact Feel -> Low-Point location and Angle of Attack.
+            - Emotional blow-ups / Frustration / Rush -> Mental game & pre-shot routine breakdowns.
 
-            Incorporate explicit biomechanical explanations into 'primary_cause_breakdown' and 'secondary_cause_breakdown'.
+            Incorporate explicit biomechanical or psychological explanations into 'primary_cause_breakdown' and 'secondary_cause_breakdown'.
 
-            Map faults to the most effective drills from this EXACT list of 40 drills:
+            Map faults to the most effective drills from this EXACT list of 45 drills:
             - FULL SWING: 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill', 'Towel Under Armpits Drill', 'Coin Strike Low-Point Drill', 'Split-Hands Release Drill', 'Feet-Together Balance Drill', 'Wall-Head Posture Drill', 'Impact Bag Compression Drill', 'Two-Step Pump Lag Drill'
             - SHORT GAME: 'Towel Behind Ball Drill', 'Lead Foot Weight Anchor Drill', 'Brush Turf Chipping Drill', 'Coin Lead-Point Pitch Drill', 'Ruler in Glove Wrist Anchor Drill', 'Hinge-and-Hold Chipping Drill', 'Clock System Wedge Drill', 'Landing Zone Target Towel Drill', 'Trail-Hand Only Pitch Drill', 'Line in the Sand Drill', 'Dollar Bill Sand Extraction Drill', 'Open-Face Sand Splash Drill', 'Continuous Motion Pendulum Chipping Drill', 'Accelerating Through Impact Gate Drill', 'Target-Focused Eyes-Up Chipping Drill'
             - PUTTING: 'Putting Tee Gate Drill', 'Chalk Line Straight Target Drill', 'Mirror Alignment Face Drill', 'Trail-Hand Push Putting Drill', 'Metal Yardstick Roll Drill', 'Parallel Rod Putting Channel Drill', 'Ladder Distance Lag Drill', 'Fringe-to-Fringe Feel Drill', 'Eyes-Closed Distance Perception Drill', 'Rubber Band Putter Sweet-Spot Drill', 'Two-Tee Putter Gate Drill', 'Coin Balance Putter Back Drill', 'Push-Putting No-Backswing Drill', 'Short Back Long Through Stroke Drill', 'Coin Balance Motion Stroke Drill'
+            - MENTAL GAME: '1-2-3 Box Breathing Reset Drill', 'Post-Shot Acceptance Hold Drill', 'Positive Box Pre-Shot Routine Drill', 'Target Visual Anchoring Drill', 'Mantra & Thought Neutralizer Drill'
 
             Output strictly raw JSON with no markdown formatting:
             {{
-              "diagnosis_category": "Biomechanical Narrative Translation",
+              "diagnosis_category": "Biomechanical Narrative & Mindset Translation",
               "primary_miss": "string (title of primary root cause)",
               "primary_miss_persona": "string (1 short, witty sentence calling out primary flaw in character)",
-              "primary_cause_breakdown": "string (2-3 sentences incorporating explicit biomechanical explanations)",
+              "primary_cause_breakdown": "string (2-3 sentences incorporating explicit biomechanical or psychological explanations)",
               "secondary_miss": "string or null",
               "secondary_miss_persona": "string or null",
-              "secondary_cause_breakdown": "string or null (2-3 sentences incorporating explicit biomechanical explanations)",
+              "secondary_cause_breakdown": "string or null (2-3 sentences incorporating explicit biomechanical or psychological explanations)",
               "expanded_caddie_intro": "string (3-4 robust sentences in persona referencing their story and strategic fix)",
               "caddie_drill_pep_talk": "string (2-3 sentences in persona giving encouraging range advice)",
               "swot_analysis": {{
                 "strengths": "string (1 sentence: what worked best according to narrative)",
-                "weaknesses": "string (1 sentence: main physical swing flaw costing accuracy)",
-                "opportunities": "string (1 sentence: easiest quick mechanical fix)",
-                "threats": "string (1 sentence: big mistake causing severe missed shots)"
+                "weaknesses": "string (1 sentence: main physical swing flaw or mental barrier costing accuracy)",
+                "opportunities": "string (1 sentence: easiest quick mechanical or mental fix)",
+                "threats": "string (1 sentence: big mistake causing severe missed shots or mental tilt)"
               }},
               "confidence_score": 0.95,
               "recommended_primary_drill": "string",
               "recommended_secondary_drill": "string or null",
-              "drill_rationale": "string (1-2 sentences explaining why these drills fix the biomechanical flaw)"
+              "drill_rationale": "string (1-2 sentences explaining why these drills fix the biomechanical or mental flaw)"
             }}
             """
 
@@ -802,6 +845,8 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
                     high_complexity_added = "Metal Yardstick Roll Drill"
                 elif any(word in p_drill for word in ["Wedge", "Chip", "Sand", "Pitch", "Towel", "Anchor"]):
                     high_complexity_added = "Clock System Wedge Drill"
+                elif any(word in p_drill for word in ["Breathing", "Acceptance", "Routine", "Anchoring", "Mantra"]):
+                    high_complexity_added = "Positive Box Pre-Shot Routine Drill"
                 else:
                     high_complexity_added = "Impact Bag Compression Drill"
 
@@ -848,11 +893,11 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         if is_pure_game or (is_hybrid and idx > 0):
             label = f"🎮 Interactive Target Game (Addressing: {p_miss if idx == 0 else (s_miss if s_miss else p_miss)})"
         elif d_name == p_drill:
-            label = f"Primary Technical Drill (Addressing: {p_miss})"
+            label = f"Primary Focus Drill (Addressing: {p_miss})"
         elif d_name == high_complexity_added:
-            label = "Advanced Mechanics Overhaul"
+            label = "Advanced Mechanics / Routine Overhaul"
         else:
-            label = f"Secondary Technical Drill (Addressing: {s_miss if s_miss else 'Technical Polish'})"
+            label = f"Secondary Focus Drill (Addressing: {s_miss if s_miss else 'Performance Polish'})"
 
         st.markdown(f"### 🎯 Drill #{idx+1}: **{d_name}**")
         st.markdown(f"🔥 **{label}**")
