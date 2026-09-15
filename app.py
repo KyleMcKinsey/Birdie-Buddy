@@ -22,38 +22,38 @@ def load_history_df():
             pass
     return pd.DataFrame(
         columns=[
-            "Timestamp",
-            "Caddie Persona",
+            "Date",
             "Primary Macro-Fault",
             "Primary Drill",
+            "Secondary Fault",
+            "Secondary Drill",
             "Practice Mode",
             "Total Balls",
             "Total Time (Mins)",
-            "Pace (Sec/Ball)",
             "ROI Opportunity",
         ]
     )
 
 
 def save_session_to_csv(
-    caddie_persona,
     primary_miss,
     primary_drill,
+    secondary_miss,
+    secondary_drill,
     practice_mode,
     total_balls,
     total_time,
-    sec_per_ball,
     roi_opportunity="",
 ):
     new_row = pd.DataFrame([{
-        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "Caddie Persona": caddie_persona if caddie_persona else "N/A",
+        "Date": datetime.now().strftime("%Y-%m-%d"),
         "Primary Macro-Fault": primary_miss if primary_miss else "N/A",
         "Primary Drill": primary_drill if primary_drill else "N/A",
+        "Secondary Fault": secondary_miss if secondary_miss else "N/A",
+        "Secondary Drill": secondary_drill if secondary_drill else "N/A",
         "Practice Mode": practice_mode if practice_mode else "N/A",
         "Total Balls": total_balls,
         "Total Time (Mins)": total_time,
-        "Pace (Sec/Ball)": sec_per_ball,
         "ROI Opportunity": roi_opportunity if roi_opportunity else "N/A",
     }])
     if not os.path.exists(CSV_FILE):
@@ -114,7 +114,6 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
         lines.append(f"Secondary Fault: {diag.get('secondary_miss')}")
     lines.append(
         f"Total Allocation: {res['total_balls']} Balls | {res['total_time']} Mins"
-        f" (@ {res['sec_per_ball']}s/ball)"
     )
     lines.append("-" * 50)
     lines.append("\nROUND SWOT SUMMARY:")
@@ -206,14 +205,14 @@ if not df_history.empty:
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Timestamp": st.column_config.TextColumn("Date/Time"),
-                "Caddie Persona": st.column_config.TextColumn("Caddie 🎭"),
-                "Primary Macro-Fault": st.column_config.TextColumn("Macro Fault 🎯"),
-                "Primary Drill": st.column_config.TextColumn("Prescribed Drill 🛠️"),
+                "Date": st.column_config.TextColumn("Date 📅"),
+                "Primary Macro-Fault": st.column_config.TextColumn("Primary Fault 🎯"),
+                "Primary Drill": st.column_config.TextColumn("Primary Drill 🛠️"),
+                "Secondary Fault": st.column_config.TextColumn("Secondary Fault ⚠️"),
+                "Secondary Drill": st.column_config.TextColumn("Secondary Drill 🔧"),
                 "Practice Mode": st.column_config.TextColumn("Mode ⚙️"),
                 "Total Balls": st.column_config.NumberColumn("Balls ⛳"),
                 "Total Time (Mins)": st.column_config.NumberColumn("Mins ⏱️"),
-                "Pace (Sec/Ball)": st.column_config.NumberColumn("Pace ⚡"),
                 "ROI Opportunity": st.column_config.TextColumn("SWOT Target 📈"),
             },
         )
@@ -290,702 +289,276 @@ DRILL_SCHEMATICS = {
     # --- FULL SWING DRILLS (10) ---
     "Alignment Stick Gate Drill": {
         "equipment": "2 Alignment Rods, 2 Golf Tees",
-        "vivid_description": (
-            "Take practice strokes without a ball, focusing on making a crisp"
-            " 'thump' sound against the grass in front of your lead big toe."
-        ),
-        "analogy": (
-            "Railroad Track & Slanted Roof: Swing inside the tunnel without"
-            " clipping the slanted roof stick on the way down."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Keep 60% of your weight grounded in your lead heel"
-            " through impact to clear hips."
-        ),
+        "vivid_description": "Take practice strokes without a ball, focusing on making a crisp 'thump' sound against the grass in front of your lead big toe.",
+        "analogy": "Railroad Track & Slanted Roof: Swing inside the tunnel without clipping the slanted roof stick on the way down.",
+        "pro_tip": "🏆 **Pro Tip:** Keep 60% of your weight grounded in your lead heel through impact to clear hips.",
     },
     "Pause at Top Drill": {
         "equipment": "1 Alignment Rod",
-        "vivid_description": (
-            "Take a full backswing and pause for a complete 2-second count at"
-            " the top before starting your downswing. Feel your lower body"
-            " initiate the downswing transition."
-        ),
-        "analogy": (
-            "Coiled Archer's Bow: Holding the pause stabilizes your aim before"
-            " smoothly releasing the arrow."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Count 'One-One-Thousand' silently at the top before"
-            " starting down with your hips."
-        ),
+        "vivid_description": "Take a full backswing and pause for a complete 2-second count at the top before starting your downswing. Feel your lower body initiate the downswing transition.",
+        "analogy": "Coiled Archer's Bow: Holding the pause stabilizes your aim before smoothly releasing the arrow.",
+        "pro_tip": "🏆 **Pro Tip:** Count 'One-One-Thousand' silently at the top before starting down with your hips.",
     },
     "Tee Gate Drill": {
         "equipment": "4 Standard Golf Tees",
-        "vivid_description": (
-            "Plant two tees just outside the toe and heel of your clubhead at"
-            " address, creating a narrow gate that forces center-face contact"
-            " on every swing."
-        ),
-        "analogy": (
-            "Narrow Runway: Swing clean through the gate without clipping the"
-            " side guardrails."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Soften wrist grip pressure to 4/10 to let the"
-            " clubhead release naturally through the gate."
-        ),
+        "vivid_description": "Plant two tees just outside the toe and heel of your clubhead at address, creating a narrow gate that forces center-face contact on every swing.",
+        "analogy": "Narrow Runway: Swing clean through the gate without clipping the side guardrails.",
+        "pro_tip": "🏆 **Pro Tip:** Soften wrist grip pressure to 4/10 to let the clubhead release naturally through the gate.",
     },
     "Towel Under Armpits Drill": {
         "equipment": "1 Microfiber Golf Towel",
-        "vivid_description": (
-            "Tuck a single golf towel across your chest under both armpits. Take"
-            " smooth half-swings without dropping the towel to maintain"
-            " body-arm connectivity."
-        ),
-        "analogy": (
-            "Solid Core Cylinder: Your arms and torso turn as one unified"
-            " engine rather than swinging independently."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Rotate your sternum through the ball rather than"
-            " pulling with your arms."
-        ),
+        "vivid_description": "Tuck a single golf towel across your chest under both armpits. Take smooth half-swings without dropping the towel to maintain body-arm connectivity.",
+        "analogy": "Solid Core Cylinder: Your arms and torso turn as one unified engine rather than swinging independently.",
+        "pro_tip": "🏆 **Pro Tip:** Rotate your sternum through the ball rather than pulling with your arms.",
     },
     "Coin Strike Low-Point Drill": {
         "equipment": "1 Coin or Ball Marker",
-        "vivid_description": (
-            "Place a coin 2 inches ahead of your golf ball. Focus entirely on"
-            " clipping the coin off the turf to shift your swing low-point"
-            " forward."
-        ),
-        "analogy": (
-            "Compressing vs. Scooping: Drive the clubhead through the turf"
-            " forward instead of scooping up."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Ensure your chest buttons are directly over or"
-            " slightly ahead of the coin at impact."
-        ),
+        "vivid_description": "Place a coin 2 inches ahead of your golf ball. Focus entirely on clipping the coin off the turf to shift your swing low-point forward.",
+        "analogy": "Compressing vs. Scooping: Drive the clubhead through the turf forward instead of scooping up.",
+        "pro_tip": "🏆 **Pro Tip:** Ensure your chest buttons are directly over or slightly ahead of the coin at impact.",
     },
     "Split-Hands Release Drill": {
         "equipment": "Mid-Iron (7-Iron)",
-        "vivid_description": (
-            "Separate your trail hand 3 inches down the grip like holding a"
-            " hockey stick. Take half-swings to feel the lead forearm roll over"
-            " naturally."
-        ),
-        "analogy": (
-            "Hockey Slap Shot: Forces proper wrist crossover to stop leaving"
-            " the face open."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Feel the toe of the club point straight to the"
-            " sky on the extension follow-through."
-        ),
+        "vivid_description": "Separate your trail hand 3 inches down the grip like holding a hockey stick. Take half-swings to feel the lead forearm roll over naturally.",
+        "analogy": "Hockey Slap Shot: Forces proper wrist crossover to stop leaving the face open.",
+        "pro_tip": "🏆 **Pro Tip:** Feel the toe of the club point straight to the sky on the extension follow-through.",
     },
     "Feet-Together Balance Drill": {
         "equipment": "Any Short/Mid-Iron",
-        "vivid_description": (
-            "Stand with your feet touching heel-to-toe. Make smooth 75% tempo"
-            " swings while maintaining total balance without swaying or"
-            " tipping."
-        ),
-        "analogy": (
-            "Deep Rooted Tree: Rotates around a fixed central axis without"
-            " lateral sliding."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Keep your weight centered over the mid-foot"
-            " throughout the backswing and finish."
-        ),
+        "vivid_description": "Stand with your feet touching heel-to-toe. Make smooth 75% tempo swings while maintaining total balance without swaying or tipping.",
+        "analogy": "Deep Rooted Tree: Rotates around a fixed central axis without lateral sliding.",
+        "pro_tip": "🏆 **Pro Tip:** Keep your weight centered over the mid-foot throughout the backswing and finish.",
     },
     "Wall-Head Posture Drill": {
         "equipment": "Wall or Alignment Rod behind hips",
-        "vivid_description": (
-            "Set up with your forehead gently touching a wall or soft pad."
-            " Practice slow swings maintaining head contact to eliminate early"
-            " extension."
-        ),
-        "analogy": (
-            "Fixed Pivot Pin: Prevents your hips from thrusting forward toward"
-            " the ball."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Keep your trail hip pressed back during the initial"
-            " downswing transition."
-        ),
+        "vivid_description": "Set up with your forehead gently touching a wall or soft pad. Practice slow swings maintaining head contact to eliminate early extension.",
+        "analogy": "Fixed Pivot Pin: Prevents your hips from thrusting forward toward the ball.",
+        "pro_tip": "🏆 **Pro Tip:** Keep your trail hip pressed back during the initial downswing transition.",
     },
     "Impact Bag Compression Drill": {
         "equipment": "Impact Bag or Heavy Towel Bundle",
-        "vivid_description": (
-            "Swing half-speed into an impact bag, stopping at impact to feel"
-            " shaft lean forward and hands leading the clubhead."
-        ),
-        "analogy": (
-            "Driving a Nail: Delivers maximum energy transfer with hands ahead"
-            " of the clubhead."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Firm up your lead wrist at impact so it forms a"
-            " flat line with your forearm."
-        ),
+        "vivid_description": "Swing half-speed into an impact bag, stopping at impact to feel shaft lean forward and hands leading the clubhead.",
+        "analogy": "Driving a Nail: Delivers maximum energy transfer with hands ahead of the clubhead.",
+        "pro_tip": "🏆 **Pro Tip:** Firm up your lead wrist at impact so it forms a flat line with your forearm.",
     },
     "Two-Step Pump Lag Drill": {
         "equipment": "Mid-Iron (6-Iron or 7-Iron)",
-        "vivid_description": (
-            "Take a backswing, pump the downswing halfway down twice holding"
-            " wrist angle, then sweep through on the third stroke."
-        ),
-        "analogy": (
-            "Whip Crack: Preserves wrist angle until the absolute last"
-            " millisecond before impact."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Let your hips lead the pull down while hands stay"
-            " soft and passive."
-        ),
+        "vivid_description": "Take a backswing, pump the downswing halfway down twice holding wrist angle, then sweep through on the third stroke.",
+        "analogy": "Whip Crack: Preserves wrist angle until the absolute last millisecond before impact.",
+        "pro_tip": "🏆 **Pro Tip:** Let your hips lead the pull down while hands stay soft and passive.",
     },
     # --- SHORT GAME DRILLS (15) ---
     "Towel Behind Ball Drill": {
         "equipment": "1 Microfiber Golf Towel",
-        "vivid_description": (
-            "Lay a folded towel flat on the grass 4 inches behind the ball. Chip"
-            " over the towel without clipping fabric on the downswing."
-        ),
-        "analogy": (
-            "Steep Landing Descent: Force the wedge sole to enter the turf"
-            " right at the ball rather than dragging behind."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Lean 70% of your body weight onto your lead foot"
-            " and keep it locked throughout."
-        ),
+        "vivid_description": "Lay a folded towel flat on the grass 4 inches behind the ball. Chip over the towel without clipping fabric on the downswing.",
+        "analogy": "Steep Landing Descent: Force the wedge sole to enter the turf right at the ball rather than dragging behind.",
+        "pro_tip": "🏆 **Pro Tip:** Lean 70% of your body weight onto your lead foot and keep it locked throughout.",
     },
     "Lead Foot Weight Anchor Drill": {
         "equipment": "Wedge (56° or 60°)",
-        "vivid_description": (
-            "Lift your trail heel off the ground so only your lead foot bears"
-            " weight. Make soft chipping strokes while balanced entirely on the"
-            " front leg."
-        ),
-        "analogy": (
-            "Heavy Anchor: Keeps your swing center firmly ahead of the ball to"
-            " guarantee downward turf contact."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Do not lean backward to elevate the ball; let the"
-            " wedge loft perform the lifting."
-        ),
+        "vivid_description": "Lift your trail heel off the ground so only your lead foot bears weight. Make soft chipping strokes while balanced entirely on the front leg.",
+        "analogy": "Heavy Anchor: Keeps your swing center firmly ahead of the ball to guarantee downward turf contact.",
+        "pro_tip": "🏆 **Pro Tip:** Do not lean backward to elevate the ball; let the wedge loft perform the lifting.",
     },
     "Brush Turf Chipping Drill": {
         "equipment": "Pitching Wedge",
-        "vivid_description": (
-            "Take practice strokes without a ball, focusing on making a crisp"
-            " 'thump' sound against the grass in front of your lead big toe."
-        ),
-        "analogy": (
-            "Broom Sweep: Sweep grass roots smoothly rather than digging deep"
-            " trenches."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Keep your chest moving toward the target through"
-            " impact to avoid stopping early."
-        ),
+        "vivid_description": "Take practice strokes without a ball, focusing on making a crisp 'thump' sound against the grass in front of your lead big toe.",
+        "analogy": "Broom Sweep: Sweep grass roots smoothly rather than digging deep trenches.",
+        "pro_tip": "🏆 **Pro Tip:** Keep your chest moving toward the target through impact to avoid stopping early.",
     },
     "Coin Lead-Point Pitch Drill": {
         "equipment": "1 Quarter or Ball Marker",
-        "vivid_description": (
-            "Place a coin flat under your golf ball. Strike the shot aiming to"
-            " slide the wedge bounce cleanly beneath the coin and skip it"
-            " forward."
-        ),
-        "analogy": (
-            "Credit Card Slide: Slide the rounded bottom of the club flat along"
-            " the dirt surface."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Keep trail wrist bent back softly through impact"
-            " rather than flattening early."
-        ),
+        "vivid_description": "Place a coin flat under your golf ball. Strike the shot aiming to slide the wedge bounce cleanly beneath the coin and skip it forward.",
+        "analogy": "Credit Card Slide: Slide the rounded bottom of the club flat along the dirt surface.",
+        "pro_tip": "🏆 **Pro Tip:** Keep trail wrist bent back softly through impact rather than flattening early.",
     },
     "Ruler in Glove Wrist Anchor Drill": {
         "equipment": "1 Plastic Ruler, Golf Glove",
-        "vivid_description": (
-            "Tuck a 6-inch plastic ruler into the back of your lead wrist"
-            " glove. Make chips without letting the ruler poke into the back of"
-            " your hand."
-        ),
-        "analogy": (
-            "Rigid Wrist Shield: Locks the lead wrist in a flat, stable"
-            " structure to eliminate scooping."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Drive the motion entirely with torso rotation"
-            " instead of flipping hands."
-        ),
+        "vivid_description": "Tuck a 6-inch plastic ruler into the back of your lead wrist glove. Make chips without letting the ruler poke into the back of your hand.",
+        "analogy": "Rigid Wrist Shield: Locks the lead wrist in a flat, stable structure to eliminate scooping.",
+        "pro_tip": "🏆 **Pro Tip:** Drive the motion entirely with torso rotation instead of flipping hands.",
     },
     "Hinge-and-Hold Chipping Drill": {
         "equipment": "52° or 56° Wedge",
-        "vivid_description": (
-            "Hinge your wrists quickly on the takeaway, then hold that wrist"
-            " angle firm through impact and finish with hands ahead of"
-            " clubhead."
-        ),
-        "analogy": (
-            "Vault Door Lock: Hinge back, then lock the angles in steel"
-            " through impact."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Finish with the butt end of the grip pointing at"
-            " your lead hip."
-        ),
+        "vivid_description": "Hinge your wrists quickly on the takeaway, then hold that wrist angle firm through impact and finish with hands ahead of clubhead.",
+        "analogy": "Vault Door Lock: Hinge back, then lock the angles in steel through impact.",
+        "pro_tip": "🏆 **Pro Tip:** Finish with the butt end of the grip pointing at your lead hip.",
     },
     "Clock System Wedge Drill": {
         "equipment": "Wedge Set (50°, 54°, 58°)",
-        "vivid_description": (
-            "Practice swing lengths mapped to clock hands: 7:30 (waist-high),"
-            " 9:00 (chest-high), and 10:30 (three-quarter). Record carry"
-            " distances."
-        ),
-        "analogy": (
-            "Precision Dial: Control distance with arm swing length rather than"
-            " changing swing speed."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Keep downswing tempo uniform regardless of"
-            " backswing length."
-        ),
+        "vivid_description": "Practice swing lengths mapped to clock hands: 7:30 (waist-high), 9:00 (chest-high), and 10:30 (three-quarter). Record carry distances.",
+        "analogy": "Precision Dial: Control distance with arm swing length rather than changing swing speed.",
+        "pro_tip": "🏆 **Pro Tip:** Keep downswing tempo uniform regardless of backswing length.",
     },
     "Landing Zone Target Towel Drill": {
         "equipment": "Small Target Towel",
-        "vivid_description": (
-            "Lay a small towel 15-20 yards out on the green. Focus 100% on"
-            " landing your pitch shots directly onto the towel surface."
-        ),
-        "analogy": (
-            "Bullseye Landing Pad: Ignore the flag pin; land the ball"
-            " exclusively on your designated spot."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Walk up to the green beforehand to pick your"
-            " exact landing spot based on green slope."
-        ),
+        "vivid_description": "Lay a small towel 15-20 yards out on the green. Focus 100% on landing your pitch shots directly onto the towel surface.",
+        "analogy": "Bullseye Landing Pad: Ignore the flag pin; land the ball exclusively on your designated spot.",
+        "pro_tip": "🏆 **Pro Tip:** Walk up to the green beforehand to pick your exact landing spot based on green slope.",
     },
     "Trail-Hand Only Pitch Drill": {
         "equipment": "Sand Wedge",
-        "vivid_description": (
-            "Remove your lead hand and pitch balls using only your trail hand."
-            " Feel the clubhead weight drop smoothly through impact."
-        ),
-        "analogy": (
-            "Underhand Ball Toss: Replicate the natural motion of tossing a"
-            " tennis ball underhand to a target."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Allow the clubhead bounce to slap the turf softly"
-            " without grabbing."
-        ),
+        "vivid_description": "Remove your lead hand and pitch balls using only your trail hand. Feel the clubhead weight drop smoothly through impact.",
+        "analogy": "Underhand Ball Toss: Replicate the natural motion of tossing a tennis ball underhand to a target.",
+        "pro_tip": "🏆 **Pro Tip:** Allow the clubhead bounce to slap the turf softly without grabbing.",
     },
     "Line in the Sand Drill": {
         "equipment": "Sand Wedge, Practice Bunker",
-        "vivid_description": (
-            "Draw a line in the bunker sand perpendicular to target line with"
-            " no ball. Practice swinging to make divots that start precisely"
-            " on the drawn line."
-        ),
-        "analogy": (
-            "Erasing the Line: Train low-point control so the wedge enters sand"
-            " exactly 2 inches behind the ball."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Accelerate fully through sand; never slow down near"
-            " impact."
-        ),
+        "vivid_description": "Draw a line in the bunker sand perpendicular to target line with no ball. Practice swinging to make divots that start precisely on the drawn line.",
+        "analogy": "Erasing the Line: Train low-point control so the wedge enters sand exactly 2 inches behind the ball.",
+        "pro_tip": "🏆 **Pro Tip:** Accelerate fully through sand; never slow down near impact.",
     },
     "Dollar Bill Sand Extraction Drill": {
         "equipment": "Sand Wedge, Paper Bill or Target Line",
-        "vivid_description": (
-            "Place a ball on top of a dollar bill in the bunker. Aim to splash"
-            " out the entire dollar-bill-sized patch of sand carrying the ball"
-            " out."
-        ),
-        "analogy": (
-            "Sand Cushion Pillow: The club never touches the ball; it lifts"
-            " the cushion of sand beneath it."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Open the clubface fully before establishing your"
-            " grip."
-        ),
+        "vivid_description": "Place a ball on top of a dollar bill in the bunker. Aim to splash out the entire dollar-bill-sized patch of sand carrying the ball out.",
+        "analogy": "Sand Cushion Pillow: The club never touches the ball; it lifts the cushion of sand beneath it.",
+        "pro_tip": "🏆 **Pro Tip:** Open the clubface fully before establishing your grip.",
     },
     "Open-Face Sand Splash Drill": {
         "equipment": "Lob Wedge (60°)",
-        "vivid_description": (
-            "Lay the clubface completely flat to the sky in setup, lower your"
-            " posture, and splash sand aggressively onto the green fringe."
-        ),
-        "analogy": (
-            "Pancake Flip: Slide the flat back of the wedge under sand like"
-            " turning a pancake on a skillet."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Lower your stance height by flexing knees wider to"
-            " keep swing shallow."
-        ),
+        "vivid_description": "Lay the clubface completely flat to the sky in setup, lower your posture, and splash sand aggressively onto the green fringe.",
+        "analogy": "Pancake Flip: Slide the flat back of the wedge under sand like turning a pancake on a skillet.",
+        "pro_tip": "🏆 **Pro Tip:** Lower your stance height by flexing knees wider to keep swing shallow.",
     },
     "Continuous Motion Pendulum Chipping Drill": {
         "equipment": "Pitching Wedge",
-        "vivid_description": (
-            "Swing the wedge back and forth continuously over grass without"
-            " stopping, clipping turf on every forward pass in rhythmic"
-            " sequence."
-        ),
-        "analogy": (
-            "Grandfather Pendulum: Unbroken rhythm eradicates flinching and"
-            " jerky wrist twitching."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Focus on smooth breathing: exhale softly through"
-            " the impact motion."
-        ),
+        "vivid_description": "Swing the wedge back and forth continuously over grass without stopping, clipping turf on every forward pass in rhythmic sequence.",
+        "analogy": "Grandfather Pendulum: Unbroken rhythm eradicates flinching and jerky wrist twitching.",
+        "pro_tip": "🏆 **Pro Tip:** Focus on smooth breathing: exhale softly through the impact motion.",
     },
     "Accelerating Through Impact Gate Drill": {
         "equipment": "2 Golf Tees, Wedge",
-        "vivid_description": (
-            "Place a tee 6 inches behind the ball and another 12 inches ahead."
-            " Start backswing from front tee, step back, and accelerate"
-            " through both."
-        ),
-        "analogy": (
-            "Rocket Launch: Build speed toward target finish line rather than"
-            " hitting AT the ball."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Ensure backswing is shorter than follow-through"
-            " length."
-        ),
+        "vivid_description": "Place a tee 6 inches behind the ball and another 12 inches ahead. Start backswing from front tee, step back, and accelerate through both.",
+        "analogy": "Rocket Launch: Build speed toward target finish line rather than hitting AT the ball.",
+        "pro_tip": "🏆 **Pro Tip:** Ensure backswing is shorter than follow-through length.",
     },
     "Target-Focused Eyes-Up Chipping Drill": {
         "equipment": "56° Wedge",
-        "vivid_description": (
-            "Look directly at your target flag instead of looking down at the"
-            " ball during the short chip stroke."
-        ),
-        "analogy": (
-            "Free Throw Shooting: Basketball players look at the rim while"
-            " shooting, relying on natural instinct."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Eliminates steering by freeing hand-eye"
-            " coordination instincts."
-        ),
+        "vivid_description": "Look directly at your target flag instead of looking down at the ball during the short chip stroke.",
+        "analogy": "Free Throw Shooting: Basketball players look at the rim while shooting, relying on natural instinct.",
+        "pro_tip": "🏆 **Pro Tip:** Eliminates steering by freeing hand-eye coordination instincts.",
     },
     # --- PUTTING DRILLS (15) ---
     "Putting Tee Gate Drill": {
         "equipment": "2 Standard Golf Tees, Putter",
-        "vivid_description": (
-            "Set two tees in green turf 3 feet ahead of putter, spaced just wide"
-            " enough for a golf ball to pass through cleanly."
-        ),
-        "analogy": (
-            "Soccer Goal: Roll ball through center posts without touching"
-            " either tee wall."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Focus on keeping lead wrist flat to prevent face"
-            " from flaring open."
-        ),
+        "vivid_description": "Set two tees in green turf 3 feet ahead of putter, spaced just wide enough for a golf ball to pass through cleanly.",
+        "analogy": "Soccer Goal: Roll ball through center posts without touching either tee wall.",
+        "pro_tip": "🏆 **Pro Tip:** Focus on keeping lead wrist flat to prevent face from flaring open.",
     },
     "Chalk Line Straight Target Drill": {
         "equipment": "Chalk Line Tool (10 Foot Line)",
-        "vivid_description": (
-            "Snap a straight chalk line on a flat practice green. Roll putts"
-            " staying perfectly aligned along the line from start to finish."
-        ),
-        "analogy": (
-            "Laser Beam Alignment: Visual alignment feedback highlights instant"
-            " directional deviations."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Align putter face line 90° perpendicular to chalk"
-            " line at address."
-        ),
+        "vivid_description": "Snap a straight chalk line on a flat practice green. Roll putts staying perfectly aligned along the line from start to finish.",
+        "analogy": "Laser Beam Alignment: Visual alignment feedback highlights instant directional deviations.",
+        "pro_tip": "🏆 **Pro Tip:** Align putter face line 90° perpendicular to chalk line at address.",
     },
     "Mirror Alignment Face Drill": {
         "equipment": "Putting Alignment Mirror",
-        "vivid_description": (
-            "Place putter on reflective mirror tool. Ensure eye line sits"
-            " directly over ball line and shoulders run parallel to putter"
-            " face."
-        ),
-        "analogy": (
-            "Reflective Blueprint: Checks square shoulder and face positioning"
-            " before stroke starts."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Lead eye should hover directly over the"
-            " center-back of the golf ball."
-        ),
+        "vivid_description": "Place putter on reflective mirror tool. Ensure eye line sits directly over ball line and shoulders run parallel to putter face.",
+        "analogy": "Reflective Blueprint: Checks square shoulder and face positioning before stroke starts.",
+        "pro_tip": "🏆 **Pro Tip:** Lead eye should hover directly over the center-back of the golf ball.",
     },
     "Trail-Hand Push Putting Drill": {
         "equipment": "Putter",
-        "vivid_description": (
-            "Putt 5-footers using only your dominant trail hand. Extend smooth"
-            " stroke along target line without snapping wrists shut."
-        ),
-        "analogy": (
-            "Bowling Roll: Smooth single-arm rolling action down lane center"
-            " without hooking wrist."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Keep shoulder line square to prevent pulling"
-            " across target line."
-        ),
+        "vivid_description": "Putt 5-footers using only your dominant trail hand. Extend smooth stroke along target line without snapping wrists shut.",
+        "analogy": "Bowling Roll: Smooth single-arm rolling action down lane center without hooking wrist.",
+        "pro_tip": "🏆 **Pro Tip:** Keep shoulder line square to prevent pulling across target line.",
     },
     "Metal Yardstick Roll Drill": {
         "equipment": "36-inch Flat Metal Yardstick",
-        "vivid_description": (
-            "Place ball on one end of metal yardstick on carpet/green. Stroke"
-            " putts so ball stays on metal track across full length."
-        ),
-        "analogy": (
-            "Tightrope Walk: Closed or open face options tumble ball off edge"
-            " instantly within 6 inches."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Striking exact center-face is required to"
-            " complete full 36-inch roll."
-        ),
+        "vivid_description": "Place ball on one end of metal yardstick on carpet/green. Stroke putts so ball stays on metal track across full length.",
+        "analogy": "Tightrope Walk: Closed or open face options tumble ball off edge instantly within 6 inches.",
+        "pro_tip": "🏆 **Pro Tip:** Striking exact center-face is required to complete full 36-inch roll.",
     },
     "Parallel Rod Putting Channel Drill": {
         "equipment": "2 Alignment Rods",
-        "vivid_description": (
-            "Set two rods parallel on green slightly wider than putter head"
-            " width, creating a physical swing channel."
-        ),
-        "analogy": (
-            "Bob Sled Track: Prevents path from coming inside or pulling across"
-            " to left field."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Let shoulders rock smoothly without hip rotation"
-            " inside channel."
-        ),
+        "vivid_description": "Set two rods parallel on green slightly wider than putter head width, creating a physical swing channel.",
+        "analogy": "Bob Sled Track: Prevents path from coming inside or pulling across to left field.",
+        "pro_tip": "🏆 **Pro Tip:** Let shoulders rock smoothly without hip rotation inside channel.",
     },
     "Ladder Distance Lag Drill": {
         "equipment": "4 Golf Tees / Target Markers",
-        "vivid_description": (
-            "Set tees at 10, 20, 30, and 40 feet. Roll putts into each zone"
-            " sequentially without leaving any short."
-        ),
-        "analogy": (
-            "Climbing Rungs: Build instinctive muscular memory for backswing"
-            " length vs roll distance."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Hold finish stance until ball completely stops"
-            " rolling to gauge touch."
-        ),
+        "vivid_description": "Set tees at 10, 20, 30, and 40 feet. Roll putts into each zone sequentially without leaving any short.",
+        "analogy": "Climbing Rungs: Build instinctive muscular memory for backswing length vs roll distance.",
+        "pro_tip": "🏆 **Pro Tip:** Hold finish stance until ball completely stops rolling to gauge touch.",
     },
     "Fringe-to-Fringe Feel Drill": {
         "equipment": "Putter",
-        "vivid_description": (
-            "Putt across full green width targeting green fringe boundary."
-            " Stop ball within 6 inches of green edge."
-        ),
-        "analogy": (
-            "Docking Ship: Gentle deceleration into border without crashing"
-            " into rough grass."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Focus on visual distance sweep before placing"
-            " putter head down."
-        ),
+        "vivid_description": "Putt across full green width targeting green fringe boundary. Stop ball within 6 inches of green edge.",
+        "analogy": "Docking Ship: Gentle deceleration into border without crashing into rough grass.",
+        "pro_tip": "🏆 **Pro Tip:** Focus on visual distance sweep before placing putter head down.",
     },
     "Eyes-Closed Distance Perception Drill": {
         "equipment": "Putter",
-        "vivid_description": (
-            "Look at hole target 20 feet away, close your eyes, stroke putt,"
-            " and call out 'short', 'long', or 'good' before opening eyes."
-        ),
-        "analogy": (
-            "Internal Sensing: Heightens sensory feedback loop from hands and"
-            " sweet-spot feel."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Calibrates internal brain map with actual ball"
-            " roll performance."
-        ),
+        "vivid_description": "Look at hole target 20 feet away, close your eyes, stroke putt, and call out 'short', 'long', or 'good' before opening eyes.",
+        "analogy": "Internal Sensing: Heightens sensory feedback loop from hands and sweet-spot feel.",
+        "pro_tip": "🏆 **Pro Tip:** Calibrates internal brain map with actual ball roll performance.",
     },
     "Rubber Band Putter Sweet-Spot Drill": {
         "equipment": "2 Small Rubber Bands, Putter",
-        "vivid_description": (
-            "Wrap rubber bands around heel and toe of putter face, leaving only"
-            " center sweet spot exposed."
-        ),
-        "analogy": (
-            "Sweet Spot Pinpoint: Off-center strikes bounce dead off rubber"
-            " bands immediately."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Center contact produces consistent ball speed and"
-            " roll distance."
-        ),
+        "vivid_description": "Wrap rubber bands around heel and toe of putter face, leaving only center sweet spot exposed.",
+        "analogy": "Sweet Spot Pinpoint: Off-center strikes bounce dead off rubber bands immediately.",
+        "pro_tip": "🏆 **Pro Tip:** Center contact produces consistent ball speed and roll distance.",
     },
     "Two-Tee Putter Gate Drill": {
         "equipment": "2 Golf Tees",
-        "vivid_description": (
-            "Set tees in turf just wide enough for putter head toe and heel to"
-            " swing through at address spot."
-        ),
-        "analogy": (
-            "Precision Archway: Ensures centered impact without toe or heel"
-            " hitting tees."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Keep stroke steady and low to ground through"
-            " center gate."
-        ),
+        "vivid_description": "Set tees in turf just wide enough for putter head toe and heel to swing through at address spot.",
+        "analogy": "Precision Archway: Ensures centered impact without toe or heel hitting tees.",
+        "pro_tip": "🏆 **Pro Tip:** Keep stroke steady and low to ground through center gate.",
     },
     "Coin Balance Putter Back Drill": {
         "equipment": "1 Coin or Dime",
-        "vivid_description": (
-            "Balance a coin on flat top surface of putter head during stroke."
-            " Complete putt without coin sliding off."
-        ),
-        "analogy": (
-            "Balanced Tray: Demands smooth acceleration without jerky wrist"
-            " acceleration."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Maintains smooth acceleration profile from"
-            " backswing transition."
-        ),
+        "vivid_description": "Balance a coin on flat top surface of putter head during stroke. Complete putt without coin sliding off.",
+        "analogy": "Balanced Tray: Demands smooth acceleration without jerky wrist acceleration.",
+        "pro_tip": "🏆 **Pro Tip:** Maintains smooth acceleration profile from backswing transition.",
     },
     "Push-Putting No-Backswing Drill": {
         "equipment": "Putter",
-        "vivid_description": (
-            "Place putter directly against back of ball with zero backswing."
-            " Push ball forward smoothly into hole from 4 feet."
-        ),
-        "analogy": (
-            "Shuffleboard Slide: Eliminates jab twitch by forcing pure forward"
-            " pushing force."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Feel lead wrist stay solid as putter moves down"
-            " line."
-        ),
+        "vivid_description": "Place putter directly against back of ball with zero backswing. Push ball forward smoothly into hole from 4 feet.",
+        "analogy": "Shuffleboard Slide: Eliminates jab twitch by forcing pure forward pushing force.",
+        "pro_tip": "🏆 **Pro Tip:** Feel lead wrist stay solid as putter moves down line.",
     },
     "Short Back Long Through Stroke Drill": {
         "equipment": "Putter, 2 Markers",
-        "vivid_description": (
-            "Limit backswing to 3 inches while extending follow-through to 12"
-            " inches past ball target position."
-        ),
-        "analogy": (
-            "Pendulum Acceleration: Accelerates continuously through impact"
-            " zone to eliminate deceleration."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Deceleration is the #1 cause of directional misses"
-            " on short putts."
-        ),
+        "vivid_description": "Limit backswing to 3 inches while extending follow-through to 12 inches past ball target position.",
+        "analogy": "Pendulum Acceleration: Accelerates continuously through impact zone to eliminate deceleration.",
+        "pro_tip": "🏆 **Pro Tip:** Deceleration is the #1 cause of directional misses on short putts.",
     },
     "Coin Balance Motion Stroke Drill": {
         "equipment": "1 Quarter",
-        "vivid_description": (
-            "Place quarter on grass 1 inch behind ball. Focus on sweeping"
-            " putter sole smoothly over coin without touching."
-        ),
-        "analogy": (
-            "Gliding Hovercraft: Promotes level, smooth putter sweep through"
-            " impact."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Keeps putter low to turf for pure top-spin roll."
-        ),
+        "vivid_description": "Place quarter on grass 1 inch behind ball. Focus on sweeping putter sole smoothly over coin without touching.",
+        "analogy": "Gliding Hovercraft: Promotes level, smooth putter sweep through impact.",
+        "pro_tip": "🏆 **Pro Tip:** Keeps putter low to turf for pure top-spin roll.",
     },
     # --- MENTAL GAME & MINDSET DRILLS (5) ---
     "1-2-3 Box Breathing Reset Drill": {
         "equipment": "None (Breathwork)",
-        "vivid_description": (
-            "Inhale for 4 seconds, hold for 4 seconds, and exhale for 4"
-            " seconds before stepping into your pre-shot setup. Settle heart"
-            " rate and lower heart beat."
-        ),
-        "analogy": (
-            "System Reboot Button: Clears mental noise and anxiety before"
-            " entering the target execution area."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Exhale fully through your nose right before placing"
-            " your clubface behind the ball."
-        ),
+        "vivid_description": "Inhale for 4 seconds, hold for 4 seconds, and exhale for 4 seconds before stepping into your pre-shot setup. Settle heart rate and lower heart beat.",
+        "analogy": "System Reboot Button: Clears mental noise and anxiety before entering the target execution area.",
+        "pro_tip": "🏆 **Pro Tip:** Exhale fully through your nose right before placing your clubface behind the ball.",
     },
     "Post-Shot Acceptance Hold Drill": {
         "equipment": "Golf Club, 3-Second Count",
-        "vivid_description": (
-            "Hold your balanced finish pose for 3 full seconds post-impact"
-            " regardless of where the ball flies. Observe result with zero"
-            " emotional outburst."
-        ),
-        "analogy": (
-            "Neutral Journalist: Document the ball flight as unbiased data"
-            " rather than judging yourself."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Smile or take a deep exhale as soon as your"
-            " 3-second hold finishes to release tension."
-        ),
+        "vivid_description": "Hold your balanced finish pose for 3 full seconds post-impact regardless of where the ball flies. Observe result with zero emotional outburst.",
+        "analogy": "Neutral Journalist: Document the ball flight as unbiased data rather than judging yourself.",
+        "pro_tip": "🏆 **Pro Tip:** Smile or take a deep exhale as soon as your 3-second hold finishes to release tension.",
     },
     "Positive Box Pre-Shot Routine Drill": {
         "equipment": "1 Alignment Rod or Line on Ground",
-        "vivid_description": (
-            "Step behind the line into the 'Think Box' to calculate wind,"
-            " yardage, and shot shape. Step across the line into the 'Play Box'"
-            " with 100% commitment and zero swing thoughts."
-        ),
-        "analogy": (
-            "Crossing into the Boxing Ring: Make all decisions outside the"
-            " ring; inside the ring is pure execution."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** If a doubt enters your mind inside the Play Box,"
-            " back off and step back behind the line."
-        ),
+        "vivid_description": "Step behind the line into the 'Think Box' to calculate wind, yardage, and shot shape. Step across the line into the 'Play Box' with 100% commitment and zero swing thoughts.",
+        "analogy": "Crossing into the Boxing Ring: Make all decisions outside the ring; inside the ring is pure execution.",
+        "pro_tip": "🏆 **Pro Tip:** If a doubt enters your mind inside the Play Box, back off and step back behind the line.",
     },
     "Target Visual Anchoring Drill": {
         "equipment": "Target Flag / Specific Micro-Target",
-        "vivid_description": (
-            "Pick a micro-target (e.g., a specific leaf on a tree behind the"
-            " flag pin) rather than a general area. Lock eyes onto it for 3"
-            " seconds before looking down to swing."
-        ),
-        "analogy": (
-            "Sniper Crosshairs: Aim at a thread, hit a button; aim at a house,"
-            " miss the neighborhood."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Keep the vivid image of that micro-target in your"
-            " mind's eye during backswing."
-        ),
+        "vivid_description": "Pick a micro-target (e.g., a specific leaf on a tree behind the flag pin) rather than a general area. Lock eyes onto it for 3 seconds before looking down to swing.",
+        "analogy": "Sniper Crosshairs: Aim at a thread, hit a button; aim at a house, miss the neighborhood.",
+        "pro_tip": "🏆 **Pro Tip:** Keep the vivid image of that micro-target in your mind's eye during backswing.",
     },
     "Mantra & Thought Neutralizer Drill": {
         "equipment": "Personal 2-Word Cue",
-        "vivid_description": (
-            "Repeat a rhythmic two-word cadence (e.g., 'Smooth... Turn...')"
-            " quietly during backswing and downswing to crowd out negative"
-            " thoughts."
-        ),
-        "analogy": (
-            "Noise-Canceling Headphones: Block out intrusive internal doubt and"
-            " fear of failure."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Sync your rhythm so word 1 is backswing start and"
-            " word 2 is impact release."
-        ),
+        "vivid_description": "Repeat a rhythmic two-word cadence (e.g., 'Smooth... Turn...') quietly during backswing and downswing to crowd out negative thoughts.",
+        "analogy": "Noise-Canceling Headphones: Block out intrusive internal doubt and fear of failure.",
+        "pro_tip": "🏆 **Pro Tip:** Sync your rhythm so word 1 is backswing start and word 2 is impact release.",
     },
 }
 
@@ -1547,8 +1120,6 @@ game_balls = int(total_balls * game_pct)
 grind_time = int(total_time * grind_pct)
 game_time = int(total_time * game_pct)
 
-sec_per_ball = int((total_time * 60) / total_balls) if total_balls > 0 else 0
-
 if st.button("✅ Confirm Selection & Generate Execution Plan", type="primary"):
     st.session_state["confirmed_resources"] = {
         "total_balls": total_balls,
@@ -1557,7 +1128,6 @@ if st.button("✅ Confirm Selection & Generate Execution Plan", type="primary"):
         "game_balls": game_balls,
         "grind_time": grind_time,
         "game_time": game_time,
-        "sec_per_ball": sec_per_ball,
         "grind_pct": grind_pct,
         "game_pct": game_pct,
         "practice_mode": practice_mode,
@@ -1566,16 +1136,15 @@ if st.button("✅ Confirm Selection & Generate Execution Plan", type="primary"):
     # --- SAVE TO COMPREHENSIVE CSV SPREADSHEET ---
     diag_data = st.session_state.get("diagnosis", {})
     swot_opp = diag_data.get("swot_analysis", {}).get("opportunities", "")
-    caddie_name = st.session_state.get("caddie_name", persona_display_name)
 
     save_session_to_csv(
-        caddie_persona=caddie_name,
         primary_miss=diag_data.get("primary_miss", "N/A"),
         primary_drill=diag_data.get("recommended_primary_drill", "N/A"),
+        secondary_miss=diag_data.get("secondary_miss", "N/A"),
+        secondary_drill=diag_data.get("recommended_secondary_drill", "N/A"),
         practice_mode=practice_mode,
         total_balls=total_balls,
         total_time=total_time,
-        sec_per_ball=sec_per_ball,
         roi_opportunity=swot_opp,
     )
 
@@ -1595,7 +1164,7 @@ if "confirmed_resources" in st.session_state:
         ),
     )
 
-    col_a, col_b, col_c = st.columns(3)
+    col_a, col_b = st.columns(2)
     with col_a:
         st.metric(
             "Grind Mode Split",
@@ -1607,12 +1176,6 @@ if "confirmed_resources" in st.session_state:
             "Game Mode Split",
             f"{res_data['game_balls']} balls",
             f"{res_data['game_time']} mins",
-        )
-    with col_c:
-        st.metric(
-            "Target Pace",
-            f"{res_data['sec_per_ball']} sec/ball",
-            "Recommended Tempo",
         )
 
 # -------------------------------------------------------------
@@ -1755,8 +1318,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         st.markdown(f"### 🎯 Drill #{idx+1}: **{d_name}**")
         st.markdown(f"🔥 **{label}**")
         st.caption(
-            f"⚡ `{balls_per_drill} Balls` | `{time_per_drill} Mins` |"
-            f" `@~{res['sec_per_ball']}s/ball`"
+            f"⚡ `{balls_per_drill} Balls` | `{time_per_drill} Mins`"
         )
 
         st.markdown("**🛠️ Range Equipment Needed**")
@@ -1786,8 +1348,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
             "🔥 **Final Phase: On-Course Pressure Transfer & Routine Integration**"
         )
         st.caption(
-            f"⚡ `{gm_balls} Balls` | `{gm_time} Mins` |"
-            f" `@~{res['sec_per_ball']}s/ball`"
+            f"⚡ `{gm_balls} Balls` | `{gm_time} Mins`"
         )
 
         st.markdown("**🛠️ Range Equipment Needed**")
