@@ -1,12 +1,8 @@
 from datetime import datetime
-import io
 import json
 import os
 import re
 import google.generativeai as genai
-import openpyxl
-from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
-from openpyxl.utils import get_column_letter
 import pandas as pd
 import streamlit as st
 
@@ -17,7 +13,7 @@ st.set_page_config(
 CSV_FILE = "birdie_buddy_practice_history.csv"
 
 
-# --- PERSISTENT STORAGE HELPERS ---
+# --- PERSISTENT SPREADSHEET HELPERS ---
 def load_history_df():
     if os.path.exists(CSV_FILE):
         try:
@@ -56,82 +52,7 @@ def clear_history_csv():
         os.remove(CSV_FILE)
 
 
-# --- EXCEL (.XLSX) GENERATOR & STYLER ---
-def generate_styled_excel(df: pd.DataFrame) -> io.BytesIO:
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Practice Log"
-
-    ws.views.sheetView[0].showGridLines = True
-
-    headers = list(df.columns)
-    ws.append(headers)
-
-    # Styling Palette
-    header_fill = PatternFill(
-        start_color="1F4E78", end_color="1F4E78", fill_type="solid"
-    )
-    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-
-    primary_fill = PatternFill(
-        start_color="D9E1F2", end_color="D9E1F2", fill_type="solid"
-    )  # Soft Blue
-    secondary_fill = PatternFill(
-        start_color="F2F2F2", end_color="F2F2F2", fill_type="solid"
-    )  # Soft Gray
-
-    thin_border = Border(
-        left=Side(style="thin", color="D9D9D9"),
-        right=Side(style="thin", color="D9D9D9"),
-        top=Side(style="thin", color="D9D9D9"),
-        bottom=Side(style="thin", color="D9D9D9"),
-    )
-
-    # Style Headers
-    for col_num, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col_num)
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-
-    # Style Data Rows
-    for row_idx, row_data in enumerate(df.values, 2):
-        for col_idx, val in enumerate(row_data, 1):
-            cell = ws.cell(row=row_idx, column=col_idx, value=val)
-            cell.alignment = Alignment(vertical="center")
-            cell.border = thin_border
-
-            col_name = headers[col_idx - 1]
-            if (
-                col_name in ["Primary Macro-Fault", "Primary Drill"]
-                and val != "N/A"
-            ):
-                cell.fill = primary_fill
-                cell.font = Font(
-                    name="Calibri", size=11, bold=True, color="002060"
-                )
-            elif (
-                col_name in ["Secondary Fault", "ROI Opportunity"]
-                and val != "N/A"
-            ):
-                cell.fill = secondary_fill
-                cell.font = Font(name="Calibri", size=11, italic=False)
-            else:
-                cell.font = Font(name="Calibri", size=11)
-
-    # Auto-adjust column widths
-    for col in ws.columns:
-        max_len = max(len(str(cell.value or "")) for cell in col)
-        col_letter = get_column_letter(col[0].column)
-        ws.column_dimensions[col_letter].width = max(max_len + 5, 16)
-
-    buffer = io.BytesIO()
-    wb.save(buffer)
-    buffer.seek(0)
-    return buffer
-
-
-# --- UI HELPERS ---
+# --- HELPER FUNCTIONS FOR CLEAN UI & EXPORTS ---
 def render_indented_html(content: str, margin_left: int = 24):
     st.markdown(
         f"<div style='margin-left: {margin_left}px; margin-top: 4px;"
@@ -222,10 +143,11 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
 st.title("⛳ Birdie Buddy (Phase 1 MVP)")
 st.caption("AI Golf Caddie & Practice Asset Allocator powered by Gemini")
 
-# Sidebar Configuration & Styled Excel Exporter
+# Sidebar - API Key Input & Spreadsheet History Exporter
 st.sidebar.header("Configuration")
 api_key = st.sidebar.text_input("Enter Gemini API Key", type="password")
 
+# --- SPREADSHEET HISTORY TRACKER & EXPORTER ---
 st.sidebar.markdown("---")
 st.sidebar.header("📊 Practice History Spreadsheet")
 
@@ -234,23 +156,46 @@ df_history = load_history_df()
 if not df_history.empty:
     st.sidebar.write(f"Logged Practice Rounds: **{len(df_history)}**")
 
-    # Generate styled .xlsx binary file
-    excel_buffer = generate_styled_excel(df_history)
-
+    # Download button to export spreadsheet
+    csv_data = df_history.to_csv(index=False).encode("utf-8")
     st.sidebar.download_button(
-        label="📗 Download Styled Excel Spreadsheet (.xlsx)",
-        data=excel_buffer,
-        file_name="birdie_buddy_practice_history.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        label="📥 Export History (CSV)",
+        data=csv_data,
+        file_name="birdie_buddy_practice_history.csv",
+        mime="text/csv",
         use_container_width=True,
     )
 
     if st.sidebar.button("🗑️ Clear History", use_container_width=True):
         clear_history_csv()
         st.rerun()
+
+    # Color-coded interactive table preview
+    with st.sidebar.expander("👁️ View Color-Coded Log", expanded=False):
+        def highlight_cols(val):
+            if val == "N/A" or not val:
+                return "color: #888888; font-style: italic;"
+            return "background-color: #1e3a8a22; font-weight: bold;"
+
+        styled_df = df_history.style.map(
+            highlight_cols, subset=["Primary Macro-Fault", "Primary Drill"]
+        )
+
+        st.dataframe(
+            styled_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Timestamp": st.column_config.TextColumn("Date/Time"),
+                "Primary Macro-Fault": st.column_config.TextColumn("Primary Fault 🎯"),
+                "Primary Drill": st.column_config.TextColumn("Primary Drill 🛠️"),
+                "Secondary Fault": st.column_config.TextColumn("Secondary Fault ⚠️"),
+                "ROI Opportunity": st.column_config.TextColumn("ROI Fix 📈"),
+            },
+        )
 else:
     st.sidebar.caption(
-        "No session history recorded yet. Complete a round diagnosis to generate"
+        "No session history recorded yet. Complete a round diagnosis to populate"
         " your spreadsheet!"
     )
 
@@ -1312,10 +1257,10 @@ elif st.session_state["diag_step"] == 2:
         f"📖 **Your Round Narrative:** \"{st.session_state.get('user_round_story')}\""
     )
     caddie = st.session_state.get("caddie_name", persona_display_name)
+    qs = st.session_state.get("followup_questions", {})
 
     st.markdown(f"### 🗣️ {caddie} asks based on your story:")
 
-    qs = st.session_state.get("followup_questions", {})
     q1_text = qs.get(
         "question_1",
         "When your shot goes off line or a bad hole occurs, how do you react"
@@ -1447,7 +1392,7 @@ elif st.session_state["diag_step"] == 2:
                 diag_data = json.loads(clean_json)
                 st.session_state["diagnosis"] = diag_data
 
-                # --- SAVE TO PERSISTENT LOG (EXCLUDING PERSONA) ---
+                # --- SAVE TO PERSISTENT CSV SPREADSHEET ---
                 swot_opp = diag_data.get("swot_analysis", {}).get("opportunities", "")
                 save_session_to_csv(
                     primary_miss=diag_data.get("primary_miss", "N/A"),
