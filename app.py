@@ -12,34 +12,56 @@ st.set_page_config(
 
 CSV_FILE = "birdie_buddy_practice_history.csv"
 
+CSV_COLUMNS = [
+    "Date/Time",
+    "Caddie Persona",
+    "Primary Fault",
+    "Primary Drill",
+    "Secondary Fault",
+    "Secondary Drill",
+    "Practice Mode",
+    "Total Balls",
+    "Total Time (mins)",
+    "ROI Strategy",
+]
+
 
 # --- PERSISTENT SPREADSHEET HELPERS ---
 def load_history_df():
     if os.path.exists(CSV_FILE):
         try:
-            return pd.read_csv(CSV_FILE)
+            df = pd.read_csv(CSV_FILE)
+            for col in CSV_COLUMNS:
+                if col not in df.columns:
+                    df[col] = "N/A"
+            return df[CSV_COLUMNS]
         except Exception:
             pass
-    return pd.DataFrame(
-        columns=[
-            "Timestamp",
-            "Primary Macro-Fault",
-            "Primary Drill",
-            "Secondary Fault",
-            "ROI Opportunity",
-        ]
-    )
+    return pd.DataFrame(columns=CSV_COLUMNS)
 
 
 def save_session_to_csv(
-    primary_miss, primary_drill, secondary_miss="", roi_opportunity=""
+    caddie,
+    primary_miss,
+    primary_drill,
+    secondary_miss,
+    secondary_drill,
+    practice_mode,
+    total_balls,
+    total_time,
+    roi_opportunity,
 ):
     new_row = pd.DataFrame([{
-        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "Primary Macro-Fault": primary_miss if primary_miss else "N/A",
+        "Date/Time": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "Caddie Persona": caddie if caddie else "N/A",
+        "Primary Fault": primary_miss if primary_miss else "N/A",
         "Primary Drill": primary_drill if primary_drill else "N/A",
         "Secondary Fault": secondary_miss if secondary_miss else "N/A",
-        "ROI Opportunity": roi_opportunity if roi_opportunity else "N/A",
+        "Secondary Drill": secondary_drill if secondary_drill else "N/A",
+        "Practice Mode": practice_mode if practice_mode else "N/A",
+        "Total Balls": total_balls if total_balls else 0,
+        "Total Time (mins)": total_time if total_time else 0,
+        "ROI Strategy": roi_opportunity if roi_opportunity else "N/A",
     }])
     if not os.path.exists(CSV_FILE):
         new_row.to_csv(CSV_FILE, index=False)
@@ -154,7 +176,7 @@ st.sidebar.header("📊 Practice History Spreadsheet")
 df_history = load_history_df()
 
 if not df_history.empty:
-    st.sidebar.write(f"Logged Practice Rounds: **{len(df_history)}**")
+    st.sidebar.write(f"Logged Practice Sessions: **{len(df_history)}**")
 
     # Download button to export spreadsheet
     csv_data = df_history.to_csv(index=False).encode("utf-8")
@@ -171,14 +193,14 @@ if not df_history.empty:
         st.rerun()
 
     # Color-coded interactive table preview
-    with st.sidebar.expander("👁️ View Color-Coded Log", expanded=False):
+    with st.sidebar.expander("👁️ View Practice Log", expanded=False):
         def highlight_cols(val):
             if val == "N/A" or not val:
                 return "color: #888888; font-style: italic;"
             return "background-color: #1e3a8a22; font-weight: bold;"
 
         styled_df = df_history.style.map(
-            highlight_cols, subset=["Primary Macro-Fault", "Primary Drill"]
+            highlight_cols, subset=["Primary Fault", "Primary Drill"]
         )
 
         st.dataframe(
@@ -186,17 +208,22 @@ if not df_history.empty:
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Timestamp": st.column_config.TextColumn("Date/Time"),
-                "Primary Macro-Fault": st.column_config.TextColumn("Primary Fault 🎯"),
+                "Date/Time": st.column_config.TextColumn("Date/Time"),
+                "Caddie Persona": st.column_config.TextColumn("Caddie 🧙"),
+                "Primary Fault": st.column_config.TextColumn("Primary Fault 🎯"),
                 "Primary Drill": st.column_config.TextColumn("Primary Drill 🛠️"),
                 "Secondary Fault": st.column_config.TextColumn("Secondary Fault ⚠️"),
-                "ROI Opportunity": st.column_config.TextColumn("ROI Fix 📈"),
+                "Secondary Drill": st.column_config.TextColumn("Secondary Drill 🔧"),
+                "Practice Mode": st.column_config.TextColumn("Mode 🎮"),
+                "Total Balls": st.column_config.NumberColumn("Balls ⛳"),
+                "Total Time (mins)": st.column_config.NumberColumn("Time (m) ⏱️"),
+                "ROI Strategy": st.column_config.TextColumn("ROI Fix 📈"),
             },
         )
 else:
     st.sidebar.caption(
-        "No session history recorded yet. Complete a round diagnosis to populate"
-        " your spreadsheet!"
+        "No session history recorded yet. Complete diagnosis and confirm practice"
+        " resources to populate your log!"
     )
 
 if not api_key:
@@ -1392,15 +1419,6 @@ elif st.session_state["diag_step"] == 2:
                 diag_data = json.loads(clean_json)
                 st.session_state["diagnosis"] = diag_data
 
-                # --- SAVE TO PERSISTENT CSV SPREADSHEET ---
-                swot_opp = diag_data.get("swot_analysis", {}).get("opportunities", "")
-                save_session_to_csv(
-                    primary_miss=diag_data.get("primary_miss", "N/A"),
-                    primary_drill=diag_data.get("recommended_primary_drill", "N/A"),
-                    secondary_miss=diag_data.get("secondary_miss", ""),
-                    roi_opportunity=swot_opp,
-                )
-
                 st.session_state["diag_step"] = 3
                 st.rerun()
             except Exception as e:
@@ -1554,10 +1572,30 @@ if st.button("✅ Confirm Selection & Generate Execution Plan", type="primary"):
         "game_pct": game_pct,
         "practice_mode": practice_mode,
     }
+
+    # --- SAVE COMPLETE SESSION METRICS TO SPREADSHEET ---
+    if "diagnosis" in st.session_state:
+        diag_data = st.session_state["diagnosis"]
+        caddie_name = st.session_state.get("caddie_name", "AI Caddie")
+        swot_opp = diag_data.get("swot_analysis", {}).get("opportunities", "")
+
+        save_session_to_csv(
+            caddie=caddie_name,
+            primary_miss=diag_data.get("primary_miss", "N/A"),
+            primary_drill=diag_data.get("recommended_primary_drill", "N/A"),
+            secondary_miss=diag_data.get("secondary_miss", "N/A"),
+            secondary_drill=diag_data.get("recommended_secondary_drill", "N/A"),
+            practice_mode=practice_mode,
+            total_balls=total_balls,
+            total_time=total_time,
+            roi_opportunity=swot_opp,
+        )
+
     st.success(
-        "Resource constraints locked in! Practice execution plan generated"
-        " below."
+        "Resource constraints locked in & complete session logged to practice"
+        " history!"
     )
+    st.rerun()
 
 if "confirmed_resources" in st.session_state:
     res_data = st.session_state["confirmed_resources"]
