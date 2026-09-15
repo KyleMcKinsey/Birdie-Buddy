@@ -52,6 +52,24 @@ def clear_history_csv():
         os.remove(CSV_FILE)
 
 
+# --- ROBUST JSON PARSER HELPER ---
+def extract_json_from_text(text: str) -> dict:
+    """Safely extracts and parses JSON from Gemini responses, handling markdown wrappers and extra prose."""
+    if not text:
+        raise ValueError("Empty response received from Gemini.")
+    
+    # 1. Strip markdown code block wrappers if present
+    cleaned = re.sub(r"^```(?:json)?\s*", "", text.strip(), flags=re.MULTILINE)
+    cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.MULTILINE).strip()
+    
+    # 2. Extract content between first '{' and last '}'
+    match = re.search(r"(\{.*\})", cleaned, re.DOTALL)
+    if match:
+        cleaned = match.group(1)
+        
+    return json.loads(cleaned)
+
+
 # --- HELPER FUNCTIONS FOR CLEAN UI & EXPORTS ---
 def render_indented_html(content: str, margin_left: int = 24):
     st.markdown(
@@ -1237,10 +1255,7 @@ if st.session_state["diag_step"] == 1:
                         continue
 
                 if q_res:
-                    clean_q_json = (
-                        q_res.text.replace("```json", "").replace("```", "").strip()
-                    )
-                    st.session_state["followup_questions"] = json.loads(clean_q_json)
+                    st.session_state["followup_questions"] = extract_json_from_text(q_res.text)
                     st.session_state["diag_step"] = 2
                     st.rerun()
                 else:
@@ -1386,10 +1401,7 @@ elif st.session_state["diag_step"] == 2:
                     st.error("No active Gemini Flash model found.")
                     st.stop()
 
-                clean_json = (
-                    response.text.replace("```json", "").replace("```", "").strip()
-                )
-                diag_data = json.loads(clean_json)
+                diag_data = extract_json_from_text(response.text)
                 st.session_state["diagnosis"] = diag_data
 
                 # --- SAVE TO PERSISTENT CSV SPREADSHEET ---
