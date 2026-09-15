@@ -36,7 +36,7 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
     swot = diag.get("swot_analysis", {})
     lines.append(f"- Strength (What Worked): {swot.get('strengths', 'N/A')}")
     lines.append(f"- Weakness (Main Flaw): {swot.get('weaknesses', 'N/A')}")
-    lines.append(f"- Opportunity (Quick Fix): {swot.get('opportunities', 'N/A')}")
+    lines.append(f"- Opportunity (Highest ROI Fix): {swot.get('opportunities', 'N/A')}")
     lines.append(f"- Threat (Blow-up Risk): {swot.get('threats', 'N/A')}")
     lines.append("\n" + "=" * 50)
     lines.append("DRILL EXECUTION SCHEDULE")
@@ -599,13 +599,17 @@ elif st.session_state["diag_step"] == 2:
             system_prompt = f"""
             {active_persona['system_instruction']}
 
-            Act as an expert biomechanical & sports psychology golf instructor AI.
-            Translate the user's round narrative and decision tree answers into strict physical mechanics or psychological root causes:
-            - Start Direction + Curvature + Story -> Face Angle vs Swing Path mechanics.
-            - Divot Location + Impact Feel -> Low-Point location and Angle of Attack.
-            - Emotional blow-ups / Frustration / Rush -> Mental game & pre-shot routine breakdowns.
+            Act as an expert biomechanical, sports psychology, and strategic golf instructor AI.
+            Analyze the user's round narrative and decision tree answers through a **Strategic Game ROI ("Bang for Your Buck") Lens**:
 
-            Incorporate explicit biomechanical or psychological explanations into 'primary_cause_breakdown' and 'secondary_cause_breakdown'.
+            1. **Stroke Tax & ROI Ranking Framework:**
+               - **Tier 1 (Highest ROI / Highest Stroke Tax):** Errors that cause penalty strokes, lost balls, severe blow-up holes (doubles/triples), or emotional meltdowns that wreck multiple consecutive holes.
+               - **Tier 2 (Medium ROI):** Short game and putting errors that directly burn 1-2 waste strokes per hole (e.g., 3-putts, chunked chips).
+               - **Tier 3 (Lower ROI):** Minor distance loss or aesthetic swing flaws that still result in playable shots.
+
+            2. **Drill Assignment Directive:**
+               - Select `recommended_primary_drill` strictly for the issue that will yield the **MAXIMUM score reduction** (the biggest return on practice time).
+               - Select `recommended_secondary_drill` for the second highest ROI issue.
 
             Map faults to the most effective drills from this EXACT list of 45 drills:
             - FULL SWING: 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill', 'Towel Under Armpits Drill', 'Coin Strike Low-Point Drill', 'Split-Hands Release Drill', 'Feet-Together Balance Drill', 'Wall-Head Posture Drill', 'Impact Bag Compression Drill', 'Two-Step Pump Lag Drill'
@@ -615,25 +619,25 @@ elif st.session_state["diag_step"] == 2:
 
             Output strictly raw JSON with no markdown formatting:
             {{
-              "diagnosis_category": "Biomechanical Narrative & Mindset Translation",
-              "primary_miss": "string (title of primary root cause)",
+              "diagnosis_category": "Strategic ROI & Mindset Diagnosis",
+              "primary_miss": "string (title of highest ROI root cause)",
               "primary_miss_persona": "string (1 short, witty sentence calling out primary flaw in character)",
-              "primary_cause_breakdown": "string (2-3 sentences incorporating explicit biomechanical or psychological explanations)",
+              "primary_cause_breakdown": "string (2-3 sentences explaining biomechanical/psychological cause and why fixing this yields the highest stroke reduction)",
               "secondary_miss": "string or null",
               "secondary_miss_persona": "string or null",
-              "secondary_cause_breakdown": "string or null (2-3 sentences incorporating explicit biomechanical or psychological explanations)",
-              "expanded_caddie_intro": "string (3-4 robust sentences in persona referencing their story and strategic fix)",
+              "secondary_cause_breakdown": "string or null (2-3 sentences explaining secondary cause and its relative stroke impact)",
+              "expanded_caddie_intro": "string (3-4 robust sentences in persona referencing their story and strategic ROI fix)",
               "caddie_drill_pep_talk": "string (2-3 sentences in persona giving encouraging range advice)",
               "swot_analysis": {{
                 "strengths": "string (1 sentence: what worked best according to narrative)",
                 "weaknesses": "string (1 sentence: main physical swing flaw or mental barrier costing accuracy)",
-                "opportunities": "string (1 sentence: easiest quick mechanical or mental fix)",
+                "opportunities": "string (1 sentence: highest ROI quick mechanical or mental fix)",
                 "threats": "string (1 sentence: big mistake causing severe missed shots or mental tilt)"
               }},
               "confidence_score": 0.95,
               "recommended_primary_drill": "string",
               "recommended_secondary_drill": "string or null",
-              "drill_rationale": "string (1-2 sentences explaining why these drills fix the biomechanical or mental flaw)"
+              "drill_rationale": "string (1-2 sentences explicitly detailing the 'Bang for Your Buck' logic—why fixing these specific faults delivers the maximum score reduction)"
             }}
             """
 
@@ -681,7 +685,7 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("**🎯 Primary Macro-Fault (Root Cause)**")
+        st.markdown("**🎯 Primary Macro-Fault (Highest ROI Target)**")
         p_persona_msg = diag.get("primary_miss_persona", diag.get("primary_miss", "Not detected"))
         st.warning(f"\"{p_persona_msg}\"")
         p_plain = diag.get("primary_miss")
@@ -691,7 +695,7 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
         st.write(f"**Primary Drill:** `{diag.get('recommended_primary_drill')}`")
         p_causes = diag.get("primary_cause_breakdown")
         if p_causes:
-            st.caption(f"**Root Cause Explanation:** {p_causes}")
+            st.caption(f"**Root Cause & ROI Impact:** {p_causes}")
 
     with col2:
         st.markdown("**⚠️ Secondary Fault Callout**")
@@ -705,7 +709,7 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
             st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
             s_causes = diag.get("secondary_cause_breakdown")
             if s_causes:
-                st.caption(f"**Root Cause Explanation:** {s_causes}")
+                st.caption(f"**Root Cause & Relative Impact:** {s_causes}")
         else:
             st.info("\"No major secondary fault detected. Fix your primary macro-fault to unlock your game!\"")
             st.write("**Secondary Drill:** `N/A`")
@@ -718,7 +722,7 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
         sc1, sc2 = st.columns(2)
         with sc1:
             st.success(f"**💪 Strength (What Worked):** {swot.get('strengths', 'N/A')}")
-            st.info(f"**📈 Opportunity (Quick Fix):** {swot.get('opportunities', 'N/A')}")
+            st.info(f"**📈 Opportunity (Highest ROI Fix):** {swot.get('opportunities', 'N/A')}")
         with sc2:
             st.warning(f"**⚠️ Weakness (Main Flaw):** {swot.get('weaknesses', 'N/A')}")
             st.error(f"**🎯 Threat (Blow-up Risk):** {swot.get('threats', 'N/A')}")
@@ -873,7 +877,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
 
     summary_line = f"💡 **Targeted Prescription:** Circuit optimized across {len(active_drills)} focus areas."
     if rationale:
-        st.info(f"{summary_line}\n\n**Why these drills work:** {rationale}")
+        st.info(f"{summary_line}\n\n**Bang for Your Buck Rationale:** {rationale}")
     else:
         st.info(summary_line)
 
@@ -893,7 +897,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         if is_pure_game or (is_hybrid and idx > 0):
             label = f"🎮 Interactive Target Game (Addressing: {p_miss if idx == 0 else (s_miss if s_miss else p_miss)})"
         elif d_name == p_drill:
-            label = f"Primary Focus Drill (Addressing: {p_miss})"
+            label = f"Primary Highest ROI Drill (Addressing: {p_miss})"
         elif d_name == high_complexity_added:
             label = "Advanced Mechanics / Routine Overhaul"
         else:
