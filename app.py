@@ -46,10 +46,18 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
     is_pure_game = (res.get("practice_mode") == "Pure Game Mode (100% Target Pressure)")
     alloc_balls = res["total_balls"] if is_pure_game else res["grind_balls"]
     alloc_time = res["total_time"] if is_pure_game else res["grind_time"]
-    balls_per_drill = alloc_balls // num_drills if num_drills > 0 else alloc_balls
-    time_per_drill = alloc_time // num_drills if num_drills > 0 else alloc_time
 
     for idx, d_name in enumerate(active_drills):
+        if num_drills == 1:
+            weight = 1.0
+        elif num_drills == 2:
+            weight = 0.65 if idx == 0 else 0.35
+        else:
+            weight = 0.60 if idx == 0 else (0.40 / (num_drills - 1))
+
+        balls_per_drill = int(alloc_balls * weight)
+        time_per_drill = int(alloc_time * weight)
+
         schematic = drill_schematics.get(d_name, drill_schematics["Alignment Stick Gate Drill"])
         lines.append(f"\nDRILL #{idx+1}: {d_name.upper()}")
         lines.append(f"Target: {balls_per_drill} Balls | {time_per_drill} Mins")
@@ -888,11 +896,19 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     alloc_balls = res["total_balls"] if is_pure_game else g_balls
     alloc_time = res["total_time"] if is_pure_game else g_time
 
-    balls_per_drill = alloc_balls // num_drills if num_drills > 0 else alloc_balls
-    time_per_drill = alloc_time // num_drills if num_drills > 0 else alloc_time
-
     for idx, d_name in enumerate(active_drills):
         schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
+
+        # Weighted Allocation: 1 drill (100%), 2 drills (65%/35%), 3+ drills (60% primary, 40% split among remainder)
+        if num_drills == 1:
+            weight = 1.0
+        elif num_drills == 2:
+            weight = 0.65 if idx == 0 else 0.35
+        else:
+            weight = 0.60 if idx == 0 else (0.40 / (num_drills - 1))
+
+        balls_per_drill = int(alloc_balls * weight)
+        time_per_drill = int(alloc_time * weight)
 
         if is_pure_game or (is_hybrid and idx > 0):
             label = f"🎮 Interactive Target Game (Addressing: {p_miss if idx == 0 else (s_miss if s_miss else p_miss)})"
