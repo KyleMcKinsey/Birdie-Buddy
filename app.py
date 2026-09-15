@@ -10,7 +10,9 @@ st.set_page_config(
     page_title="Birdie Buddy MVP", page_icon="⛳", layout="centered"
 )
 
-CSV_FILE = "birdie_buddy_practice_history.csv"
+# --- ABSOLUTE PATH DEFINITION ---
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+CSV_FILE = os.path.join(APP_DIR, "birdie_buddy_practice_history.csv")
 
 
 # --- ENHANCED PERSISTENT SPREADSHEET HELPERS ---
@@ -18,8 +20,8 @@ def load_history_df():
     if os.path.exists(CSV_FILE):
         try:
             return pd.read_csv(CSV_FILE)
-        except Exception:
-            pass
+        except Exception as e:
+            st.sidebar.error(f"Error reading CSV: {e}")
     return pd.DataFrame(
         columns=[
             "Date",
@@ -45,26 +47,33 @@ def save_session_to_csv(
     total_time,
     roi_opportunity="",
 ):
-    new_row = pd.DataFrame([{
-        "Date": datetime.now().strftime("%Y-%m-%d"),
-        "Primary Macro-Fault": primary_miss if primary_miss else "N/A",
-        "Primary Drill": primary_drill if primary_drill else "N/A",
-        "Secondary Fault": secondary_miss if secondary_miss else "N/A",
-        "Secondary Drill": secondary_drill if secondary_drill else "N/A",
-        "Practice Mode": practice_mode if practice_mode else "N/A",
-        "Total Balls": total_balls,
-        "Total Time (Mins)": total_time,
-        "ROI Opportunity": roi_opportunity if roi_opportunity else "N/A",
-    }])
-    if not os.path.exists(CSV_FILE):
-        new_row.to_csv(CSV_FILE, index=False)
-    else:
-        new_row.to_csv(CSV_FILE, mode="a", header=False, index=False)
+    try:
+        new_row = pd.DataFrame([{
+            "Date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "Primary Macro-Fault": primary_miss if primary_miss else "N/A",
+            "Primary Drill": primary_drill if primary_drill else "N/A",
+            "Secondary Fault": secondary_miss if secondary_miss else "N/A",
+            "Secondary Drill": secondary_drill if secondary_drill else "N/A",
+            "Practice Mode": practice_mode if practice_mode else "N/A",
+            "Total Balls": total_balls,
+            "Total Time (Mins)": total_time,
+            "ROI Opportunity": roi_opportunity if roi_opportunity else "N/A",
+        }])
+
+        if not os.path.exists(CSV_FILE):
+            new_row.to_csv(CSV_FILE, index=False)
+        else:
+            new_row.to_csv(CSV_FILE, mode="a", header=False, index=False)
+    except Exception as e:
+        st.error(f"Failed to write to CSV: {e}")
 
 
 def clear_history_csv():
     if os.path.exists(CSV_FILE):
-        os.remove(CSV_FILE)
+        try:
+            os.remove(CSV_FILE)
+        except Exception as e:
+            st.sidebar.error(f"Error removing file: {e}")
 
 
 # --- ROBUST JSON PARSER HELPER ---
