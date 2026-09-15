@@ -13,43 +13,73 @@ st.set_page_config(
 CSV_FILE = "birdie_buddy_practice_history.csv"
 
 
+HISTORY_COLUMNS = [
+    "Timestamp",
+    "Primary Macro-Fault",
+    "Primary Drill",
+    "Secondary Fault",
+    "ROI Opportunity",
+]
+
+
 # --- PERSISTENT SPREADSHEET HELPERS ---
+# History lives in st.session_state (always works, even on hosted Streamlit),
+# and we ALSO try to write a CSV on disk as a bonus backup.
+def _init_history():
+    """Make sure session history exists; seed it from the CSV if one is there."""
+    if "practice_history" not in st.session_state:
+        seeded = []
+        if os.path.exists(CSV_FILE):
+            try:
+                disk_df = pd.read_csv(CSV_FILE, keep_default_na=False)
+                seeded = disk_df.to_dict("records")
+            except Exception:
+                seeded = []
+        st.session_state["practice_history"] = seeded
+
+
 def load_history_df():
-    if os.path.exists(CSV_FILE):
-        try:
-            return pd.read_csv(CSV_FILE)
-        except Exception:
-            pass
-    return pd.DataFrame(
-        columns=[
-            "Timestamp",
-            "Primary Macro-Fault",
-            "Primary Drill",
-            "Secondary Fault",
-            "ROI Opportunity",
-        ]
-    )
+    _init_history()
+    rows = st.session_state["practice_history"]
+    if not rows:
+        return pd.DataFrame(columns=HISTORY_COLUMNS)
+    return pd.DataFrame(rows, columns=HISTORY_COLUMNS)
 
 
 def save_session_to_csv(
     primary_miss, primary_drill, secondary_miss="", roi_opportunity=""
 ):
-    new_row = pd.DataFrame([{
+    _init_history()
+    row = {
         "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "Primary Macro-Fault": primary_miss if primary_miss else "N/A",
         "Primary Drill": primary_drill if primary_drill else "N/A",
         "Secondary Fault": secondary_miss if secondary_miss else "N/A",
         "ROI Opportunity": roi_opportunity if roi_opportunity else "N/A",
-    }])
-    if not os.path.exists(CSV_FILE):
-        new_row.to_csv(CSV_FILE, index=False)
-    else:
-        new_row.to_csv(CSV_FILE, mode="a", header=False, index=False)
+    }
+
+    # 1. Save to memory first - this is what the sidebar reads.
+    st.session_state["practice_history"].append(row)
+
+    # 2. Try to also write the CSV file. If the disk is read-only
+    #    (common on hosted Streamlit), we quietly skip it instead of crashing.
+    try:
+        new_row = pd.DataFrame([row], columns=HISTORY_COLUMNS)
+        if not os.path.exists(CSV_FILE):
+            new_row.to_csv(CSV_FILE, index=False)
+        else:
+            new_row.to_csv(CSV_FILE, mode="a", header=False, index=False)
+    except Exception as file_error:
+        st.session_state["history_file_warning"] = str(file_error)
 
 
 def clear_history_csv():
-    if os.path.exists(CSV_FILE):
-        os.remove(CSV_FILE)
+    st.session_state["practice_history"] = []
+    try:
+        if os.path.exists(CSV_FILE):
+            os.remove(CSV_FILE)
+    except Exception:
+        pass
 
 
 # --- HELPER FUNCTIONS FOR CLEAN UI & EXPORTS ---
@@ -197,6 +227,12 @@ else:
     st.sidebar.caption(
         "No session history recorded yet. Complete a round diagnosis to populate"
         " your spreadsheet!"
+    )
+
+if st.session_state.get("history_file_warning"):
+    st.sidebar.caption(
+        "ℹ️ History is being kept in this session only (the CSV file could not be"
+        " written here). Use the Export button to keep a permanent copy."
     )
 
 if not api_key:
