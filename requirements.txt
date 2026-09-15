@@ -2,3 +2,5 @@ streamlit
 google-generativeai
 openpyxl
 pandas
+jinja2
+matplotlib
