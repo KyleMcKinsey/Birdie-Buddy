@@ -192,11 +192,14 @@ if not df_history.empty:
         clear_history_csv()
         st.rerun()
 
-# Color-coded interactive table preview with full HTML text wrapping
-    with st.sidebar.expander("👁️ View Practice Log", expanded=False):
+# Color-coded interactive table preview on the Main Screen
+with st.expander("👁️ View Practice Log History", expanded=True):
+    if df_history.empty:
+        st.info("No practice sessions logged yet.")
+    else:
         df_display = df_history.copy()
 
-        # 1. Keep Date first and clean timestamp
+        # 1. Clean Date/Time in-place (keeps Date in column position #1)
         if "Date/Time" in df_display.columns:
             df_display["Date/Time"] = (
                 df_display["Date/Time"].astype(str).str.split(" ").str[0]
@@ -204,24 +207,93 @@ if not df_history.empty:
             df_display = df_display.rename(columns={"Date/Time": "Date"})
 
         # 2. Remove Caddie column
-        if "Caddie Persona" in df_display.columns:
-            df_display = df_display.drop(columns=["Caddie Persona"])
-        if "Caddie" in df_display.columns:
-            df_display = df_display.drop(columns=["Caddie"])
+        cols_to_drop = [
+            c for c in ["Caddie Persona", "Caddie"] if c in df_display.columns
+        ]
+        if cols_to_drop:
+            df_display = df_display.drop(columns=cols_to_drop)
 
-        # 3. Rename columns directly for HTML output
-        rename_map = {
-            "Date": "Date 📅",
-            "Primary Fault": "Primary Fault 🎯",
-            "Primary Drill": "Primary Drill 🛠️",
-            "Secondary Fault": "Secondary Fault ⚠️",
-            "Secondary Drill": "Secondary Drill 🔧",
-            "Practice Mode": "Mode 🎮",
-            "Total Balls": "Balls ⛳",
-            "Total Time (mins)": "Time (m) ⏱️",
-            "ROI Strategy": "ROI Fix 📈",
-        }
-        df_display = df_display.rename(columns=rename_map)
+        def style_practice_log(df):
+            def color_mode(val):
+                v = str(val)
+                if "Grind" in v:
+                    return "background-color: #ffedd5; color: #9a3412; font-weight: bold;"
+                elif "Game" in v:
+                    return "background-color: #d1fae5; color: #065f46; font-weight: bold;"
+                elif "Combination" in v or "Hybrid" in v:
+                    return "background-color: #dbeafe; color: #1e40af; font-weight: bold;"
+                return ""
+
+            def color_drills(val):
+                if val and str(val) != "N/A":
+                    return "background-color: #e0e7ff; color: #3730a3; font-weight: bold;"
+                return "color: #9ca3af; font-style: italic;"
+
+            def color_faults(val):
+                if val and str(val) != "N/A":
+                    return "background-color: #fef3c7; color: #92400e; font-weight: bold;"
+                return "color: #9ca3af; font-style: italic;"
+
+            try:
+                styler = df.style
+
+                if "Practice Mode" in df.columns:
+                    styler = styler.map(color_mode, subset=["Practice Mode"])
+
+                drill_cols = [
+                    c
+                    for c in ["Primary Drill", "Secondary Drill"]
+                    if c in df.columns
+                ]
+                if drill_cols:
+                    styler = styler.map(color_drills, subset=drill_cols)
+
+                fault_cols = [
+                    c
+                    for c in ["Primary Fault", "Secondary Fault"]
+                    if c in df.columns
+                ]
+                if fault_cols:
+                    styler = styler.map(color_faults, subset=fault_cols)
+
+                return styler
+            except Exception:
+                return df
+
+        styled_df = style_practice_log(df_display)
+
+        st.dataframe(
+            styled_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Date": st.column_config.TextColumn("Date 📅", width="small"),
+                "Primary Fault": st.column_config.TextColumn(
+                    "Primary Fault 🎯", width="medium"
+                ),
+                "Primary Drill": st.column_config.TextColumn(
+                    "Primary Drill 🛠️", width="medium"
+                ),
+                "Secondary Fault": st.column_config.TextColumn(
+                    "Secondary Fault ⚠️", width="medium"
+                ),
+                "Secondary Drill": st.column_config.TextColumn(
+                    "Secondary Drill 🔧", width="medium"
+                ),
+                "Practice Mode": st.column_config.TextColumn(
+                    "Mode 🎮", width="small"
+                ),
+                "Total Balls": st.column_config.NumberColumn(
+                    "Balls ⛳", format="%d", width="small"
+                ),
+                "Total Time (mins)": st.column_config.NumberColumn(
+                    "Time (m) ⏱️", format="%d", width="small"
+                ),
+                "ROI Strategy": st.column_config.TextColumn(
+                    "ROI Fix 📈", width="large"
+                ),
+            },
+        )
 
         def style_practice_log(df):
             def color_mode(val):
