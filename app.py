@@ -7,6 +7,10 @@ st.set_page_config(
     page_title="Birdie Buddy MVP", page_icon="⛳", layout="centered"
 )
 
+# --- SESSION STATE INITIALIZATION ---
+if "session_history" not in st.session_state:
+    st.session_state["session_history"] = []
+
 # --- HELPER FUNCTIONS FOR CLEAN UI & EXPORTS ---
 def render_indented_html(content: str, margin_left: int = 24):
     st.markdown(
@@ -77,9 +81,25 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
 st.title("⛳ Birdie Buddy (Phase 1 MVP)")
 st.caption("AI Golf Caddie & Practice Asset Allocator powered by Gemini")
 
-# Sidebar - API Key Input
+# Sidebar - API Key Input & History Tracker
 st.sidebar.header("Configuration")
 api_key = st.sidebar.text_input("Enter Gemini API Key", type="password")
+
+# --- PRACTICE SESSION HISTORY TRACKER ---
+st.sidebar.markdown("---")
+st.sidebar.header("📜 Practice History Tracker")
+if st.session_state["session_history"]:
+    for idx, item in enumerate(reversed(st.session_state["session_history"]), 1):
+        round_num = len(st.session_state["session_history"]) - idx + 1
+        with st.sidebar.expander(f"Round #{round_num}: {item['primary_miss']}"):
+            st.caption(f"🎭 **Caddie:** {item['caddie']}")
+            st.caption(f"🎯 **Primary Drill:** {item['primary_drill']}")
+            if item.get("secondary_miss"):
+                st.caption(f"⚠️ **Secondary:** {item['secondary_miss']}")
+            if item.get("swot", {}).get("opportunities"):
+                st.caption(f"💡 **ROI Opportunity:** {item['swot']['opportunities']}")
+else:
+    st.sidebar.caption("No session history recorded yet. Complete a round diagnosis to start tracking trends!")
 
 if not api_key:
     st.warning("Please paste your Google Gemini API Key in the sidebar to begin.")
@@ -466,7 +486,6 @@ selected_persona_key = st.selectbox(
     index=0
 )
 
-# Extract only the main name before parenthesis for display throughout the app
 persona_display_name = selected_persona_key.split(" (")[0]
 active_persona = PERSONA_DATABASE[selected_persona_key]
 
@@ -476,7 +495,6 @@ if "diag_step" not in st.session_state:
 NONE_OPT = "-- Not Specified --"
 
 def format_selector_value(val: str) -> str:
-    """Formats optional selector for Gemini prompt: ignores if unselected."""
     return "Not specified by user (derive exclusively from round story text)" if val == NONE_OPT else val
 
 # --- STEP 1A: FREE TEXT STORY & OPTIONAL SELECTORS ---
@@ -672,7 +690,19 @@ elif st.session_state["diag_step"] == 2:
                     st.stop()
 
                 clean_json = response.text.replace("```json", "").replace("```", "").strip()
-                st.session_state["diagnosis"] = json.loads(clean_json)
+                diag_data = json.loads(clean_json)
+                st.session_state["diagnosis"] = diag_data
+
+                # --- APPEND TO PRACTICE SESSION HISTORY TRACKER ---
+                history_entry = {
+                    "caddie": caddie,
+                    "primary_miss": diag_data.get("primary_miss", "N/A"),
+                    "primary_drill": diag_data.get("recommended_primary_drill", "N/A"),
+                    "secondary_miss": diag_data.get("secondary_miss"),
+                    "swot": diag_data.get("swot_analysis", {})
+                }
+                st.session_state["session_history"].append(history_entry)
+
                 st.session_state["diag_step"] = 3
                 st.rerun()
             except Exception as e:
@@ -899,7 +929,6 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
     for idx, d_name in enumerate(active_drills):
         schematic = DRILL_SCHEMATICS.get(d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"])
 
-        # Weighted Allocation: 1 drill (100%), 2 drills (65%/35%), 3+ drills (60% primary, 40% split among remainder)
         if num_drills == 1:
             weight = 1.0
         elif num_drills == 2:
