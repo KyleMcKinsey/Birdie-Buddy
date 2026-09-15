@@ -192,55 +192,87 @@ if not df_history.empty:
         clear_history_csv()
         st.rerun()
 
-    # Color-coded interactive table preview
+# Color-coded interactive table preview
     with st.sidebar.expander("👁️ View Practice Log", expanded=False):
+        # Create a working copy for display adjustments
+        df_display = df_history.copy()
+
+        # 1. Format date to exclude time (YYYY-MM-DD)
+        if "Date/Time" in df_display.columns:
+            df_display["Date"] = (
+                df_display["Date/Time"].astype(str).str.split(" ").str[0]
+            )
+            df_display = df_display.drop(columns=["Date/Time"])
+
+        # 2. Remove Caddie column
+        if "Caddie Persona" in df_display.columns:
+            df_display = df_display.drop(columns=["Caddie Persona"])
+        if "Caddie" in df_display.columns:
+            df_display = df_display.drop(columns=["Caddie"])
 
         def style_practice_log(df):
             # Badge styles for Practice Modes
             def color_mode(val):
                 v = str(val)
                 if "Grind" in v:
-                    return "background-color: #ffedd5; color: #9a3412; font-weight: bold; border-radius: 4px;"
+                    return "background-color: #ffedd5; color: #9a3412; font-weight: bold;"
                 elif "Game" in v:
-                    return "background-color: #d1fae5; color: #065f46; font-weight: bold; border-radius: 4px;"
+                    return "background-color: #d1fae5; color: #065f46; font-weight: bold;"
                 elif "Combination" in v or "Hybrid" in v:
-                    return "background-color: #dbeafe; color: #1e40af; font-weight: bold; border-radius: 4px;"
+                    return "background-color: #dbeafe; color: #1e40af; font-weight: bold;"
                 return ""
 
             # Highlight Focus Drills
             def color_drills(val):
-                if val and val != "N/A":
+                if val and str(val) != "N/A":
                     return "background-color: #e0e7ff; color: #3730a3; font-weight: bold;"
                 return "color: #9ca3af; font-style: italic;"
 
             # Highlight Faults
             def color_faults(val):
-                if val and val != "N/A":
+                if val and str(val) != "N/A":
                     return "background-color: #fef3c7; color: #92400e; font-weight: bold;"
                 return "color: #9ca3af; font-style: italic;"
 
-            # Apply conditional styles
-            styler = (
-                df.style.map(color_mode, subset=["Practice Mode"])
-                .map(color_drills, subset=["Primary Drill", "Secondary Drill"])
-                .map(color_faults, subset=["Primary Fault", "Secondary Fault"])
-                .background_gradient(
-                    cmap="Blues", subset=["Total Balls", "Total Time (mins)"]
-                )
-            )
-            return styler
+            try:
+                styler = df.style
+                if "Practice Mode" in df.columns:
+                    styler = styler.map(color_mode, subset=["Practice Mode"])
 
-        styled_df = style_practice_log(df_history)
+                drill_cols = [
+                    c
+                    for c in ["Primary Drill", "Secondary Drill"]
+                    if c in df.columns
+                ]
+                if drill_cols:
+                    styler = styler.map(color_drills, subset=drill_cols)
+
+                fault_cols = [
+                    c
+                    for c in ["Primary Fault", "Secondary Fault"]
+                    if c in df.columns
+                ]
+                if fault_cols:
+                    styler = styler.map(color_faults, subset=fault_cols)
+
+                return styler
+            except Exception:
+                return df
+
+        styled_df = style_practice_log(df_display)
 
         st.dataframe(
             styled_df,
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Date/Time": st.column_config.TextColumn("Date/Time 📅"),
-                "Caddie Persona": st.column_config.TextColumn("Caddie 🧙"),
-                "Primary Fault": st.column_config.TextColumn("Primary Fault 🎯"),
-                "Primary Drill": st.column_config.TextColumn("Primary Drill 🛠️"),
+                "Date": st.column_config.TextColumn("Date 📅"),
+                "Primary Fault": st.column_config.TextColumn(
+                    "Primary Fault 🎯"
+                ),
+                "Primary Drill": st.column_config.TextColumn(
+                    "Primary Drill 🛠️"
+                ),
                 "Secondary Fault": st.column_config.TextColumn(
                     "Secondary Fault ⚠️"
                 ),
@@ -248,9 +280,11 @@ if not df_history.empty:
                     "Secondary Drill 🔧"
                 ),
                 "Practice Mode": st.column_config.TextColumn("Mode 🎮"),
-                "Total Balls": st.column_config.NumberColumn("Balls ⛳"),
+                "Total Balls": st.column_config.NumberColumn(
+                    "Balls ⛳", format="%d"
+                ),
                 "Total Time (mins)": st.column_config.NumberColumn(
-                    "Time (m) ⏱️"
+                    "Time (m) ⏱️", format="%d"
                 ),
                 "ROI Strategy": st.column_config.TextColumn("ROI Fix 📈"),
             },
