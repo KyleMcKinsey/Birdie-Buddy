@@ -15,131 +15,129 @@ CSV_FILE = "birdie_buddy_practice_history.csv"
 
 # --- PERSISTENT SPREADSHEET HELPERS ---
 def load_history_df():
-  if os.path.exists(CSV_FILE):
-    try:
-      return pd.read_csv(CSV_FILE)
-    except Exception:
-      pass
-  return pd.DataFrame(
-      columns=[
-          "Timestamp",
-          "Caddie Persona",
-          "Primary Macro-Fault",
-          "Primary Drill",
-          "Secondary Fault",
-          "ROI Opportunity",
-      ]
-  )
+    if os.path.exists(CSV_FILE):
+        try:
+            return pd.read_csv(CSV_FILE)
+        except Exception:
+            pass
+    return pd.DataFrame(
+        columns=[
+            "Timestamp",
+            "Primary Macro-Fault",
+            "Primary Drill",
+            "Secondary Fault",
+            "ROI Opportunity",
+        ]
+    )
 
 
 def save_session_to_csv(
-    caddie, primary_miss, primary_drill, secondary_miss="", roi_opportunity=""
+    primary_miss, primary_drill, secondary_miss="", roi_opportunity=""
 ):
-  new_row = pd.DataFrame([{
-      "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-      "Caddie Persona": caddie,
-      "Primary Macro-Fault": primary_miss,
-      "Primary Drill": primary_drill,
-      "Secondary Fault": secondary_miss if secondary_miss else "N/A",
-      "ROI Opportunity": roi_opportunity if roi_opportunity else "N/A",
-  }])
-  if not os.path.exists(CSV_FILE):
-    new_row.to_csv(CSV_FILE, index=False)
-  else:
-    new_row.to_csv(CSV_FILE, mode="a", header=False, index=False)
+    new_row = pd.DataFrame([{
+        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "Primary Macro-Fault": primary_miss if primary_miss else "N/A",
+        "Primary Drill": primary_drill if primary_drill else "N/A",
+        "Secondary Fault": secondary_miss if secondary_miss else "N/A",
+        "ROI Opportunity": roi_opportunity if roi_opportunity else "N/A",
+    }])
+    if not os.path.exists(CSV_FILE):
+        new_row.to_csv(CSV_FILE, index=False)
+    else:
+        new_row.to_csv(CSV_FILE, mode="a", header=False, index=False)
 
 
 def clear_history_csv():
-  if os.path.exists(CSV_FILE):
-    os.remove(CSV_FILE)
+    if os.path.exists(CSV_FILE):
+        os.remove(CSV_FILE)
 
 
 # --- HELPER FUNCTIONS FOR CLEAN UI & EXPORTS ---
 def render_indented_html(content: str, margin_left: int = 24):
-  st.markdown(
-      f"<div style='margin-left: {margin_left}px; margin-top: 4px;"
-      f" margin-bottom: 16px;'>{content}</div>",
-      unsafe_allow_html=True,
-  )
+    st.markdown(
+        f"<div style='margin-left: {margin_left}px; margin-top: 4px;"
+        f" margin-bottom: 16px;'>{content}</div>",
+        unsafe_allow_html=True,
+    )
 
 
 def render_indented_ul(items: list, margin_left: int = 24):
-  list_items = "".join(
-      [f"<li>{item.strip()}</li>" for item in items if item.strip()]
-  )
-  st.markdown(
-      f"<ul style='margin-left: {margin_left}px; margin-top: 4px;"
-      f" margin-bottom: 12px;'>{list_items}</ul>",
-      unsafe_allow_html=True,
-  )
+    list_items = "".join(
+        [f"<li>{item.strip()}</li>" for item in items if item.strip()]
+    )
+    st.markdown(
+        f"<ul style='margin-left: {margin_left}px; margin-top: 4px;"
+        f" margin-bottom: 12px;'>{list_items}</ul>",
+        unsafe_allow_html=True,
+    )
 
 
 def build_export_card(diag, res, active_drills, drill_schematics, caddie):
-  lines = []
-  lines.append("=" * 50)
-  lines.append("⛳ BIRDIE BUDDY RANGE PRACTICE CARD")
-  lines.append("=" * 50)
-  lines.append(f"Caddie Persona: {caddie}")
-  lines.append(f"Primary Macro-Fault: {diag.get('primary_miss', 'N/A')}")
-  if diag.get("secondary_miss"):
-    lines.append(f"Secondary Fault: {diag.get('secondary_miss')}")
-  lines.append(
-      f"Total Allocation: {res['total_balls']} Balls | {res['total_time']} Mins"
-      f" (@ {res['sec_per_ball']}s/ball)"
-  )
-  lines.append("-" * 50)
-  lines.append("\nROUND SWOT SUMMARY:")
-  swot = diag.get("swot_analysis", {})
-  lines.append(f"- Strength (What Worked): {swot.get('strengths', 'N/A')}")
-  lines.append(f"- Weakness (Main Flaw): {swot.get('weaknesses', 'N/A')}")
-  lines.append(
-      f"- Opportunity (Highest ROI Fix): {swot.get('opportunities', 'N/A')}"
-  )
-  lines.append(f"- Threat (Blow-up Risk): {swot.get('threats', 'N/A')}")
-  lines.append("\n" + "=" * 50)
-  lines.append("DRILL EXECUTION SCHEDULE")
-  lines.append("=" * 50)
-
-  num_drills = len(active_drills)
-  is_pure_game = (
-      res.get("practice_mode") == "Pure Game Mode (100% Target Pressure)"
-  )
-  alloc_balls = res["total_balls"] if is_pure_game else res["grind_balls"]
-  alloc_time = res["total_time"] if is_pure_game else res["grind_time"]
-
-  for idx, d_name in enumerate(active_drills):
-    if num_drills == 1:
-      weight = 1.0
-    elif num_drills == 2:
-      weight = 0.65 if idx == 0 else 0.35
-    else:
-      weight = 0.60 if idx == 0 else (0.40 / (num_drills - 1))
-
-    balls_per_drill = int(alloc_balls * weight)
-    time_per_drill = int(alloc_time * weight)
-
-    schematic = drill_schematics.get(
-        d_name, drill_schematics["Alignment Stick Gate Drill"]
-    )
-    lines.append(f"\nDRILL #{idx+1}: {d_name.upper()}")
-    lines.append(f"Target: {balls_per_drill} Balls | {time_per_drill} Mins")
-    lines.append(f"Equipment: {schematic['equipment']}")
-    lines.append(f"Setup: {schematic['vivid_description']}")
-    lines.append(f"Mental Analogy: {schematic['analogy']}")
+    lines = []
+    lines.append("=" * 50)
+    lines.append("⛳ BIRDIE BUDDY RANGE PRACTICE CARD")
+    lines.append("=" * 50)
+    lines.append(f"Caddie Persona: {caddie}")
+    lines.append(f"Primary Macro-Fault: {diag.get('primary_miss', 'N/A')}")
+    if diag.get("secondary_miss"):
+        lines.append(f"Secondary Fault: {diag.get('secondary_miss')}")
     lines.append(
-        f"Pro Tip: {schematic['pro_tip'].replace('🏆 **Pro Tip:** ', '')}"
+        f"Total Allocation: {res['total_balls']} Balls | {res['total_time']} Mins"
+        f" (@ {res['sec_per_ball']}s/ball)"
     )
-    lines.append("-" * 40)
-
-  if res["game_balls"] > 0 and not is_pure_game:
-    lines.append("\nFINAL PHASE: Target Course Pressure Simulation")
-    lines.append(f"Target: {res['game_balls']} Balls | {res['game_time']} Mins")
+    lines.append("-" * 50)
+    lines.append("\nROUND SWOT SUMMARY:")
+    swot = diag.get("swot_analysis", {})
+    lines.append(f"- Strength (What Worked): {swot.get('strengths', 'N/A')}")
+    lines.append(f"- Weakness (Main Flaw): {swot.get('weaknesses', 'N/A')}")
     lines.append(
-        "Instructions: Alternate clubs & flags for every single ball. Execute"
-        " full pre-shot routine."
+        f"- Opportunity (Highest ROI Fix): {swot.get('opportunities', 'N/A')}"
     )
+    lines.append(f"- Threat (Blow-up Risk): {swot.get('threats', 'N/A')}")
+    lines.append("\n" + "=" * 50)
+    lines.append("DRILL EXECUTION SCHEDULE")
+    lines.append("=" * 50)
 
-  return "\n".join(lines)
+    num_drills = len(active_drills)
+    is_pure_game = (
+        res.get("practice_mode") == "Pure Game Mode (100% Target Pressure)"
+    )
+    alloc_balls = res["total_balls"] if is_pure_game else res["grind_balls"]
+    alloc_time = res["total_time"] if is_pure_game else res["grind_time"]
+
+    for idx, d_name in enumerate(active_drills):
+        if num_drills == 1:
+            weight = 1.0
+        elif num_drills == 2:
+            weight = 0.65 if idx == 0 else 0.35
+        else:
+            weight = 0.60 if idx == 0 else (0.40 / (num_drills - 1))
+
+        balls_per_drill = int(alloc_balls * weight)
+        time_per_drill = int(alloc_time * weight)
+
+        schematic = drill_schematics.get(
+            d_name, drill_schematics["Alignment Stick Gate Drill"]
+        )
+        lines.append(f"\nDRILL #{idx+1}: {d_name.upper()}")
+        lines.append(f"Target: {balls_per_drill} Balls | {time_per_drill} Mins")
+        lines.append(f"Equipment: {schematic['equipment']}")
+        lines.append(f"Setup: {schematic['vivid_description']}")
+        lines.append(f"Mental Analogy: {schematic['analogy']}")
+        lines.append(
+            f"Pro Tip: {schematic['pro_tip'].replace('🏆 **Pro Tip:** ', '')}"
+        )
+        lines.append("-" * 40)
+
+    if res["game_balls"] > 0 and not is_pure_game:
+        lines.append("\nFINAL PHASE: Target Course Pressure Simulation")
+        lines.append(f"Target: {res['game_balls']} Balls | {res['game_time']} Mins")
+        lines.append(
+            "Instructions: Alternate clubs & flags for every single ball. Execute"
+            " full pre-shot routine."
+        )
+
+    return "\n".join(lines)
 
 
 st.title("⛳ Birdie Buddy (Phase 1 MVP)")
@@ -156,30 +154,54 @@ st.sidebar.header("📊 Practice History Spreadsheet")
 df_history = load_history_df()
 
 if not df_history.empty:
-  st.sidebar.write(f"Logged Practice Rounds: **{len(df_history)}**")
+    st.sidebar.write(f"Logged Practice Rounds: **{len(df_history)}**")
 
-  # Download button to export spreadsheet
-  csv_data = df_history.to_csv(index=False).encode("utf-8")
-  st.sidebar.download_button(
-      label="📥 Export History (CSV / Excel)",
-      data=csv_data,
-      file_name="birdie_buddy_practice_history.csv",
-      mime="text/csv",
-      use_container_width=True,
-  )
+    # Download button to export spreadsheet
+    csv_data = df_history.to_csv(index=False).encode("utf-8")
+    st.sidebar.download_button(
+        label="📥 Export History (CSV)",
+        data=csv_data,
+        file_name="birdie_buddy_practice_history.csv",
+        mime="text/csv",
+        use_container_width=True,
+    )
 
-  if st.sidebar.button("🗑️ Clear Spreadsheet History", use_container_width=True):
-    clear_history_csv()
-    st.rerun()
+    if st.sidebar.button("🗑️ Clear History", use_container_width=True):
+        clear_history_csv()
+        st.rerun()
+
+    # Color-coded interactive table preview
+    with st.sidebar.expander("👁️ View Color-Coded Log", expanded=False):
+        def highlight_cols(val):
+            if val == "N/A" or not val:
+                return "color: #888888; font-style: italic;"
+            return "background-color: #1e3a8a22; font-weight: bold;"
+
+        styled_df = df_history.style.map(
+            highlight_cols, subset=["Primary Macro-Fault", "Primary Drill"]
+        )
+
+        st.dataframe(
+            styled_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Timestamp": st.column_config.TextColumn("Date/Time"),
+                "Primary Macro-Fault": st.column_config.TextColumn("Primary Fault 🎯"),
+                "Primary Drill": st.column_config.TextColumn("Primary Drill 🛠️"),
+                "Secondary Fault": st.column_config.TextColumn("Secondary Fault ⚠️"),
+                "ROI Opportunity": st.column_config.TextColumn("ROI Fix 📈"),
+            },
+        )
 else:
-  st.sidebar.caption(
-      "No session history recorded yet. Complete a round diagnosis to populate"
-      " your spreadsheet!"
-  )
+    st.sidebar.caption(
+        "No session history recorded yet. Complete a round diagnosis to populate"
+        " your spreadsheet!"
+    )
 
 if not api_key:
-  st.warning("Please paste your Google Gemini API Key in the sidebar to begin.")
-  st.stop()
+    st.warning("Please paste your Google Gemini API Key in the sidebar to begin.")
+    st.stop()
 
 genai.configure(api_key=api_key)
 
@@ -1047,127 +1069,127 @@ persona_display_name = selected_persona_key.split(" (")[0]
 active_persona = PERSONA_DATABASE[selected_persona_key]
 
 if "diag_step" not in st.session_state:
-  st.session_state["diag_step"] = 1
+    st.session_state["diag_step"] = 1
 
 NONE_OPT = "-- Not Specified --"
 
 
 def format_selector_value(val: str) -> str:
-  return (
-      "Not specified by user (derive exclusively from round story text)"
-      if val == NONE_OPT
-      else val
-  )
+    return (
+        "Not specified by user (derive exclusively from round story text)"
+        if val == NONE_OPT
+        else val
+    )
 
 
 # --- STEP 1A: FREE TEXT STORY & OPTIONAL SELECTORS ---
 if st.session_state["diag_step"] == 1:
-  st.markdown("### 🗣️ Tell Us How Your Round Went")
-  st.caption(
-      "Talk naturally about what happened during your round—your misses,"
-      " feelings, mental blow-ups, or frustration. The AI Caddie will pinpoint"
-      " key themes and ask two targeted follow-up questions."
-  )
+    st.markdown("### 🗣️ Tell Us How Your Round Went")
+    st.caption(
+        "Talk naturally about what happened during your round—your misses,"
+        " feelings, mental blow-ups, or frustration. The AI Caddie will pinpoint"
+        " key themes and ask two targeted follow-up questions."
+    )
 
-  user_round_story = st.text_area(
-      "Describe your round in your own words:",
-      height=120,
-      placeholder=(
-          "e.g., I played 18 holes today and couldn't hit a fairway with my"
-          " driver—everything kept slicing hard into the trees on the right. I"
-          " got super frustrated on hole 6 after a bad double bogey and"
-          " completely lost my mental focus for the next 4 holes..."
-      ),
-  )
+    user_round_story = st.text_area(
+        "Describe your round in your own words:",
+        height=120,
+        placeholder=(
+            "e.g., I played 18 holes today and couldn't hit a fairway with my"
+            " driver—everything kept slicing hard into the trees on the right. I"
+            " got super frustrated on hole 6 after a bad double bogey and"
+            " completely lost my mental focus for the next 4 holes..."
+        ),
+    )
 
-  with st.expander(
-      "⚙️ Optional: Tweak Observable Ball-Flight & Focus Selectors (Default:"
-      " None)",
-      expanded=False,
-  ):
-    col_s1, col_s2 = st.columns(2)
-    with col_s1:
-      start_dir = st.selectbox(
-          "Start Direction:",
-          [
-              NONE_OPT,
-              "Starts Straight at Target",
-              "Pulls Left of Target",
-              "Pushes Right of Target",
-          ],
-      )
-      curvature = st.selectbox(
-          "Flight Curvature:",
-          [
-              NONE_OPT,
-              "Flies Straight (No curve)",
-              "Curves Softly Right (Fade)",
-              "Curves Sharply Right (Slice)",
-              "Curves Left (Draw / Hook)",
-          ],
-      )
-      club_category = st.selectbox(
-          "Main Problem Area:",
-          [
-              NONE_OPT,
-              "Driver / Tee Shots",
-              "Mid / Long Irons",
-              "Short Game / Wedges",
-              "Putting Greens",
-              "Mental Game / Focus / Temper",
-          ],
-      )
-    with col_s2:
-      divot_loc = st.selectbox(
-          "Divot Location:",
-          [
-              NONE_OPT,
-              "Clean Contact (Divot after ball)",
-              "Heavy / Fat (Turf 1-2 inches before ball)",
-              "Thin / Skulled (Top of ball)",
-              "Hard Mat / Pure Turf Sweep",
-          ],
-      )
-      impact_feel = st.selectbox(
-          "Impact Sound & Feel:",
-          [
-              NONE_OPT,
-              "Crisp 'click'",
-              "Dull 'thud' / heavy dirt drag",
-              "Harsh vibration on toe/heel",
-              "Stinging hands / thin strike",
-          ],
-      )
-      miss_freq = st.selectbox(
-          "Flaw Frequency:",
-          [
-              NONE_OPT,
-              "Driver / Woods Only",
-              "Irons & Wedges Only",
-              "Under Tournament Pressure Only",
-              "Every Club in Bag",
-          ],
-      )
+    with st.expander(
+        "⚙️ Optional: Tweak Observable Ball-Flight & Focus Selectors (Default:"
+        " None)",
+        expanded=False,
+    ):
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            start_dir = st.selectbox(
+                "Start Direction:",
+                [
+                    NONE_OPT,
+                    "Starts Straight at Target",
+                    "Pulls Left of Target",
+                    "Pushes Right of Target",
+                ],
+            )
+            curvature = st.selectbox(
+                "Flight Curvature:",
+                [
+                    NONE_OPT,
+                    "Flies Straight (No curve)",
+                    "Curves Softly Right (Fade)",
+                    "Curves Sharply Right (Slice)",
+                    "Curves Left (Draw / Hook)",
+                ],
+            )
+            club_category = st.selectbox(
+                "Main Problem Area:",
+                [
+                    NONE_OPT,
+                    "Driver / Tee Shots",
+                    "Mid / Long Irons",
+                    "Short Game / Wedges",
+                    "Putting Greens",
+                    "Mental Game / Focus / Temper",
+                ],
+            )
+        with col_s2:
+            divot_loc = st.selectbox(
+                "Divot Location:",
+                [
+                    NONE_OPT,
+                    "Clean Contact (Divot after ball)",
+                    "Heavy / Fat (Turf 1-2 inches before ball)",
+                    "Thin / Skulled (Top of ball)",
+                    "Hard Mat / Pure Turf Sweep",
+                ],
+            )
+            impact_feel = st.selectbox(
+                "Impact Sound & Feel:",
+                [
+                    NONE_OPT,
+                    "Crisp 'click'",
+                    "Dull 'thud' / heavy dirt drag",
+                    "Harsh vibration on toe/heel",
+                    "Stinging hands / thin strike",
+                ],
+            )
+            miss_freq = st.selectbox(
+                "Flaw Frequency:",
+                [
+                    NONE_OPT,
+                    "Driver / Woods Only",
+                    "Irons & Wedges Only",
+                    "Under Tournament Pressure Only",
+                    "Every Club in Bag",
+                ],
+            )
 
-  if st.button(
-      f"Analyze Round Narrative with {persona_display_name}", type="primary"
-  ):
-    if not user_round_story.strip():
-      st.warning(
-          "Please type a few words about your round story above so your Caddie"
-          " can analyze it!"
-      )
-    else:
-      st.session_state["user_round_story"] = user_round_story
-      st.session_state["start_dir"] = start_dir
-      st.session_state["curvature"] = curvature
-      st.session_state["club_category"] = club_category
-      st.session_state["divot_loc"] = divot_loc
-      st.session_state["impact_feel"] = impact_feel
-      st.session_state["miss_freq"] = miss_freq
-      st.session_state["caddie_name"] = persona_display_name
+    if st.button(
+        f"Analyze Round Narrative with {persona_display_name}", type="primary"
+    ):
+        if not user_round_story.strip():
+            st.warning(
+                "Please type a few words about your round story above so your Caddie"
+                " can analyze it!"
+            )
+        else:
+            st.session_state["user_round_story"] = user_round_story
+            st.session_state["start_dir"] = start_dir
+            st.session_state["curvature"] = curvature
+            st.session_state["club_category"] = club_category
+            st.session_state["divot_loc"] = divot_loc
+            st.session_state["impact_feel"] = impact_feel
+            st.session_state["miss_freq"] = miss_freq
+            st.session_state["caddie_name"] = persona_display_name
 
-      question_prompt = f"""
+            question_prompt = f"""
             {active_persona['system_instruction']}
 
             The golfer provided this open-ended story about their round:
@@ -1194,94 +1216,94 @@ if st.session_state["diag_step"] == 1:
             }}
             """
 
-      try:
-        flash_models = [
-            m.name
-            for m in genai.list_models()
-            if 'generateContent' in m.supported_generation_methods
-            and 'flash' in m.name.lower()
-        ]
-        flash_models.sort(reverse=True)
+            try:
+                flash_models = [
+                    m.name
+                    for m in genai.list_models()
+                    if 'generateContent' in m.supported_generation_methods
+                    and 'flash' in m.name.lower()
+                ]
+                flash_models.sort(reverse=True)
 
-        q_res = None
-        for model_name in flash_models:
-          try:
-            model = genai.GenerativeModel(model_name)
-            res = model.generate_content(question_prompt)
-            if res and res.text:
-              q_res = res
-              break
-          except Exception:
-            continue
+                q_res = None
+                for model_name in flash_models:
+                    try:
+                        model = genai.GenerativeModel(model_name)
+                        res = model.generate_content(question_prompt)
+                        if res and res.text:
+                            q_res = res
+                            break
+                    except Exception:
+                        continue
 
-        if q_res:
-          clean_q_json = (
-              q_res.text.replace("```json", "").replace("```", "").strip()
-          )
-          st.session_state["followup_questions"] = json.loads(clean_q_json)
-          st.session_state["diag_step"] = 2
-          st.rerun()
-        else:
-          st.error(
-              "Unable to generate diagnostic questions. Please check your API"
-              " key."
-          )
-      except Exception as e:
-        st.error(f"Error generating follow-up questions: {e}")
+                if q_res:
+                    clean_q_json = (
+                        q_res.text.replace("```json", "").replace("```", "").strip()
+                    )
+                    st.session_state["followup_questions"] = json.loads(clean_q_json)
+                    st.session_state["diag_step"] = 2
+                    st.rerun()
+                else:
+                    st.error(
+                        "Unable to generate diagnostic questions. Please check your API"
+                        " key."
+                    )
+            except Exception as e:
+                st.error(f"Error generating follow-up questions: {e}")
 
 # --- STEP 1B: TARGETED MULTI-CHOICE DECISION TREE ---
 elif st.session_state["diag_step"] == 2:
-  st.info(
-      f"📖 **Your Round Narrative:** \"{st.session_state.get('user_round_story')}\""
-  )
-  caddie = st.session_state.get("caddie_name", persona_display_name)
-  qs = st.session_state.get("followup_questions", {})
+    st.info(
+        f"📖 **Your Round Narrative:** \"{st.session_state.get('user_round_story')}\""
+    )
+    caddie = st.session_state.get("caddie_name", persona_display_name)
+    qs = st.session_state.get("followup_questions", {})
 
-  st.markdown(f"### 🗣️ {caddie} asks based on your story:")
+    st.markdown(f"### 🗣️ {caddie} asks based on your story:")
 
-  q1_text = qs.get(
-      "question_1",
-      "When your shot goes off line or a bad hole occurs, how do you react"
-      " mentally?",
-  )
-  q1_opts = qs.get(
-      "options_q1",
-      [
-          "I get angry and rush my next shot",
-          "I overthink mechanical swing keys",
-          "I stay calm and stick to routine",
-      ],
-  )
+    q1_text = qs.get(
+        "question_1",
+        "When your shot goes off line or a bad hole occurs, how do you react"
+        " mentally?",
+    )
+    q1_opts = qs.get(
+        "options_q1",
+        [
+            "I get angry and rush my next shot",
+            "I overthink mechanical swing keys",
+            "I stay calm and stick to routine",
+        ],
+    )
 
-  q2_text = qs.get(
-      "question_2",
-      "When you try to compensate, what usually happens next?",
-  )
-  q2_opts = qs.get(
-      "options_q2",
-      [
-          "Contact gets heavier / fatter",
-          "Ball goes straight but loses distance",
-          "Shot stays exactly the same",
-      ],
-  )
+    q2_text = qs.get(
+        "question_2",
+        "When you try to compensate, what usually happens next?",
+    )
+    q2_opts = qs.get(
+        "options_q2",
+        [
+            "Contact gets heavier / fatter",
+            "Ball goes straight but loses distance",
+            "Shot stays exactly the same",
+        ],
+    )
 
-  st.markdown(f"**1. {q1_text}**")
-  ans1_selected = st.radio(
-      "Q1 Choice:", options=q1_opts, key="ans1_radio", label_visibility="collapsed"
-  )
+    st.markdown(f"**1. {q1_text}**")
+    ans1_selected = st.radio(
+        "Q1 Choice:", options=q1_opts, key="ans1_radio", label_visibility="collapsed"
+    )
 
-  st.markdown(f"**2. {q2_text}**")
-  ans2_selected = st.radio(
-      "Q2 Choice:", options=q2_opts, key="ans2_radio", label_visibility="collapsed"
-  )
+    st.markdown(f"**2. {q2_text}**")
+    ans2_selected = st.radio(
+        "Q2 Choice:", options=q2_opts, key="ans2_radio", label_visibility="collapsed"
+    )
 
-  col_btn1, col_btn2 = st.columns(2)
-  with col_btn1:
-    if st.button(
-        "🔍 Synthesize Root Cause & Mindset Diagnosis", type="primary"
-    ):
-      full_round_input = f"""
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        if st.button(
+            "🔍 Synthesize Root Cause & Mindset Diagnosis", type="primary"
+        ):
+            full_round_input = f"""
             User Story: "{st.session_state.get('user_round_story')}"
             Start Direction: {format_selector_value(st.session_state['start_dir'])}
             Flight Curvature: {format_selector_value(st.session_state['curvature'])}
@@ -1293,7 +1315,7 @@ elif st.session_state["diag_step"] == 2:
             Decision Tree Q2: {q2_text} -> Selected: {ans2_selected}
             """
 
-      system_prompt = f"""
+            system_prompt = f"""
             {active_persona['system_instruction']}
 
             Act as an expert biomechanical, sports psychology, and strategic golf instructor AI.
@@ -1338,126 +1360,125 @@ elif st.session_state["diag_step"] == 2:
             }}
             """
 
-      try:
-        flash_models = [
-            m.name
-            for m in genai.list_models()
-            if 'generateContent' in m.supported_generation_methods
-            and 'flash' in m.name.lower()
-        ]
-        flash_models.sort(reverse=True)
+            try:
+                flash_models = [
+                    m.name
+                    for m in genai.list_models()
+                    if 'generateContent' in m.supported_generation_methods
+                    and 'flash' in m.name.lower()
+                ]
+                flash_models.sort(reverse=True)
 
-        response = None
-        for model_name in flash_models:
-          try:
-            model = genai.GenerativeModel(model_name)
-            res = model.generate_content(
-                f"{system_prompt}\n\nRound Context:\n{full_round_input}"
-            )
-            if res and res.text:
-              response = res
-              break
-          except Exception:
-            continue
+                response = None
+                for model_name in flash_models:
+                    try:
+                        model = genai.GenerativeModel(model_name)
+                        res = model.generate_content(
+                            f"{system_prompt}\n\nRound Context:\n{full_round_input}"
+                        )
+                        if res and res.text:
+                            response = res
+                            break
+                    except Exception:
+                        continue
 
-        if response is None:
-          st.error("No active Gemini Flash model found.")
-          st.stop()
+                if response is None:
+                    st.error("No active Gemini Flash model found.")
+                    st.stop()
 
-        clean_json = (
-            response.text.replace("```json", "").replace("```", "").strip()
-        )
-        diag_data = json.loads(clean_json)
-        st.session_state["diagnosis"] = diag_data
+                clean_json = (
+                    response.text.replace("```json", "").replace("```", "").strip()
+                )
+                diag_data = json.loads(clean_json)
+                st.session_state["diagnosis"] = diag_data
 
-        # --- SAVE TO PERSISTENT CSV SPREADSHEET ---
-        swot_opp = diag_data.get("swot_analysis", {}).get("opportunities", "")
-        save_session_to_csv(
-            caddie=caddie,
-            primary_miss=diag_data.get("primary_miss", "N/A"),
-            primary_drill=diag_data.get("recommended_primary_drill", "N/A"),
-            secondary_miss=diag_data.get("secondary_miss", ""),
-            roi_opportunity=swot_opp,
-        )
+                # --- SAVE TO PERSISTENT CSV SPREADSHEET ---
+                swot_opp = diag_data.get("swot_analysis", {}).get("opportunities", "")
+                save_session_to_csv(
+                    primary_miss=diag_data.get("primary_miss", "N/A"),
+                    primary_drill=diag_data.get("recommended_primary_drill", "N/A"),
+                    secondary_miss=diag_data.get("secondary_miss", ""),
+                    roi_opportunity=swot_opp,
+                )
 
-        st.session_state["diag_step"] = 3
-        st.rerun()
-      except Exception as e:
-        st.error(f"Error executing diagnosis: {e}")
+                st.session_state["diag_step"] = 3
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error executing diagnosis: {e}")
 
-  with col_btn2:
-    if st.button("↺ Start Over"):
-      st.session_state["diag_step"] = 1
-      st.rerun()
+    with col_btn2:
+        if st.button("↺ Start Over"):
+            st.session_state["diag_step"] = 1
+            st.rerun()
 
 # --- STEP 1C: DIAGNOSTIC & SWOT DISPLAY ---
 if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
-  diag = st.session_state["diagnosis"]
-  caddie = st.session_state.get("caddie_name", persona_display_name)
+    diag = st.session_state["diagnosis"]
+    caddie = st.session_state.get("caddie_name", persona_display_name)
 
-  intro_text = diag.get("expanded_caddie_intro", "")
-  st.success(f"**{caddie}:** \"{intro_text}\"")
+    intro_text = diag.get("expanded_caddie_intro", "")
+    st.success(f"**{caddie}:** \"{intro_text}\"")
 
-  col1, col2 = st.columns(2)
-  with col1:
-    st.markdown("**🎯 Primary Macro-Fault (Highest ROI Target)**")
-    p_persona_msg = diag.get(
-        "primary_miss_persona", diag.get("primary_miss", "Not detected")
-    )
-    st.warning(f"\"{p_persona_msg}\"")
-    p_plain = diag.get("primary_miss")
-    if p_plain:
-      st.markdown(f"*({p_plain})*")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**🎯 Primary Macro-Fault (Highest ROI Target)**")
+        p_persona_msg = diag.get(
+            "primary_miss_persona", diag.get("primary_miss", "Not detected")
+        )
+        st.warning(f"\"{p_persona_msg}\"")
+        p_plain = diag.get("primary_miss")
+        if p_plain:
+            st.markdown(f"*({p_plain})*")
 
-    st.write(f"**Primary Drill:** `{diag.get('recommended_primary_drill')}`")
-    p_causes = diag.get("primary_cause_breakdown")
-    if p_causes:
-      st.caption(f"**Root Cause & ROI Impact:** {p_causes}")
+        st.write(f"**Primary Drill:** `{diag.get('recommended_primary_drill')}`")
+        p_causes = diag.get("primary_cause_breakdown")
+        if p_causes:
+            st.caption(f"**Root Cause & ROI Impact:** {p_causes}")
 
-  with col2:
-    st.markdown("**⚠️ Secondary Fault Callout**")
-    sec_miss = diag.get("secondary_miss")
-    if sec_miss:
-      s_persona_msg = diag.get("secondary_miss_persona", sec_miss)
-      st.info(f"\"{s_persona_msg}\"")
-      st.markdown(f"*({sec_miss})*")
+    with col2:
+        st.markdown("**⚠️ Secondary Fault Callout**")
+        sec_miss = diag.get("secondary_miss")
+        if sec_miss:
+            s_persona_msg = diag.get("secondary_miss_persona", sec_miss)
+            st.info(f"\"{s_persona_msg}\"")
+            st.markdown(f"*({sec_miss})*")
 
-      sec_drill = diag.get("recommended_secondary_drill")
-      st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
-      s_causes = diag.get("secondary_cause_breakdown")
-      if s_causes:
-        st.caption(f"**Root Cause & Relative Impact:** {s_causes}")
-    else:
-      st.info(
-          '"No major secondary fault detected. Fix your primary macro-fault to'
-          ' unlock your game!"'
-      )
-      st.write("**Secondary Drill:** `N/A`")
+            sec_drill = diag.get("recommended_secondary_drill")
+            st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
+            s_causes = diag.get("secondary_cause_breakdown")
+            if s_causes:
+                st.caption(f"**Root Cause & Relative Impact:** {s_causes}")
+        else:
+            st.info(
+                '"No major secondary fault detected. Fix your primary macro-fault to'
+                ' unlock your game!"'
+            )
+            st.write("**Secondary Drill:** `N/A`")
 
-  # Strategic SWOT Analysis
-  if "swot_analysis" in diag and diag["swot_analysis"]:
+    # Strategic SWOT Analysis
+    if "swot_analysis" in diag and diag["swot_analysis"]:
+        st.markdown("---")
+        st.markdown("### 📊 Round SWOT Breakdown")
+        swot = diag["swot_analysis"]
+        sc1, sc2 = st.columns(2)
+        with sc1:
+            st.success(
+                f"**💪 Strength (What Worked):** {swot.get('strengths', 'N/A')}"
+            )
+            st.info(
+                "**📈 Opportunity (Highest ROI Fix):**"
+                f" {swot.get('opportunities', 'N/A')}"
+            )
+        with sc2:
+            st.warning(
+                f"**⚠️ Weakness (Main Flaw):** {swot.get('weaknesses', 'N/A')}"
+            )
+            st.error(f"**🎯 Threat (Blow-up Risk):** {swot.get('threats', 'N/A')}")
+
     st.markdown("---")
-    st.markdown("### 📊 Round SWOT Breakdown")
-    swot = diag["swot_analysis"]
-    sc1, sc2 = st.columns(2)
-    with sc1:
-      st.success(
-          f"**💪 Strength (What Worked):** {swot.get('strengths', 'N/A')}"
-      )
-      st.info(
-          "**📈 Opportunity (Highest ROI Fix):**"
-          f" {swot.get('opportunities', 'N/A')}"
-      )
-    with sc2:
-      st.warning(
-          f"**⚠️ Weakness (Main Flaw):** {swot.get('weaknesses', 'N/A')}"
-      )
-      st.error(f"**🎯 Threat (Blow-up Risk):** {swot.get('threats', 'N/A')}")
-
-  st.markdown("---")
-  if st.button("🔄 Describe Another Round"):
-    st.session_state["diag_step"] = 1
-    st.rerun()
+    if st.button("🔄 Describe Another Round"):
+        st.session_state["diag_step"] = 1
+        st.rerun()
 
 # -------------------------------------------------------------
 # STEP 2: PRACTICE ASSET ALLOCATION & CONSTRAINTS
@@ -1467,17 +1488,17 @@ st.subheader("2. Practice Resource Constraints (Balls & Time)")
 
 col_input_a, col_input_b = st.columns(2)
 with col_input_a:
-  total_balls = st.number_input(
-      "Total Balls Available:", min_value=10, max_value=300, value=100, step=10
-  )
+    total_balls = st.number_input(
+        "Total Balls Available:", min_value=10, max_value=300, value=100, step=10
+    )
 with col_input_b:
-  total_time = st.number_input(
-      "Total Time Available (mins):",
-      min_value=15,
-      max_value=180,
-      value=60,
-      step=15,
-  )
+    total_time = st.number_input(
+        "Total Time Available (mins):",
+        min_value=15,
+        max_value=180,
+        value=60,
+        step=15,
+    )
 
 practice_mode = st.radio(
     "Select Practice Mode:",
@@ -1490,26 +1511,26 @@ practice_mode = st.radio(
 )
 
 if practice_mode == "Pure Grind Mode (100% Technical Drill)":
-  grind_pct = 1.0
+    grind_pct = 1.0
 elif practice_mode == "Pure Game Mode (100% Target Pressure)":
-  grind_pct = 0.0
+    grind_pct = 0.0
 else:
-  raw_grind_ratio = 0.60
-  bounded_grind_ratio = max(0.30, min(0.75, raw_grind_ratio))
-  user_override = st.checkbox("Enable Manual Ratio Override")
+    raw_grind_ratio = 0.60
+    bounded_grind_ratio = max(0.30, min(0.75, raw_grind_ratio))
+    user_override = st.checkbox("Enable Manual Ratio Override")
 
-  if user_override:
-    grind_pct = (
-        st.slider(
-            "Manual Grind Allocation (%)",
-            min_value=0,
-            max_value=100,
-            value=int(bounded_grind_ratio * 100),
+    if user_override:
+        grind_pct = (
+            st.slider(
+                "Manual Grind Allocation (%)",
+                min_value=0,
+                max_value=100,
+                value=int(bounded_grind_ratio * 100),
+            )
+            / 100.0
         )
-        / 100.0
-    )
-  else:
-    grind_pct = bounded_grind_ratio
+    else:
+        grind_pct = bounded_grind_ratio
 
 game_pct = 1.0 - grind_pct
 
@@ -1521,53 +1542,53 @@ game_time = int(total_time * game_pct)
 sec_per_ball = int((total_time * 60) / total_balls) if total_balls > 0 else 0
 
 if st.button("✅ Confirm Selection & Generate Execution Plan", type="primary"):
-  st.session_state["confirmed_resources"] = {
-      "total_balls": total_balls,
-      "total_time": total_time,
-      "grind_balls": grind_balls,
-      "game_balls": game_balls,
-      "grind_time": grind_time,
-      "game_time": game_time,
-      "sec_per_ball": sec_per_ball,
-      "grind_pct": grind_pct,
-      "game_pct": game_pct,
-      "practice_mode": practice_mode,
-  }
-  st.success(
-      "Resource constraints locked in! Practice execution plan generated"
-      " below."
-  )
+    st.session_state["confirmed_resources"] = {
+        "total_balls": total_balls,
+        "total_time": total_time,
+        "grind_balls": grind_balls,
+        "game_balls": game_balls,
+        "grind_time": grind_time,
+        "game_time": game_time,
+        "sec_per_ball": sec_per_ball,
+        "grind_pct": grind_pct,
+        "game_pct": game_pct,
+        "practice_mode": practice_mode,
+    }
+    st.success(
+        "Resource constraints locked in! Practice execution plan generated"
+        " below."
+    )
 
 if "confirmed_resources" in st.session_state:
-  res_data = st.session_state["confirmed_resources"]
-  st.write("**Confirmed Resource Distribution:**")
-  st.progress(
-      res_data["grind_pct"],
-      text=(
-          f"Grind Mode: {int(res_data['grind_pct']*100)}% | Game Mode:"
-          f" {int(res_data['game_pct']*100)}%"
-      ),
-  )
+    res_data = st.session_state["confirmed_resources"]
+    st.write("**Confirmed Resource Distribution:**")
+    st.progress(
+        res_data["grind_pct"],
+        text=(
+            f"Grind Mode: {int(res_data['grind_pct']*100)}% | Game Mode:"
+            f" {int(res_data['game_pct']*100)}%"
+        ),
+    )
 
-  col_a, col_b, col_c = st.columns(3)
-  with col_a:
-    st.metric(
-        "Grind Mode Split",
-        f"{res_data['grind_balls']} balls",
-        f"{res_data['grind_time']} mins",
-    )
-  with col_b:
-    st.metric(
-        "Game Mode Split",
-        f"{res_data['game_balls']} balls",
-        f"{res_data['game_time']} mins",
-    )
-  with col_c:
-    st.metric(
-        "Target Pace",
-        f"{res_data['sec_per_ball']} sec/ball",
-        "Recommended Tempo",
-    )
+    col_a, col_b, col_c = st.columns(3)
+    with col_a:
+        st.metric(
+            "Grind Mode Split",
+            f"{res_data['grind_balls']} balls",
+            f"{res_data['grind_time']} mins",
+        )
+    with col_b:
+        st.metric(
+            "Game Mode Split",
+            f"{res_data['game_balls']} balls",
+            f"{res_data['game_time']} mins",
+        )
+    with col_c:
+        st.metric(
+            "Target Pace",
+            f"{res_data['sec_per_ball']} sec/ball",
+            "Recommended Tempo",
+        )
 
 # -------------------------------------------------------------
 # STEP 3: ADAPTIVE PRACTICE EXECUTION & SETUP GUIDE
@@ -1576,218 +1597,218 @@ st.markdown("---")
 st.subheader("3. Adaptive Practice Execution & Setup Guide")
 
 if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state:
-  diag = st.session_state["diagnosis"]
-  res = st.session_state["confirmed_resources"]
-  caddie = st.session_state.get("caddie_name", persona_display_name)
+    diag = st.session_state["diagnosis"]
+    res = st.session_state["confirmed_resources"]
+    caddie = st.session_state.get("caddie_name", persona_display_name)
 
-  p_drill = diag.get("recommended_primary_drill", "Alignment Stick Gate Drill")
-  s_drill = diag.get("recommended_secondary_drill")
-  p_miss = diag.get("primary_miss", "your main swing fault")
-  s_miss = diag.get("secondary_miss")
-  rationale = diag.get("drill_rationale")
-  pep_talk = diag.get("caddie_drill_pep_talk")
+    p_drill = diag.get("recommended_primary_drill", "Alignment Stick Gate Drill")
+    s_drill = diag.get("recommended_secondary_drill")
+    p_miss = diag.get("primary_miss", "your main swing fault")
+    s_miss = diag.get("secondary_miss")
+    rationale = diag.get("drill_rationale")
+    pep_talk = diag.get("caddie_drill_pep_talk")
 
-  c_balls = res["total_balls"]
-  c_time = res["total_time"]
-  p_mode = res.get("practice_mode", "Combination / Hybrid (AI Balanced)")
+    c_balls = res["total_balls"]
+    c_time = res["total_time"]
+    p_mode = res.get("practice_mode", "Combination / Hybrid (AI Balanced)")
 
-  is_pure_game = p_mode == "Pure Game Mode (100% Target Pressure)"
-  is_hybrid = p_mode == "Combination / Hybrid (AI Balanced)"
+    is_pure_game = p_mode == "Pure Game Mode (100% Target Pressure)"
+    is_hybrid = p_mode == "Combination / Hybrid (AI Balanced)"
 
-  if is_pure_game:
-    st.info(
-        "🎮 **Pure Game Mode Active:** All drills converted into interactive"
-        " target-pressure games."
+    if is_pure_game:
+        st.info(
+            "🎮 **Pure Game Mode Active:** All drills converted into interactive"
+            " target-pressure games."
+        )
+        p_drill = GAME_MODE_DRILL_MAP.get(p_drill, p_drill)
+        if s_drill:
+            s_drill = GAME_MODE_DRILL_MAP.get(s_drill, s_drill)
+
+    p_complexity = DRILL_COMPLEXITY.get(p_drill, "Medium")
+    is_high_budget = c_balls >= 60 and c_time >= 45
+
+    active_drills = [p_drill]
+
+    high_complexity_added = None
+    if is_high_budget and not is_pure_game:
+        if p_complexity != "High":
+            if p_drill in DRILL_SCHEMATICS:
+                if "Putting" in p_drill or "Putter" in p_drill:
+                    high_complexity_added = "Metal Yardstick Roll Drill"
+                elif any(
+                    word in p_drill
+                    for word in ["Wedge", "Chip", "Sand", "Pitch", "Towel", "Anchor"]
+                ):
+                    high_complexity_added = "Clock System Wedge Drill"
+                elif any(
+                    word in p_drill
+                    for word in [
+                        "Breathing",
+                        "Acceptance",
+                        "Routine",
+                        "Anchoring",
+                        "Mantra",
+                    ]
+                ):
+                    high_complexity_added = "Positive Box Pre-Shot Routine Drill"
+                else:
+                    high_complexity_added = "Impact Bag Compression Drill"
+
+            if high_complexity_added and high_complexity_added not in active_drills:
+                active_drills.append(high_complexity_added)
+
+    if c_balls >= 40 and c_time >= 30 and s_drill and s_drill not in active_drills:
+        active_drills.append(s_drill)
+
+    if is_hybrid:
+        if len(active_drills) == 1 and p_drill in GAME_MODE_DRILL_MAP:
+            game_pair = GAME_MODE_DRILL_MAP[p_drill]
+            if game_pair != p_drill:
+                active_drills.append(game_pair)
+
+        for i in range(1, len(active_drills)):
+            active_drills[i] = GAME_MODE_DRILL_MAP.get(
+                active_drills[i], active_drills[i]
+            )
+
+    if (c_balls < 40 or c_time < 30) and p_complexity == "High":
+        st.warning(
+            f"⚠️ **Low Resource Alert:** `{p_drill}` is High Complexity. Focus on"
+            f" basic feel keys with your limited budget ({c_balls} balls / {c_time}"
+            " mins)."
+        )
+
+    if pep_talk:
+        st.success(f"🗣️ **{caddie}'s Practice Strategy:** \"{pep_talk}\"")
+
+    summary_line = (
+        "💡 **Targeted Prescription:** Circuit optimized across"
+        f" {len(active_drills)} focus areas."
     )
-    p_drill = GAME_MODE_DRILL_MAP.get(p_drill, p_drill)
-    if s_drill:
-      s_drill = GAME_MODE_DRILL_MAP.get(s_drill, s_drill)
+    if rationale:
+        st.info(f"{summary_line}\n\n**Bang for Your Buck Rationale:** {rationale}")
+    else:
+        st.info(summary_line)
 
-  p_complexity = DRILL_COMPLEXITY.get(p_drill, "Medium")
-  is_high_budget = c_balls >= 60 and c_time >= 45
+    g_balls = res["grind_balls"]
+    g_time = res["grind_time"]
+    num_drills = len(active_drills)
 
-  active_drills = [p_drill]
+    alloc_balls = res["total_balls"] if is_pure_game else g_balls
+    alloc_time = res["total_time"] if is_pure_game else g_time
 
-  high_complexity_added = None
-  if is_high_budget and not is_pure_game:
-    if p_complexity != "High":
-      if p_drill in DRILL_SCHEMATICS:
-        if "Putting" in p_drill or "Putter" in p_drill:
-          high_complexity_added = "Metal Yardstick Roll Drill"
-        elif any(
-            word in p_drill
-            for word in ["Wedge", "Chip", "Sand", "Pitch", "Towel", "Anchor"]
-        ):
-          high_complexity_added = "Clock System Wedge Drill"
-        elif any(
-            word in p_drill
-            for word in [
-                "Breathing",
-                "Acceptance",
-                "Routine",
-                "Anchoring",
-                "Mantra",
-            ]
-        ):
-          high_complexity_added = "Positive Box Pre-Shot Routine Drill"
+    for idx, d_name in enumerate(active_drills):
+        schematic = DRILL_SCHEMATICS.get(
+            d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"]
+        )
+
+        if num_drills == 1:
+            weight = 1.0
+        elif num_drills == 2:
+            weight = 0.65 if idx == 0 else 0.35
         else:
-          high_complexity_added = "Impact Bag Compression Drill"
+            weight = 0.60 if idx == 0 else (0.40 / (num_drills - 1))
 
-      if high_complexity_added and high_complexity_added not in active_drills:
-        active_drills.append(high_complexity_added)
+        balls_per_drill = int(alloc_balls * weight)
+        time_per_drill = int(alloc_time * weight)
 
-  if c_balls >= 40 and c_time >= 30 and s_drill and s_drill not in active_drills:
-    active_drills.append(s_drill)
+        if is_pure_game or (is_hybrid and idx > 0):
+            label = (
+                "🎮 Interactive Target Game (Addressing:"
+                f" {p_miss if idx == 0 else (s_miss if s_miss else p_miss)})"
+            )
+        elif d_name == p_drill:
+            label = f"Primary Highest ROI Drill (Addressing: {p_miss})"
+        elif d_name == high_complexity_added:
+            label = "Advanced Mechanics / Routine Overhaul"
+        else:
+            label = (
+                "Secondary Focus Drill (Addressing:"
+                f" {s_miss if s_miss else 'Performance Polish'})"
+            )
 
-  if is_hybrid:
-    if len(active_drills) == 1 and p_drill in GAME_MODE_DRILL_MAP:
-      game_pair = GAME_MODE_DRILL_MAP[p_drill]
-      if game_pair != p_drill:
-        active_drills.append(game_pair)
+        st.markdown(f"### 🎯 Drill #{idx+1}: **{d_name}**")
+        st.markdown(f"🔥 **{label}**")
+        st.caption(
+            f"⚡ `{balls_per_drill} Balls` | `{time_per_drill} Mins` |"
+            f" `@~{res['sec_per_ball']}s/ball`"
+        )
 
-    for i in range(1, len(active_drills)):
-      active_drills[i] = GAME_MODE_DRILL_MAP.get(
-          active_drills[i], active_drills[i]
-      )
+        st.markdown("**🛠️ Range Equipment Needed**")
+        equip_items = re.split(r",\s*(?![^()]*\))", schematic["equipment"])
+        render_indented_ul(equip_items)
 
-  if (c_balls < 40 or c_time < 30) and p_complexity == "High":
-    st.warning(
-        f"⚠️ **Low Resource Alert:** `{p_drill}` is High Complexity. Focus on"
-        f" basic feel keys with your limited budget ({c_balls} balls / {c_time}"
-        " mins)."
-    )
+        st.markdown("**📖 Setup Description Mechanics**")
+        render_indented_html(schematic["vivid_description"])
 
-  if pep_talk:
-    st.success(f"🗣️ **{caddie}'s Practice Strategy:** \"{pep_talk}\"")
+        st.markdown("**🧠 Mental Analogy**")
+        render_indented_html(schematic["analogy"])
 
-  summary_line = (
-      "💡 **Targeted Prescription:** Circuit optimized across"
-      f" {len(active_drills)} focus areas."
-  )
-  if rationale:
-    st.info(f"{summary_line}\n\n**Bang for Your Buck Rationale:** {rationale}")
-  else:
-    st.info(summary_line)
+        st.info(schematic["pro_tip"])
 
-  g_balls = res["grind_balls"]
-  g_time = res["grind_time"]
-  num_drills = len(active_drills)
+        if idx < len(active_drills) - 1:
+            st.markdown("---")
 
-  alloc_balls = res["total_balls"] if is_pure_game else g_balls
-  alloc_time = res["total_time"] if is_pure_game else g_time
+    gm_balls = res["game_balls"]
+    gm_time = res["game_time"]
+    if gm_balls > 0 and gm_time > 0 and not is_pure_game:
+        st.markdown("---")
+        st.markdown(
+            f"### ⛳ Drill #{len(active_drills)+1}: **Target Course Pressure"
+            " Simulation**"
+        )
+        st.markdown(
+            "🔥 **Final Phase: On-Course Pressure Transfer & Routine Integration**"
+        )
+        st.caption(
+            f"⚡ `{gm_balls} Balls` | `{gm_time} Mins` |"
+            f" `@~{res['sec_per_ball']}s/ball`"
+        )
 
-  for idx, d_name in enumerate(active_drills):
-    schematic = DRILL_SCHEMATICS.get(
-        d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"]
-    )
+        st.markdown("**🛠️ Range Equipment Needed**")
+        render_indented_ul([
+            "Full Golf Bag (All Clubs)",
+            "Laser Rangefinder or Target Flags",
+            "Pre-shot Routine Line",
+        ])
 
-    if num_drills == 1:
-      weight = 1.0
-    elif num_drills == 2:
-      weight = 0.65 if idx == 0 else 0.35
-    else:
-      weight = 0.60 if idx == 0 else (0.40 / (num_drills - 1))
+        st.markdown("**📖 Setup Description Mechanics**")
+        render_indented_html(
+            "Simulate real course conditions. Alternate target flags and clubs for"
+            " every single ball. Step away from the mat and execute your complete"
+            " pre-shot routine before every swing."
+        )
 
-    balls_per_drill = int(alloc_balls * weight)
-    time_per_drill = int(alloc_time * weight)
+        st.markdown("**🧠 Mental Analogy**")
+        render_indented_html(
+            "Sunday Major Final Hole: Treat every single ball like a high-stakes"
+            " tournament stroke on the course."
+        )
 
-    if is_pure_game or (is_hybrid and idx > 0):
-      label = (
-          "🎮 Interactive Target Game (Addressing:"
-          f" {p_miss if idx == 0 else (s_miss if s_miss else p_miss)})"
-      )
-    elif d_name == p_drill:
-      label = f"Primary Highest ROI Drill (Addressing: {p_miss})"
-    elif d_name == high_complexity_added:
-      label = "Advanced Mechanics / Routine Overhaul"
-    else:
-      label = (
-          "Secondary Focus Drill (Addressing:"
-          f" {s_miss if s_miss else 'Performance Polish'})"
-      )
+        st.info(
+            "🏆 **Pro Tip:** Never hit two balls in a row with the same club or to"
+            " the same target during this pressure phase."
+        )
 
-    st.markdown(f"### 🎯 Drill #{idx+1}: **{d_name}**")
-    st.markdown(f"🔥 **{label}**")
-    st.caption(
-        f"⚡ `{balls_per_drill} Balls` | `{time_per_drill} Mins` |"
-        f" `@~{res['sec_per_ball']}s/ball`"
-    )
-
-    st.markdown("**🛠️ Range Equipment Needed**")
-    equip_items = re.split(r",\s*(?![^()]*\))", schematic["equipment"])
-    render_indented_ul(equip_items)
-
-    st.markdown("**📖 Setup Description Mechanics**")
-    render_indented_html(schematic["vivid_description"])
-
-    st.markdown("**🧠 Mental Analogy**")
-    render_indented_html(schematic["analogy"])
-
-    st.info(schematic["pro_tip"])
-
-    if idx < len(active_drills) - 1:
-      st.markdown("---")
-
-  gm_balls = res["game_balls"]
-  gm_time = res["game_time"]
-  if gm_balls > 0 and gm_time > 0 and not is_pure_game:
     st.markdown("---")
-    st.markdown(
-        f"### ⛳ Drill #{len(active_drills)+1}: **Target Course Pressure"
-        " Simulation**"
+    st.markdown("### 📥 Take Your Plan to the Range")
+    export_card_text = build_export_card(
+        diag, res, active_drills, DRILL_SCHEMATICS, caddie
     )
-    st.markdown(
-        "🔥 **Final Phase: On-Course Pressure Transfer & Routine Integration**"
+    st.download_button(
+        label="Download Printable Range Practice Card (.txt)",
+        data=export_card_text,
+        file_name="birdie_buddy_practice_plan.txt",
+        mime="text/plain",
     )
-    st.caption(
-        f"⚡ `{gm_balls} Balls` | `{gm_time} Mins` |"
-        f" `@~{res['sec_per_ball']}s/ball`"
-    )
-
-    st.markdown("**🛠️ Range Equipment Needed**")
-    render_indented_ul([
-        "Full Golf Bag (All Clubs)",
-        "Laser Rangefinder or Target Flags",
-        "Pre-shot Routine Line",
-    ])
-
-    st.markdown("**📖 Setup Description Mechanics**")
-    render_indented_html(
-        "Simulate real course conditions. Alternate target flags and clubs for"
-        " every single ball. Step away from the mat and execute your complete"
-        " pre-shot routine before every swing."
-    )
-
-    st.markdown("**🧠 Mental Analogy**")
-    render_indented_html(
-        "Sunday Major Final Hole: Treat every single ball like a high-stakes"
-        " tournament stroke on the course."
-    )
-
-    st.info(
-        "🏆 **Pro Tip:** Never hit two balls in a row with the same club or to"
-        " the same target during this pressure phase."
-    )
-
-  st.markdown("---")
-  st.markdown("### 📥 Take Your Plan to the Range")
-  export_card_text = build_export_card(
-      diag, res, active_drills, DRILL_SCHEMATICS, caddie
-  )
-  st.download_button(
-      label="Download Printable Range Practice Card (.txt)",
-      data=export_card_text,
-      file_name="birdie_buddy_practice_plan.txt",
-      mime="text/plain",
-  )
 
 elif "diagnosis" in st.session_state:
-  st.warning(
-      "👈 Please click **'✅ Confirm Selection & Generate Execution Plan'** in"
-      " Section 2 to generate your plan."
-  )
+    st.warning(
+        "👈 Please click **'✅ Confirm Selection & Generate Execution Plan'** in"
+        " Section 2 to generate your plan."
+    )
 else:
-  st.caption(
-      "Run a full-round diagnosis in Section 1 and confirm resources in"
-      " Section 2 to get started!"
-  )
+    st.caption(
+        "Run a full-round diagnosis in Section 1 and confirm resources in"
+        " Section 2 to get started!"
+    )
