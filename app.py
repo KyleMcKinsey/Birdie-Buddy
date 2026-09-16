@@ -15,10 +15,20 @@ CSV_FILE = "birdie_buddy_practice_history.csv"
 
 HISTORY_COLUMNS = [
     "Timestamp",
+    "Score",
+    "Fairways Hit",
+    "GIR",
+    "Putts",
+    "Penalty Strokes",
+    "Problem Area",
     "Primary Macro-Fault",
-    "Primary Drill",
     "Secondary Fault",
+    "Miss Frequency",
+    "Primary Drill",
     "ROI Opportunity",
+    "AI Confidence",
+    "Drill Completed?",
+    "Fix Effectiveness (1-5)",
 ]
 
 
@@ -46,16 +56,43 @@ def load_history_df():
     return pd.DataFrame(rows, columns=HISTORY_COLUMNS)
 
 
+def _blank_if_none(val):
+    return val if val not in (None, "-- Not Specified --") else "N/A"
+
+
 def save_session_to_csv(
-    primary_miss, primary_drill, secondary_miss="", roi_opportunity=""
+    primary_miss,
+    primary_drill,
+    secondary_miss="",
+    roi_opportunity="",
+    score=None,
+    fairways_hit=None,
+    gir=None,
+    putts=None,
+    penalty_strokes=None,
+    problem_area="",
+    miss_freq="",
+    confidence=None,
 ):
     _init_history()
     row = {
         "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "Score": score if score not in (None, "") else "N/A",
+        "Fairways Hit": fairways_hit if fairways_hit not in (None, "") else "N/A",
+        "GIR": gir if gir not in (None, "") else "N/A",
+        "Putts": putts if putts not in (None, "") else "N/A",
+        "Penalty Strokes": (
+            penalty_strokes if penalty_strokes not in (None, "") else "N/A"
+        ),
+        "Problem Area": _blank_if_none(problem_area),
         "Primary Macro-Fault": primary_miss if primary_miss else "N/A",
-        "Primary Drill": primary_drill if primary_drill else "N/A",
         "Secondary Fault": secondary_miss if secondary_miss else "N/A",
+        "Miss Frequency": _blank_if_none(miss_freq),
+        "Primary Drill": primary_drill if primary_drill else "N/A",
         "ROI Opportunity": roi_opportunity if roi_opportunity else "N/A",
+        "AI Confidence": confidence if confidence not in (None, "") else "N/A",
+        "Drill Completed?": "",
+        "Fix Effectiveness (1-5)": "",
     }
 
     # 1. Save to memory first - this is what the sidebar reads.
@@ -69,6 +106,22 @@ def save_session_to_csv(
             new_row.to_csv(CSV_FILE, index=False)
         else:
             new_row.to_csv(CSV_FILE, mode="a", header=False, index=False)
+    except Exception as file_error:
+        st.session_state["history_file_warning"] = str(file_error)
+
+
+def update_last_session_feedback(completed_label, effectiveness):
+    """Called next visit: closes the loop on the PREVIOUS round's drill."""
+    _init_history()
+    rows = st.session_state["practice_history"]
+    if not rows:
+        return
+    rows[-1]["Drill Completed?"] = completed_label
+    rows[-1]["Fix Effectiveness (1-5)"] = effectiveness
+
+    # Rewrite the whole CSV so the update is reflected on disk too.
+    try:
+        pd.DataFrame(rows, columns=HISTORY_COLUMNS).to_csv(CSV_FILE, index=False)
     except Exception as file_error:
         st.session_state["history_file_warning"] = str(file_error)
 
@@ -217,12 +270,42 @@ if not df_history.empty:
             hide_index=True,
             column_config={
                 "Timestamp": st.column_config.TextColumn("Date/Time"),
+                "Score": st.column_config.TextColumn("Score 🏌️"),
+                "Fairways Hit": st.column_config.TextColumn("FIR"),
+                "GIR": st.column_config.TextColumn("GIR"),
+                "Putts": st.column_config.TextColumn("Putts"),
+                "Penalty Strokes": st.column_config.TextColumn("Penalties"),
+                "Problem Area": st.column_config.TextColumn("Problem Area"),
                 "Primary Macro-Fault": st.column_config.TextColumn("Primary Fault 🎯"),
-                "Primary Drill": st.column_config.TextColumn("Primary Drill 🛠️"),
                 "Secondary Fault": st.column_config.TextColumn("Secondary Fault ⚠️"),
+                "Miss Frequency": st.column_config.TextColumn("Miss Frequency"),
+                "Primary Drill": st.column_config.TextColumn("Primary Drill 🛠️"),
                 "ROI Opportunity": st.column_config.TextColumn("ROI Fix 📈"),
+                "AI Confidence": st.column_config.TextColumn("Confidence"),
+                "Drill Completed?": st.column_config.TextColumn("Drill Done?"),
+                "Fix Effectiveness (1-5)": st.column_config.TextColumn("Fix Worked?"),
             },
         )
+
+    # --- PROGRESS TRENDS ---
+    with st.sidebar.expander("📈 Progress Trends", expanded=False):
+        score_series = pd.to_numeric(df_history["Score"], errors="coerce").dropna()
+        if len(score_series) >= 2:
+            st.caption("Score over time (lower is better)")
+            st.line_chart(score_series.reset_index(drop=True))
+        else:
+            st.caption("Log at least 2 scored rounds to see a score trend.")
+
+        fault_counts = (
+            df_history[df_history["Primary Macro-Fault"] != "N/A"]
+            ["Primary Macro-Fault"]
+            .value_counts()
+        )
+        if not fault_counts.empty:
+            st.caption("Most frequent primary faults")
+            st.bar_chart(fault_counts)
+        else:
+            st.caption("No faults logged yet.")
 else:
     st.sidebar.caption(
         "No session history recorded yet. Complete a round diagnosis to populate"
@@ -1091,6 +1174,43 @@ GAME_MODE_DRILL_MAP = {
 }
 
 # -------------------------------------------------------------
+# CLOSE THE LOOP: ask about LAST round's drill before starting a new one
+# -------------------------------------------------------------
+_init_history()
+_history_rows = st.session_state["practice_history"]
+if (
+    _history_rows
+    and st.session_state.get("diag_step", 1) == 1
+    and _history_rows[-1].get("Drill Completed?", "") == ""
+):
+    _last = _history_rows[-1]
+    with st.container(border=True):
+        st.markdown(
+            f"##### 🔁 Quick check-in: your last drill was "
+            f"**{_last.get('Primary Drill', 'your drill')}**"
+        )
+        col_fb1, col_fb2, col_fb3 = st.columns([1, 1, 1])
+        with col_fb1:
+            fb_completed = st.selectbox(
+                "Did you do it?",
+                ["Not yet", "Yes, a little", "Yes, fully"],
+                key="fb_completed",
+            )
+        with col_fb2:
+            fb_effectiveness = st.slider(
+                "Did it help? (1-5)", 1, 5, 3, key="fb_effectiveness"
+            )
+        with col_fb3:
+            st.write("")
+            st.write("")
+            if st.button("Log Feedback", use_container_width=True):
+                update_last_session_feedback(fb_completed, fb_effectiveness)
+                st.rerun()
+        if st.button("Skip for now"):
+            update_last_session_feedback("Skipped", "")
+            st.rerun()
+
+# -------------------------------------------------------------
 # STEP 1: HYBRID STORY + MULTI-CHOICE DIAGNOSTIC
 # -------------------------------------------------------------
 st.subheader("1. Round Story & Diagnostic Intake")
@@ -1137,6 +1257,29 @@ if st.session_state["diag_step"] == 1:
             " completely lost my mental focus for the next 4 holes..."
         ),
     )
+
+    st.markdown("##### 🔢 Round Numbers (optional, but this is what powers your progress chart)")
+    col_n1, col_n2, col_n3, col_n4, col_n5 = st.columns(5)
+    with col_n1:
+        round_score = st.number_input(
+            "Score", min_value=0, max_value=200, value=0, step=1,
+            help="Total strokes. Leave at 0 if you'd rather skip this.",
+        )
+    with col_n2:
+        fairways_hit = st.number_input(
+            "Fairways Hit", min_value=0, max_value=18, value=0, step=1
+        )
+    with col_n3:
+        gir = st.number_input(
+            "GIR", min_value=0, max_value=18, value=0, step=1,
+            help="Greens hit In Regulation.",
+        )
+    with col_n4:
+        putts = st.number_input("Putts", min_value=0, max_value=60, value=0, step=1)
+    with col_n5:
+        penalty_strokes = st.number_input(
+            "Penalty Strokes", min_value=0, max_value=20, value=0, step=1
+        )
 
     with st.expander(
         "⚙️ Optional: Tweak Observable Ball-Flight & Focus Selectors (Default:"
@@ -1224,6 +1367,11 @@ if st.session_state["diag_step"] == 1:
             st.session_state["impact_feel"] = impact_feel
             st.session_state["miss_freq"] = miss_freq
             st.session_state["caddie_name"] = persona_display_name
+            st.session_state["round_score"] = round_score
+            st.session_state["round_fairways_hit"] = fairways_hit
+            st.session_state["round_gir"] = gir
+            st.session_state["round_putts"] = putts
+            st.session_state["round_penalty_strokes"] = penalty_strokes
 
             question_prompt = f"""
             {active_persona['system_instruction']}
@@ -1430,11 +1578,27 @@ elif st.session_state["diag_step"] == 2:
 
                 # --- SAVE TO PERSISTENT CSV SPREADSHEET ---
                 swot_opp = diag_data.get("swot_analysis", {}).get("opportunities", "")
+
+                def _zero_to_blank(n):
+                    return n if n else ""
+
                 save_session_to_csv(
                     primary_miss=diag_data.get("primary_miss", "N/A"),
                     primary_drill=diag_data.get("recommended_primary_drill", "N/A"),
                     secondary_miss=diag_data.get("secondary_miss", ""),
                     roi_opportunity=swot_opp,
+                    score=_zero_to_blank(st.session_state.get("round_score")),
+                    fairways_hit=_zero_to_blank(
+                        st.session_state.get("round_fairways_hit")
+                    ),
+                    gir=_zero_to_blank(st.session_state.get("round_gir")),
+                    putts=_zero_to_blank(st.session_state.get("round_putts")),
+                    penalty_strokes=_zero_to_blank(
+                        st.session_state.get("round_penalty_strokes")
+                    ),
+                    problem_area=st.session_state.get("club_category", ""),
+                    miss_freq=st.session_state.get("miss_freq", ""),
+                    confidence=diag_data.get("confidence_score", ""),
                 )
 
                 st.session_state["diag_step"] = 3
