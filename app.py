@@ -155,6 +155,73 @@ def render_indented_ul(items: list, margin_left: int = 24):
     )
 
 
+def render_progress_loop(df_history):
+    """Front-and-center 'did the fix actually work' banner.
+
+    Closes the loop between diagnosis and outcome: shows whether the
+    fault flagged last time recurred, whether the assigned drill was
+    logged as completed, and how the score is trending. This is meant
+    to be the first thing a user sees after their history exists, so
+    the app reads as adaptive coaching rather than a one-shot report.
+    """
+    if df_history.empty:
+        return
+
+    rows = df_history.to_dict("records")
+    latest = rows[-1]
+    previous = rows[-2] if len(rows) >= 2 else None
+
+    st.markdown("### 🔁 Your Progress Loop")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("Rounds Logged", len(rows))
+
+    with col2:
+        scores = pd.to_numeric(df_history["Score"], errors="coerce").dropna()
+        if len(scores) >= 2:
+            delta = scores.iloc[-1] - scores.iloc[-2]
+            st.metric(
+                "Latest Score",
+                f"{int(scores.iloc[-1])}",
+                delta=f"{int(delta)}",
+                delta_color="inverse",
+            )
+        elif len(scores) == 1:
+            st.metric("Latest Score", f"{int(scores.iloc[-1])}")
+        else:
+            st.metric("Latest Score", "N/A")
+
+    with col3:
+        last_fault = latest.get("Primary Macro-Fault", "N/A")
+        if previous is not None:
+            prev_fault = previous.get("Primary Macro-Fault", "N/A")
+            if last_fault != "N/A" and last_fault == prev_fault:
+                st.metric("Primary Fault", last_fault, delta="Recurring", delta_color="off")
+            else:
+                st.metric("Primary Fault", last_fault, delta="New focus", delta_color="off")
+        else:
+            st.metric("Primary Fault", last_fault)
+
+    drill_done = str(latest.get("Drill Completed?", "")).strip()
+    if not drill_done:
+        st.info(
+            "📝 You haven't logged whether last round's assigned drill helped yet —"
+            " scroll down to close the loop before starting a new diagnosis."
+        )
+    elif previous is not None and last_fault == previous.get("Primary Macro-Fault", "N/A") and last_fault != "N/A":
+        st.warning(
+            f"⚠️ **{last_fault}** was your #1 fault again last time, even after"
+            f" logging '{drill_done}' on the assigned drill. Worth flagging to your"
+            " caddie in this round's story so it adjusts the fix."
+        )
+    else:
+        st.success("✅ No repeat faults from last time — keep logging to build the trend.")
+
+    st.markdown("---")
+
+
 def build_export_card(diag, res, active_drills, drill_schematics, caddie):
     lines = []
     lines.append("=" * 50)
@@ -323,6 +390,8 @@ if not api_key:
     st.stop()
 
 genai.configure(api_key=api_key)
+
+render_progress_loop(df_history)
 
 # -------------------------------------------------------------
 # MOVIE PARODY PERSONA DATABASE
