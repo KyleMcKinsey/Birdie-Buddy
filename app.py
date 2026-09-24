@@ -441,15 +441,137 @@ def render_compact_metric(label, value, subtext=None, delta=None, good_when_lowe
     )
 
 
-def render_progress_loop(df_history):
-    """Front-and-center 'did the fix actually work' banner.
+def _short_progress_stage(stage):
+    """Convert the full Value Chain stage name into a clean dashboard label."""
+    mapping = {
+        "Off-the-Tee Performance (Primary Drive)": "Off-the-Tee",
+        "Approach Precision (Mid Game)": "Approach",
+        "Scoring/Scrambling (Short Game/Putting)": "Scoring / Scrambling",
+        "Course Management / Strategic Decision-Making": "Course Management",
+        "Mental Infrastructure (Support Systems)": "Mental Game",
+    }
+    return mapping.get(str(stage or "").strip(), str(stage or "").strip())
 
-    Closes the loop between diagnosis and outcome: shows whether the
-    priority opportunity flagged last time recurred, whether the assigned drill was
-    logged as completed, and how the score is trending. This is meant
-    to be the first thing a user sees after their history exists, so
-    the app reads as adaptive coaching rather than a one-shot report.
-    """
+
+def _neutral_progress_opportunity(row):
+    """Build a concise, non-persona progress label from stage + drill evidence."""
+    stage = str(row.get("Primary Value Chain Stage", "") or "").strip()
+    subtype = str(row.get("Course Mgmt Subtype", "") or "").strip()
+    drill = str(row.get("Primary Drill", "") or "").strip()
+    raw_title = str(row.get("Primary Macro-Fault", "") or "").strip()
+
+    invalid = {"", "N/A", "None", "null"}
+    short_stage = _short_progress_stage(stage)
+
+    if stage == "Course Management / Strategic Decision-Making":
+        if subtype not in invalid:
+            return f"Course Management — {subtype}"
+        return "Course Management — Decision Quality"
+
+    putting_distance = {
+        "Ladder Distance Lag Drill",
+        "Fringe-to-Fringe Feel Drill",
+        "Eyes-Closed Distance Perception Drill",
+        "Short Back Long Through Stroke Drill",
+    }
+    putting_start_line = {
+        "Putting Tee Gate Drill",
+        "Chalk Line Straight Target Drill",
+        "Mirror Alignment Face Drill",
+        "Metal Yardstick Roll Drill",
+        "Parallel Rod Putting Channel Drill",
+        "Two-Tee Putter Gate Drill",
+        "Trail-Hand Push Putting Drill",
+    }
+    putting_strike = {
+        "Rubber Band Putter Sweet-Spot Drill",
+        "Coin Balance Putter Back Drill",
+        "Push-Putting No-Backswing Drill",
+        "Coin Balance Motion Stroke Drill",
+    }
+    short_game_distance = {
+        "Clock System Wedge Drill",
+        "Landing Zone Target Towel Drill",
+        "Target-Focused Eyes-Up Chipping Drill",
+        "Trail-Hand Only Pitch Drill",
+    }
+    short_game_contact = {
+        "Towel Behind Ball Drill",
+        "Lead Foot Weight Anchor Drill",
+        "Brush Turf Chipping Drill",
+        "Coin Lead-Point Pitch Drill",
+        "Ruler in Glove Wrist Anchor Drill",
+        "Hinge-and-Hold Chipping Drill",
+        "Continuous Motion Pendulum Chipping Drill",
+        "Accelerating Through Impact Gate Drill",
+    }
+    bunker = {
+        "Line in the Sand Drill",
+        "Dollar Bill Sand Extraction Drill",
+        "Open-Face Sand Splash Drill",
+    }
+    swing_direction = {
+        "Alignment Stick Gate Drill",
+        "Tee Gate Drill",
+        "Split-Hands Release Drill",
+    }
+    swing_contact = {
+        "Coin Strike Low-Point Drill",
+        "Impact Bag Compression Drill",
+    }
+    swing_sequence = {
+        "Pause at Top Drill",
+        "Towel Under Armpits Drill",
+        "Two-Step Pump Lag Drill",
+    }
+    swing_balance = {
+        "Feet-Together Balance Drill",
+        "Wall-Head Posture Drill",
+    }
+
+    if drill in putting_distance:
+        return "Putting — Distance Control"
+    if drill in putting_start_line:
+        return "Putting — Start Line & Face Control"
+    if drill in putting_strike:
+        return "Putting — Strike & Stroke Control"
+    if drill in short_game_distance:
+        return "Short Game — Distance & Landing Control"
+    if drill in short_game_contact:
+        return "Short Game — Contact & Low Point"
+    if drill in bunker:
+        return "Short Game — Bunker Contact"
+
+    swing_prefix = "Approach" if stage == "Approach Precision (Mid Game)" else "Off-the-Tee"
+    if drill in swing_direction:
+        return f"{swing_prefix} — Direction & Face Control"
+    if drill in swing_contact:
+        return f"{swing_prefix} — Contact & Low Point"
+    if drill in swing_sequence:
+        return f"{swing_prefix} — Sequencing & Tempo"
+    if drill in swing_balance:
+        return f"{swing_prefix} — Balance & Posture"
+
+    if drill == "Positive Box Pre-Shot Routine Drill":
+        return "Mental Game — Decision & Pre-Shot Routine"
+    if drill == "Target Visual Anchoring Drill":
+        return "Mental Game — Target Commitment"
+    if drill in {
+        "1-2-3 Box Breathing Reset Drill",
+        "Post-Shot Acceptance Hold Drill",
+        "Mantra & Thought Neutralizer Drill",
+    }:
+        return "Mental Game — Composure & Reset"
+
+    # Newer diagnoses are explicitly prompted to use a plain golf-language title.
+    # Prefer it when it is already concise; otherwise fall back to the stage name.
+    if raw_title not in invalid and len(raw_title) <= 48:
+        return raw_title
+    return short_stage or "Scoring Opportunity"
+
+
+def render_progress_trends(df_history):
+    """Render historical progress after the current round/practice workflow."""
     if df_history.empty:
         return
 
@@ -457,16 +579,44 @@ def render_progress_loop(df_history):
     latest = rows[-1]
     previous = rows[-2] if len(rows) >= 2 else None
 
+    latest_label = _neutral_progress_opportunity(latest)
+    previous_label = _neutral_progress_opportunity(previous) if previous else None
+
+    scores = pd.to_numeric(df_history["Score"], errors="coerce").dropna()
+    effectiveness = pd.to_numeric(
+        df_history["Fix Effectiveness (1-5)"], errors="coerce"
+    ).dropna()
+
+    recent_rows = rows[-5:]
+    recent_labels = [
+        _neutral_progress_opportunity(row)
+        for row in recent_rows
+        if _neutral_progress_opportunity(row) not in ("", "N/A", "Scoring Opportunity")
+    ]
+    if recent_labels:
+        recent_counts = pd.Series(recent_labels).value_counts()
+        common_label = recent_counts.index[0]
+        common_count = int(recent_counts.iloc[0])
+        common_subtext = f"{common_count} of last {len(recent_labels)} diagnosed rounds"
+    else:
+        common_label = "Not enough data"
+        common_subtext = "Keep logging rounds to reveal patterns"
+
+    if previous_label:
+        focus_tag = "🔁 Recurring focus" if latest_label == previous_label else "🆕 New focus"
+    else:
+        focus_tag = "First diagnosed focus"
+
     with st.container(border=True):
-        st.markdown("### 🔁 Your Progress Loop")
+        st.markdown("### 📈 Progress & Trends")
+        st.caption(
+            "Review how your scoring priorities and practice results are changing over time."
+        )
 
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
+        m1, m2, m3 = st.columns(3)
+        with m1:
             render_compact_metric("Rounds Logged", len(rows))
-
-        with col2:
-            scores = pd.to_numeric(df_history["Score"], errors="coerce").dropna()
+        with m2:
             if len(scores) >= 2:
                 delta = scores.iloc[-1] - scores.iloc[-2]
                 render_compact_metric(
@@ -479,44 +629,60 @@ def render_progress_loop(df_history):
                 render_compact_metric("Latest Score", f"{int(scores.iloc[-1])}")
             else:
                 render_compact_metric("Latest Score", "N/A")
-
-        with col3:
-            last_fault = latest.get("Primary Macro-Fault", "N/A")
-            if previous is not None:
-                prev_fault = previous.get("Primary Macro-Fault", "N/A")
-                if last_fault != "N/A" and last_fault == prev_fault:
-                    tag_html = "<span style='color:#b91c1c; font-weight:600;'>🔁 Recurring</span>"
-                else:
-                    tag_html = "<span style='color:#15803d; font-weight:600;'>🆕 New focus</span>"
+        with m3:
+            if not effectiveness.empty:
+                render_compact_metric(
+                    "Avg Practice Effectiveness",
+                    f"{effectiveness.mean():.1f}/5",
+                    subtext=f"{len(effectiveness)} logged session(s)",
+                )
             else:
-                tag_html = ""
+                render_compact_metric(
+                    "Avg Practice Effectiveness",
+                    "—",
+                    subtext="Log practice feedback to build this trend",
+                )
 
-            # Custom markup instead of st.metric: st.metric's big-number style
-            # truncates/clips long drill/opportunity names, so we render this as a
-            # normal-sized, wrapping label instead.
+        focus_col, common_col = st.columns(2)
+        with focus_col:
             st.markdown(
-                "<div style='font-size: 0.75rem; color: #808495; margin-bottom: 2px;'>"
-                "Primary Opportunity</div>"
-                f"<div style='font-size: 0.85rem; font-weight: 600; line-height: 1.25;"
-                f" word-wrap: break-word; overflow-wrap: break-word; hyphens: auto;'>{last_fault}</div>"
-                f"<div style='font-size: 0.8rem; margin-top: 2px;'>{tag_html}</div>",
+                "<div style='font-size:0.72rem; color:#8b919d; margin-bottom:4px;'>"
+                "Current Primary Opportunity</div>"
+                f"<div style='font-size:0.95rem; font-weight:650; line-height:1.3;'>"
+                f"{latest_label}</div>"
+                f"<div style='font-size:0.78rem; color:#8b919d; margin-top:4px;'>"
+                f"{focus_tag}</div>",
                 unsafe_allow_html=True,
             )
 
-        drill_done = str(latest.get("Drill Completed?", "")).strip()
-        if not drill_done:
-            st.info(
-                "📝 You haven't logged whether last round's assigned drill helped yet —"
-                " scroll down to close the loop before starting a new diagnosis."
+        with common_col:
+            st.markdown(
+                "<div style='font-size:0.72rem; color:#8b919d; margin-bottom:4px;'>"
+                "Most Common Opportunity — Recent Rounds</div>"
+                f"<div style='font-size:0.95rem; font-weight:650; line-height:1.3;'>"
+                f"{common_label}</div>"
+                f"<div style='font-size:0.78rem; color:#8b919d; margin-top:4px;'>"
+                f"{common_subtext}</div>",
+                unsafe_allow_html=True,
             )
-        elif previous is not None and last_fault == previous.get("Primary Macro-Fault", "N/A") and last_fault != "N/A":
-            st.warning(
-                f"⚠️ **{last_fault}** was your #1 opportunity again last time, even after"
-                f" logging '{drill_done}' on the assigned drill. Worth flagging to your"
-                " caddie in this round's story so it adjusts the fix."
-            )
-        else:
-            st.success("✅ No repeat priority opportunities from last time — keep logging to build the trend.")
+
+        with st.expander("View score & practice trends", expanded=False):
+            if len(scores) >= 2:
+                st.caption("Score trend — lower is better")
+                st.line_chart(scores.reset_index(drop=True))
+            else:
+                st.caption("Log at least 2 scored rounds to see a score trend.")
+
+            if len(effectiveness) >= 2:
+                st.caption("Practice effectiveness trend — 1 to 5")
+                st.line_chart(effectiveness.reset_index(drop=True))
+            elif len(effectiveness) == 1:
+                st.caption(
+                    f"Practice effectiveness: {effectiveness.iloc[-1]:.0f}/5. "
+                    "Log another session to start a trend."
+                )
+            else:
+                st.caption("No practice-effectiveness feedback logged yet.")
 
 
 
@@ -680,16 +846,18 @@ with st.sidebar.container(border=True):
             else:
                 st.caption("Log at least 2 scored rounds to see a score trend.")
 
-            fault_counts = (
-                df_history[df_history["Primary Macro-Fault"] != "N/A"]
-                ["Primary Macro-Fault"]
-                .value_counts()
+            stage_series = (
+                df_history["Primary Value Chain Stage"]
+                .replace({"N/A": None, "": None})
+                .dropna()
+                .map(_short_progress_stage)
             )
-            if not fault_counts.empty:
-                st.caption("Most frequent primary opportunities")
-                st.bar_chart(fault_counts)
+            stage_counts = stage_series.value_counts()
+            if not stage_counts.empty:
+                st.caption("Most frequent Value Chain opportunities")
+                st.bar_chart(stage_counts)
             else:
-                st.caption("No primary opportunities logged yet.")
+                st.caption("No Value Chain opportunities logged yet.")
 
             if "Course Mgmt Subtype" in df_history.columns:
                 strategy_counts = (
@@ -720,7 +888,6 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 
-render_progress_loop(df_history)
 
 # -------------------------------------------------------------
 # SCORE-ROI PRIORITY ENGINE
@@ -2890,6 +3057,12 @@ with st.container(border=True):
 
                 For each question provide a short `focus` label and a one-sentence `why` explanation.
 
+                **Dashboard naming rule:** Keep `primary_miss` and `secondary_miss` neutral,
+                concise, and immediately understandable in normal golf language. Do not put jokes,
+                character references, dramatic metaphors, or persona voice in those fields. Personality
+                belongs only in `primary_miss_persona`, `secondary_miss_persona`,
+                `expanded_caddie_intro`, and `caddie_drill_pep_talk`.
+
                 Output strictly raw JSON with no markdown formatting:
                 {{
                   "questions": [
@@ -2957,7 +3130,6 @@ with st.container(border=True):
             "Answer only the clarifications Birdie Buddy still needs. The number of questions adapts to "
             "how much the story, scorecard, and tracked stats already explain."
         )
-        st.caption(f"{caddie} will bring the personality back in the final diagnosis.")
 
         question_items = _normalize_followup_questions(qs)
         selected_answers = []
@@ -3141,11 +3313,11 @@ with st.container(border=True):
                 Output strictly raw JSON with no markdown formatting:
                 {{
                   "diagnosis_category": "Strategic ROI & Value Chain Diagnosis",
-                  "primary_miss": "string (title of highest ROI root cause)",
+                  "primary_miss": "string — concise plain golf-language title, 2-6 words, no movie/persona language or dramatic metaphor; use labels like 'Putting — Distance Control', 'Approach — Contact', or 'Course Management — Recovery Decisions'",
                   "primary_miss_stage": "string — exactly one of: 'Off-the-Tee Performance (Primary Drive)', 'Approach Precision (Mid Game)', 'Scoring/Scrambling (Short Game/Putting)', 'Course Management / Strategic Decision-Making', 'Mental Infrastructure (Support Systems)'",
                   "primary_miss_persona": "string (1 short, witty sentence calling out primary flaw in character)",
                   "primary_cause_breakdown": "string (2-3 sentences explaining biomechanical/psychological cause and why fixing this yields the highest stroke reduction)",
-                  "secondary_miss": "string or null",
+                  "secondary_miss": "string or null — concise plain golf-language title using the same neutral style as primary_miss",
                   "secondary_miss_stage": "string or null — one of the same five Value Chain stage names",
                   "secondary_miss_persona": "string or null (1 short, witty sentence calling out the secondary opportunity in character)",
                   "secondary_cause_breakdown": "string or null (2-3 sentences explaining secondary cause and its relative stroke impact)",
@@ -3903,3 +4075,11 @@ with st.container(border=True):
             "Run a full-round diagnosis in Section 1 and confirm resources in"
             " Section 2 to get started!"
         )
+
+
+# -------------------------------------------------------------
+# PROGRESS & TRENDS — intentionally placed after the current-round
+# diagnosis, practice plan, and practice-feedback workflow.
+# -------------------------------------------------------------
+_progress_df = load_history_df()
+render_progress_trends(_progress_df)
