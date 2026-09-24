@@ -20,6 +20,9 @@ HISTORY_COLUMNS = [
     "GIR",
     "Putts",
     "Penalty Strokes",
+    "OB/Lost Balls",
+    "3-Putts",
+    "Failed Up-and-Downs",
     "Problem Area",
     "Primary Macro-Fault",
     "Secondary Fault",
@@ -73,6 +76,9 @@ def save_session_to_csv(
     gir=None,
     putts=None,
     penalty_strokes=None,
+    ob_lost_balls=None,
+    three_putts=None,
+    failed_up_downs=None,
     problem_area="",
     miss_freq="",
     confidence=None,
@@ -90,6 +96,9 @@ def save_session_to_csv(
         "Penalty Strokes": (
             penalty_strokes if penalty_strokes not in (None, "") else "N/A"
         ),
+        "OB/Lost Balls": ob_lost_balls if ob_lost_balls not in (None, "") else "N/A",
+        "3-Putts": three_putts if three_putts not in (None, "") else "N/A",
+        "Failed Up-and-Downs": failed_up_downs if failed_up_downs not in (None, "") else "N/A",
         "Problem Area": _blank_if_none(problem_area),
         "Primary Macro-Fault": primary_miss if primary_miss else "N/A",
         "Secondary Fault": secondary_miss if secondary_miss else "N/A",
@@ -426,66 +435,78 @@ render_progress_loop(df_history)
 # -------------------------------------------------------------
 # SCORE-ROI PRIORITY ENGINE
 # -------------------------------------------------------------
-def calculate_score_roi(round_score, fairways_hit, gir, putts, penalty_strokes, handicap=None):
-    """Score-ROI proxy used when shot-level Strokes Gained data is unavailable."""
+def calculate_score_roi(round_score, fairways_hit, gir, putts, penalty_strokes,
+                       ob_lost_balls=0, three_putts=0, failed_up_downs=0,
+                       handicap=None):
+    """Estimate practice ROI from round-level evidence.
+
+    This is a prioritization model, not a literal Strokes Gained calculation.
+    Shot-level SG is still the preferred evidence when available.
+    """
     score = 0.0
     reasons = []
+    hcp = float(handicap or 0)
 
-    # Direct stroke tax gets first priority.
+    # Direct score taxes are strongest evidence.
     if penalty_strokes:
         score += min(45.0, penalty_strokes * 18.0)
         reasons.append(f"{penalty_strokes} penalty stroke(s) = direct score tax")
+    if ob_lost_balls:
+        score += min(36.0, ob_lost_balls * 20.0)
+        reasons.append(f"{ob_lost_balls} OB/lost ball(s) = direct tee/decision score tax")
 
-    # Approach/GIR is a strong scoring proxy, but GIR alone does not prove a
-    # particular swing fault.
+    # 3-putts are a concrete extra stroke event and therefore stronger evidence
+    # than total putts alone.
+    if three_putts:
+        score += min(30.0, three_putts * 14.0)
+        reasons.append(f"{three_putts} three-putt(s) = avoidable scoring leakage")
+
+    # Failed up-and-downs: contextualize against handicap rather than treating
+    # every missed scramble as equally actionable.
+    if failed_up_downs:
+        baseline = {0: 9.0, 5: 10.0, 10: 12.0, 15: 13.0, 20: 14.0, 25: 15.0}.get(round(hcp/5)*5, 13.0)
+        if failed_up_downs >= baseline + 3:
+            score += 20.0
+            reasons.append(f"{failed_up_downs} failed up-and-downs = materially high short-game leakage")
+        elif failed_up_downs >= baseline + 1:
+            score += 11.0
+            reasons.append(f"{failed_up_downs} failed up-and-downs = short-game opportunity")
+        else:
+            score += 5.0
+            reasons.append(f"{failed_up_downs} failed up-and-downs = monitor in context")
+
+    # GIR/approach is a strong category-level signal.
     if gir:
         pct = gir / 18.0
         if pct < 0.20:
-            score += 34.0
-            reasons.append(f"GIR {gir}/18 = severe approach opportunity")
+            score += 34.0; reasons.append(f"GIR {gir}/18 = severe approach opportunity")
         elif pct < 0.30:
-            score += 27.0
-            reasons.append(f"GIR {gir}/18 = major approach opportunity")
+            score += 27.0; reasons.append(f"GIR {gir}/18 = major approach opportunity")
         elif pct < 0.40:
-            score += 17.0
-            reasons.append(f"GIR {gir}/18 = meaningful approach opportunity")
+            score += 17.0; reasons.append(f"GIR {gir}/18 = meaningful approach opportunity")
         elif pct < 0.50:
-            score += 8.0
-            reasons.append(f"GIR {gir}/18 = moderate approach opportunity")
+            score += 8.0; reasons.append(f"GIR {gir}/18 = moderate approach opportunity")
 
-    # Putting must be interpreted alongside GIR; high putts are not automatically
-    # a putting fault.
+    # Total putts are deliberately weak evidence compared with 3-putts.
     if putts:
         if putts >= 38:
-            score += 20.0
-            reasons.append(f"{putts} putts = large putting/scoring opportunity")
+            score += 8.0; reasons.append(f"{putts} total putts = investigate, but interpret with GIR")
         elif putts >= 35:
-            score += 13.0
-            reasons.append(f"{putts} putts = meaningful putting opportunity")
-        elif putts >= 33:
-            score += 6.0
-            reasons.append(f"{putts} putts = investigate in GIR context")
+            score += 5.0; reasons.append(f"{putts} total putts = investigate in GIR/3-putt context")
 
-    # FIR is deliberately capped because a fairway miss is not inherently a
-    # stroke loss; distance and lie determine the actual scoring consequence.
+    # FIR is capped: a missed fairway is not automatically a lost stroke.
     if fairways_hit is not None and fairways_hit > 0:
         fir_pct = fairways_hit / 14.0
-        if fir_pct < 0.35 and penalty_strokes:
-            score += 12.0
-            reasons.append(f"{fairways_hit}/14 fairways plus penalties = tee-shot risk")
+        if fir_pct < 0.35 and (penalty_strokes or ob_lost_balls):
+            score += 12.0; reasons.append(f"{fairways_hit}/14 fairways plus trouble = tee-shot risk")
         elif fir_pct < 0.50:
-            score += 5.0
-            reasons.append(f"{fairways_hit}/14 fairways = investigate tee-shot consequences")
+            score += 4.0; reasons.append(f"{fairways_hit}/14 fairways = investigate consequences, not accuracy alone")
 
     score = round(min(100.0, score), 1)
-    if score >= 45:
-        tier = "CRITICAL — Direct Score Leak"
-    elif score >= 30:
-        tier = "HIGH — Major Scoring Opportunity"
-    elif score >= 18:
-        tier = "MEDIUM — Worth Targeting"
-    else:
-        tier = "LOW — Do Not Chase Without Shot-Level Evidence"
+    if score >= 45: tier = "CRITICAL — Direct Score Leak"
+    elif score >= 30: tier = "HIGH — Major Scoring Opportunity"
+    elif score >= 18: tier = "MEDIUM — Worth Targeting"
+    else: tier = "LOW — Do Not Chase Without More Evidence"
     return {"score": score, "tier": tier, "reasons": reasons}
 
 # -------------------------------------------------------------
@@ -1454,6 +1475,24 @@ if st.session_state["diag_step"] == 1:
             help="Optional context for handicap-relative benchmarking.",
         )
 
+    st.markdown("##### 🎯 Scoring Events (high-value hidden-fault signals)")
+    col_e1, col_e2, col_e3 = st.columns(3)
+    with col_e1:
+        ob_lost_balls = st.number_input(
+            "OB / Lost Balls", min_value=0, max_value=20, value=0, step=1,
+            help="Count actual out-of-bounds or lost-ball events separately from total penalty strokes.",
+        )
+    with col_e2:
+        three_putts = st.number_input(
+            "3-Putts", min_value=0, max_value=18, value=0, step=1,
+            help="A concrete extra-stroke event; more useful for ROI than total putts alone.",
+        )
+    with col_e3:
+        failed_up_downs = st.number_input(
+            "Failed Up-and-Downs", min_value=0, max_value=18, value=0, step=1,
+            help="Count missed up-and-down opportunities after missing the green.",
+        )
+
     with st.expander(
         "⚙️ Optional: Tweak Observable Ball-Flight & Focus Selectors (Default:"
         " None)",
@@ -1545,6 +1584,9 @@ if st.session_state["diag_step"] == 1:
             st.session_state["round_gir"] = gir
             st.session_state["round_putts"] = putts
             st.session_state["round_penalty_strokes"] = penalty_strokes
+            st.session_state["round_ob_lost_balls"] = ob_lost_balls
+            st.session_state["round_three_putts"] = three_putts
+            st.session_state["round_failed_up_downs"] = failed_up_downs
             st.session_state["round_handicap"] = handicap
 
             round_numbers_block = f"""
@@ -1553,6 +1595,9 @@ if st.session_state["diag_step"] == 1:
             - Greens in Regulation: {gir if gir else 'Not provided'} (out of 18)
             - Putts: {putts if putts else 'Not provided'}
             - Penalty Strokes: {penalty_strokes if penalty_strokes else 'Not provided'}
+            - OB / Lost Balls: {ob_lost_balls if ob_lost_balls else 'Not provided'}
+            - 3-Putts: {three_putts if three_putts else 'Not provided'}
+            - Failed Up-and-Downs: {failed_up_downs if failed_up_downs else 'Not provided'}
             """
 
             question_prompt = f"""
@@ -1575,10 +1620,13 @@ if st.session_state["diag_step"] == 1:
             **Blind-Spot Check (do this BEFORE writing questions):** Players narrate whatever is
             emotionally fresh (e.g. one bad chip), which is not always where they're actually
             losing the most strokes. Compare the round numbers above to the story:
-            - Fairways Hit well below ~50% of driving holes → possible off-the-tee leak.
-            - Putts at 34+ → possible putting/scoring leak.
-            - Penalty Strokes at 2+ → possible course-management/decision leak.
+            - OB/Lost Balls → direct score leak; probe the cause if the story does not explain it.
+            - 3-Putts → concrete extra-stroke event; probe distance control/first-putt leave.
+            - Failed Up-and-Downs → short-game opportunity; interpret relative to handicap and GIR.
+            - Penalty Strokes → direct score leak; identify whether tee strategy or decisions caused them.
             - GIR well below ~30% → possible approach-game leak.
+            - Putts at 35+ → investigate only after checking GIR and 3-putts.
+            - Fairways below ~50% → investigate only if misses create meaningful scoring damage.
             If any of these stat-implied leaks is NOT addressed anywhere in the story, you MUST
             spend one of the two follow-up questions probing that specific blind spot directly
             (e.g. asking what typically causes missed fairways) instead of only following the
@@ -1690,9 +1738,12 @@ elif st.session_state["diag_step"] == 2:
             _gir = st.session_state.get("round_gir")
             _pt = st.session_state.get("round_putts")
             _pen = st.session_state.get("round_penalty_strokes")
+            _ob = st.session_state.get("round_ob_lost_balls")
+            _3p = st.session_state.get("round_three_putts")
+            _ud = st.session_state.get("round_failed_up_downs")
 
             roi_data = calculate_score_roi(
-                _rs, _fh, _gir, _pt, _pen,
+                _rs, _fh, _gir, _pt, _pen, _ob, _3p, _ud,
                 st.session_state.get("round_handicap")
             )
 
@@ -1708,6 +1759,7 @@ elif st.session_state["diag_step"] == 2:
             Decision Tree Q2: {q2_text} -> Selected: {ans2_selected}
             Round Numbers: Score={_rs if _rs else 'N/A'}, Fairways Hit={_fh if _fh else 'N/A'} (of ~14),
             GIR={_gir if _gir else 'N/A'} (of 18), Putts={_pt if _pt else 'N/A'}, Penalty Strokes={_pen if _pen else 'N/A'},
+            OB/Lost Balls={_ob if _ob else 'N/A'}, 3-Putts={_3p if _3p else 'N/A'}, Failed Up-and-Downs={_ud if _ud else 'N/A'},
             Handicap={st.session_state.get('round_handicap') or 'N/A'}
             Score-ROI Engine: {roi_data['tier']} | {roi_data['score']}/100
             Score-ROI Evidence: {'; '.join(roi_data['reasons']) if roi_data['reasons'] else 'No strong numerical leak detected'}
@@ -1731,6 +1783,11 @@ elif st.session_state["diag_step"] == 2:
                converting positions already gained into a low score.
             4. **Mental Infrastructure (Support Systems):** routine, composure, decision-making, and
                recovery after a bad shot or hole — the system that supports the other three stages.
+
+            **Score-ROI Evidence Hierarchy:** Direct score events (OB/lost balls, penalty strokes, 3-putts)
+            are stronger evidence of lost strokes than broad accuracy statistics. Failed up-and-downs
+            are then interpreted against handicap/GIR context. FIR is only elevated when misses create
+            meaningful trouble. Total putts are weak evidence unless supported by 3-putt frequency.
 
             **Score-ROI Priority Rule (critical):** NEVER rank a fault merely because it occurs
             earlier in the golf value chain. The old "tee shots always outrank downstream faults"
@@ -1863,6 +1920,9 @@ elif st.session_state["diag_step"] == 2:
                     penalty_strokes=_zero_to_blank(
                         st.session_state.get("round_penalty_strokes")
                     ),
+                    ob_lost_balls=_zero_to_blank(st.session_state.get("round_ob_lost_balls")),
+                    three_putts=_zero_to_blank(st.session_state.get("round_three_putts")),
+                    failed_up_downs=_zero_to_blank(st.session_state.get("round_failed_up_downs")),
                     problem_area=st.session_state.get("club_category", ""),
                     miss_freq=st.session_state.get("miss_freq", ""),
                     confidence=diag_data.get("confidence_score", ""),
