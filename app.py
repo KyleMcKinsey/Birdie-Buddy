@@ -1796,6 +1796,60 @@ DRILL_SCHEMATICS = {
             "release or impact so the cue becomes rhythmic, not chatty."
         ),
     },
+
+    # --- COURSE MANAGEMENT / STRATEGIC DECISION-MAKING DRILLS (2) ---
+    "Bail-Out Zone Targeting Drill": {
+        "equipment": "2 Alignment Sticks or Small Flags (to mark a 'danger line'), Scorecard or Notepad, Full Golf Bag",
+        "vivid_description": (
+            "SETUP: Before hitting, identify the real trouble on the hole (water, OB, deep "
+            "rough, a false front) and place a stick or flag marking the edge of your "
+            "'danger line' — the spot you are not allowed to cross. Pick a specific bail-out "
+            "target well away from that line, even if it leaves a longer next shot. "
+            "EXECUTION: Play 9–18 holes (or simulate on the range against an imagined hazard "
+            "map) where every tee shot and approach must be aimed at the bail-out target, "
+            "never at the pin or the center of a hazard-guarded green. Write down, hole by "
+            "hole, which target you aimed at and why, before you swing. "
+            "SUCCESS: Your written targets consistently favor the fat, safe part of the "
+            "fairway or green over the flag; your penalty-stroke count for the round drops "
+            "versus your recent average. "
+            "AVOID: Picking a bail-out target that still requires a hero shot to reach, or "
+            "aiming at the pin 'just this once' on a hole you already flagged as dangerous."
+        ),
+        "analogy": (
+            "Chess, Not Checkers: you're not just hitting the ball forward — you're "
+            "choosing the square that sets up your *next* move, not just this one."
+        ),
+        "pro_tip": (
+            "🏆 **Pro Tip:** Write your bail-out target on the scorecard before you tee off "
+            "the hole, not after you're already standing over the ball — decisions made "
+            "under pressure are how good plans get overridden."
+        ),
+    },
+    "Worst-Ball Scramble Drill": {
+        "equipment": "2 Golf Balls per Hole, Scorecard, Full Golf Bag",
+        "vivid_description": (
+            "SETUP: Play a round (or a 6–9 hole loop) where you hit two balls from every "
+            "tee. On every shot after that, you must play your worse-positioned ball and "
+            "leave the better one out of play entirely. "
+            "EXECUTION: Continue playing worst-ball all the way to the green on every hole. "
+            "This forces you to plan every shot around avoiding a truly bad outcome, not "
+            "just chasing a great one, since one loose swing can define the whole hole. "
+            "SUCCESS: Your decision-making slows down and gets more conservative as the "
+            "drill goes on; you start taking extra club or aiming away from flags without "
+            "being told to; your worst-ball score ends up closer to your normal score than "
+            "you expected. "
+            "AVOID: Secretly playing your better ball when no one is watching — the entire "
+            "value of this drill is being forced to survive your own mistakes."
+        ),
+        "analogy": (
+            "Playing Not to Lose the Hand: like a poker player protecting a stack, every "
+            "shot is chosen to survive the worst realistic outcome, not just chase the best one."
+        ),
+        "pro_tip": (
+            "🏆 **Pro Tip:** This drill is brutal on your ego and great for your scorecard — "
+            "expect your worst-ball round to feel like a grind. That grind is the whole point."
+        ),
+    },
 }
 
 DRILL_COMPLEXITY = {
@@ -1844,6 +1898,8 @@ DRILL_COMPLEXITY = {
     "Positive Box Pre-Shot Routine Drill": "Medium",
     "Target Visual Anchoring Drill": "Low",
     "Mantra & Thought Neutralizer Drill": "Medium",
+    "Bail-Out Zone Targeting Drill": "Low",
+    "Worst-Ball Scramble Drill": "High",
 }
 
 GAME_MODE_DRILL_MAP = {
@@ -1885,6 +1941,8 @@ GAME_MODE_DRILL_MAP = {
     "Positive Box Pre-Shot Routine Drill": "Target Visual Anchoring Drill",
     "Target Visual Anchoring Drill": "Target Visual Anchoring Drill",
     "Mantra & Thought Neutralizer Drill": "Positive Box Pre-Shot Routine Drill",
+    "Bail-Out Zone Targeting Drill": "Worst-Ball Scramble Drill",
+    "Worst-Ball Scramble Drill": "Worst-Ball Scramble Drill",
 }
 
 # -------------------------------------------------------------
@@ -2277,16 +2335,24 @@ elif st.session_state["diag_step"] == 2:
             Analyze the user's round narrative, decision tree answers, and round numbers through a
             **Golf Value Chain ROI Lens** — the same "where does the value actually leak" logic used
             in a business value chain, applied to a round of golf. Every fault belongs to exactly one
-            of these four sequential stages:
+            of these five sequential stages:
 
             1. **Off-the-Tee Strategy (Primary Drive):** driver/tee shot accuracy and strategy. If this
                stage is leaking (e.g. low Fairways Hit), probe whether those misses create actual
                scoring damage. Do not assume tee shots are the highest-ROI fix without score evidence.
             2. **Approach Precision (Mid Game):** iron/approach shot accuracy into greens (GIR).
-            3. **Scoring/Scrambling (Short Game/Putting):** chipping, pitching, sand, and putting —
+            3. **Course Management / Strategic Decision-Making:** club and target selection, risk
+               tolerance around hazards, and whether the player is aiming at the smart miss or the
+               hero shot. This is distinct from swing mechanics — a technically good swing aimed at
+               the wrong target still bleeds strokes. Evidence includes penalty strokes/OB clustered
+               around aggressive language in the story (e.g. "went for it," "tried to cut the corner"),
+               or repeated trouble despite otherwise solid ball-striking numbers.
+            4. **Scoring/Scrambling (Short Game/Putting):** chipping, pitching, sand, and putting —
                converting positions already gained into a low score.
-            4. **Mental Infrastructure (Support Systems):** routine, composure, decision-making, and
-               recovery after a bad shot or hole — the system that supports the other three stages.
+            5. **Mental Infrastructure (Support Systems):** routine, composure, and recovery after a
+               bad shot or hole — the emotional system that supports the other four stages. Keep this
+               distinct from Course Management: this stage is about *state* (staying calm, sticking to
+               routine), not the *strategic choice itself*.
 
             **Score-ROI Evidence Hierarchy:** Direct score events (OB/lost balls, penalty strokes, 3-putts)
             are stronger evidence of lost strokes than broad accuracy statistics. Failed up-and-downs
@@ -2300,7 +2366,9 @@ elif st.session_state["diag_step"] == 2:
 
             Priority logic:
             1. **CRITICAL — Direct Score Leak:** actual penalty strokes, repeated OB/lost-ball/water
-               events, or clearly documented mistakes that immediately added strokes.
+               events, or clearly documented mistakes that immediately added strokes. When these
+               events cluster around an aggressive club/target choice rather than a mis-hit, treat it
+               as a Course Management leak, not a swing-mechanics leak.
             2. **HIGH — Major Scoring Opportunity:** large approach/GIR deficits, repeated costly
                approach misses, or repeated short-game failures that prevent conversion.
             3. **MEDIUM — Repeatable Scoring Leakage:** repeated 3-putts/poor distance control,
@@ -2308,8 +2376,10 @@ elif st.session_state["diag_step"] == 2:
                or penalties.
             4. **LOW — Technique Polish:** small FIR differences, isolated contact errors, or
                mechanical issues without evidence of repeated scoring damage.
-            5. **MENTAL / DECISION-MAKING:** elevate only when the story shows the issue caused
-               repeated scoring damage across multiple holes. Frustration alone is not enough.
+            5. **MENTAL / DECISION-MAKING:** elevate Mental Infrastructure only when the story shows
+               emotional/composure breakdown causing repeated scoring damage across multiple holes.
+               Frustration alone is not enough. Elevate Course Management instead when the issue is a
+               repeated *choice* (going for a risky line, wrong club) rather than a state of mind.
 
             **Putting context rule:** Putts per round must be interpreted with GIR and short-game
             context. High putts are a flag to investigate, not proof that putting is the highest
@@ -2327,21 +2397,22 @@ elif st.session_state["diag_step"] == 2:
                  necessarily the fault the player talked about most.
                - Select `recommended_secondary_drill` for the second highest ROI issue.
 
-            Map faults to the most effective drills from this EXACT list of 45 drills:
+            Map faults to the most effective drills from this EXACT list of 47 drills:
             - FULL SWING: 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill', 'Towel Under Armpits Drill', 'Coin Strike Low-Point Drill', 'Split-Hands Release Drill', 'Feet-Together Balance Drill', 'Wall-Head Posture Drill', 'Impact Bag Compression Drill', 'Two-Step Pump Lag Drill'
             - SHORT GAME: 'Towel Behind Ball Drill', 'Lead Foot Weight Anchor Drill', 'Brush Turf Chipping Drill', 'Coin Lead-Point Pitch Drill', 'Ruler in Glove Wrist Anchor Drill', 'Hinge-and-Hold Chipping Drill', 'Clock System Wedge Drill', 'Landing Zone Target Towel Drill', 'Trail-Hand Only Pitch Drill', 'Line in the Sand Drill', 'Dollar Bill Sand Extraction Drill', 'Open-Face Sand Splash Drill', 'Continuous Motion Pendulum Chipping Drill', 'Accelerating Through Impact Gate Drill', 'Target-Focused Eyes-Up Chipping Drill'
             - PUTTING: 'Putting Tee Gate Drill', 'Chalk Line Straight Target Drill', 'Mirror Alignment Face Drill', 'Trail-Hand Push Putting Drill', 'Metal Yardstick Roll Drill', 'Parallel Rod Putting Channel Drill', 'Ladder Distance Lag Drill', 'Fringe-to-Fringe Feel Drill', 'Eyes-Closed Distance Perception Drill', 'Rubber Band Putter Sweet-Spot Drill', 'Two-Tee Putter Gate Drill', 'Coin Balance Putter Back Drill', 'Push-Putting No-Backswing Drill', 'Short Back Long Through Stroke Drill', 'Coin Balance Motion Stroke Drill'
             - MENTAL GAME: '1-2-3 Box Breathing Reset Drill', 'Post-Shot Acceptance Hold Drill', 'Positive Box Pre-Shot Routine Drill', 'Target Visual Anchoring Drill', 'Mantra & Thought Neutralizer Drill'
+            - COURSE MANAGEMENT: 'Bail-Out Zone Targeting Drill', 'Worst-Ball Scramble Drill'
 
             Output strictly raw JSON with no markdown formatting:
             {{
               "diagnosis_category": "Strategic ROI & Value Chain Diagnosis",
               "primary_miss": "string (title of highest ROI root cause)",
-              "primary_miss_stage": "string — exactly one of: 'Off-the-Tee Strategy (Primary Drive)', 'Approach Precision (Mid Game)', 'Scoring/Scrambling (Short Game/Putting)', 'Mental Infrastructure (Support Systems)'",
+              "primary_miss_stage": "string — exactly one of: 'Off-the-Tee Strategy (Primary Drive)', 'Approach Precision (Mid Game)', 'Course Management / Strategic Decision-Making', 'Scoring/Scrambling (Short Game/Putting)', 'Mental Infrastructure (Support Systems)'",
               "primary_miss_persona": "string (1 short, witty sentence calling out primary flaw in character)",
               "primary_cause_breakdown": "string (2-3 sentences explaining biomechanical/psychological cause and why fixing this yields the highest stroke reduction)",
               "secondary_miss": "string or null",
-              "secondary_miss_stage": "string or null — one of the same four Value Chain stage names",
+              "secondary_miss_stage": "string or null — one of the same five Value Chain stage names",
               "secondary_miss_persona": "string or null",
               "secondary_cause_breakdown": "string or null (2-3 sentences explaining secondary cause and its relative stroke impact)",
               "expanded_caddie_intro": "string (3-4 robust sentences in persona referencing their story and strategic ROI fix)",
@@ -2349,9 +2420,10 @@ elif st.session_state["diag_step"] == 2:
               "value_chain_analysis": {{
                 "off_the_tee": "string (1 sentence assessment of driving/tee-shot performance, grounded in the numbers if provided)",
                 "approach": "string (1 sentence assessment of mid-iron/approach performance)",
+                "course_management": "string (1 sentence assessment of club/target selection and risk decisions, grounded in penalty strokes / risky-shot language if available)",
                 "scoring_scrambling": "string (1 sentence assessment of short game & putting performance)",
-                "mental_infrastructure": "string (1 sentence assessment of routine/composure/decision-making)",
-                "primary_leak_stage": "string — exactly one of the four stage names above, the stage actually costing the most strokes",
+                "mental_infrastructure": "string (1 sentence assessment of routine/composure/recovery after a bad shot, separate from course-management decisions)",
+                "primary_leak_stage": "string — exactly one of the five stage names above, the stage actually costing the most strokes",
                 "leak_rationale": "string (1-2 sentences explaining why this stage outranks the others, citing the round numbers where available)"
               }},
               "diagnostic_blind_spot": "string or null — a stat-implied leak the player's story did not mention or explain",
