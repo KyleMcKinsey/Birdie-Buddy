@@ -26,6 +26,8 @@ HISTORY_COLUMNS = [
     "Scrambling Opportunities",
     "Problem Area",
     "Primary Macro-Fault",
+    "Primary Value Chain Stage",
+    "Course Mgmt Subtype",
     "Secondary Fault",
     "Miss Frequency",
     "Primary Drill",
@@ -61,7 +63,7 @@ def load_history_df():
     rows = st.session_state["practice_history"]
     if not rows:
         return pd.DataFrame(columns=HISTORY_COLUMNS)
-    return pd.DataFrame(rows, columns=HISTORY_COLUMNS)
+    return pd.DataFrame(rows, columns=HISTORY_COLUMNS).fillna("N/A")
 
 
 def _blank_if_none(val):
@@ -83,6 +85,8 @@ def save_session_to_csv(
     failed_up_downs=None,
     scrambling_opportunities=None,
     problem_area="",
+    primary_stage="",
+    course_management_subtype="",
     miss_freq="",
     confidence=None,
     handicap=None,
@@ -106,6 +110,8 @@ def save_session_to_csv(
         "Scrambling Opportunities": scrambling_opportunities if scrambling_opportunities not in (None, "") else "N/A",
         "Problem Area": _blank_if_none(problem_area),
         "Primary Macro-Fault": primary_miss if primary_miss else "N/A",
+        "Primary Value Chain Stage": primary_stage if primary_stage else "N/A",
+        "Course Mgmt Subtype": course_management_subtype if course_management_subtype else "N/A",
         "Secondary Fault": secondary_miss if secondary_miss else "N/A",
         "Miss Frequency": _blank_if_none(miss_freq),
         "Primary Drill": primary_drill if primary_drill else "N/A",
@@ -183,7 +189,7 @@ def render_progress_loop(df_history):
     """Front-and-center 'did the fix actually work' banner.
 
     Closes the loop between diagnosis and outcome: shows whether the
-    fault flagged last time recurred, whether the assigned drill was
+    priority opportunity flagged last time recurred, whether the assigned drill was
     logged as completed, and how the score is trending. This is meant
     to be the first thing a user sees after their history exists, so
     the app reads as adaptive coaching rather than a one-shot report.
@@ -229,11 +235,11 @@ def render_progress_loop(df_history):
             tag_html = ""
 
         # Custom markup instead of st.metric: st.metric's big-number style
-        # truncates/clips long drill-fault names, so we render this as a
+        # truncates/clips long drill/opportunity names, so we render this as a
         # normal-sized, wrapping label instead.
         st.markdown(
             "<div style='font-size: 0.75rem; color: #808495; margin-bottom: 2px;'>"
-            "Primary Fault</div>"
+            "Primary Opportunity</div>"
             f"<div style='font-size: 0.85rem; font-weight: 600; line-height: 1.25;"
             f" word-wrap: break-word; overflow-wrap: break-word; hyphens: auto;'>{last_fault}</div>"
             f"<div style='font-size: 0.8rem; margin-top: 2px;'>{tag_html}</div>",
@@ -248,12 +254,12 @@ def render_progress_loop(df_history):
         )
     elif previous is not None and last_fault == previous.get("Primary Macro-Fault", "N/A") and last_fault != "N/A":
         st.warning(
-            f"⚠️ **{last_fault}** was your #1 fault again last time, even after"
+            f"⚠️ **{last_fault}** was your #1 opportunity again last time, even after"
             f" logging '{drill_done}' on the assigned drill. Worth flagging to your"
             " caddie in this round's story so it adjusts the fix."
         )
     else:
-        st.success("✅ No repeat faults from last time — keep logging to build the trend.")
+        st.success("✅ No repeat priority opportunities from last time — keep logging to build the trend.")
 
     st.markdown("---")
 
@@ -264,15 +270,18 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
     lines.append("⛳ BIRDIE BUDDY RANGE PRACTICE CARD")
     lines.append("=" * 50)
     lines.append(f"Caddie Persona: {caddie}")
-    lines.append(f"Primary Macro-Fault: {diag.get('primary_miss', 'N/A')}")
+    lines.append(f"Primary Scoring Opportunity: {diag.get('primary_miss', 'N/A')}")
+    lines.append(f"Primary Value Chain Stage: {diag.get('primary_miss_stage', 'N/A')}")
+    if diag.get("course_management_subtype"):
+        lines.append(f"Course Management Subtype: {diag.get('course_management_subtype')}")
     if diag.get("secondary_miss"):
-        lines.append(f"Secondary Fault: {diag.get('secondary_miss')}")
+        lines.append(f"Secondary Opportunity: {diag.get('secondary_miss')}")
     lines.append(
         f"Total Allocation: {res['total_balls']} Balls | {res['total_time']} Mins"
         f" (@ {res['sec_per_ball']}s/ball)"
     )
     lines.append("-" * 50)
-    lines.append("\nVALUE CHAIN LEAK BREAKDOWN:")
+    lines.append("\nVALUE CHAIN OPPORTUNITY BREAKDOWN:")
     vc = diag.get("value_chain_analysis", {})
     lines.append(f"- Off-the-Tee Performance (Primary Drive): {vc.get('off_the_tee', 'N/A')}")
     lines.append(f"- Approach Precision (Mid Game): {vc.get('approach', 'N/A')}")
@@ -285,9 +294,9 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
     lines.append(
         f"- Mental Infrastructure (Support Systems): {vc.get('mental_infrastructure', 'N/A')}"
     )
-    lines.append(f"- #1 Leak Stage: {vc.get('primary_leak_stage', 'N/A')}")
+    lines.append(f"- #1 Priority Stage: {vc.get('primary_leak_stage', 'N/A')}")
     if vc.get("leak_rationale"):
-        lines.append(f"- Why This Stage Wins ROI: {vc.get('leak_rationale')}")
+        lines.append(f"- Why This Stage Ranks First: {vc.get('leak_rationale')}")
     blind_spot = diag.get("diagnostic_blind_spot")
     if blind_spot:
         lines.append(f"\nBLIND SPOT FLAGGED (not in your story, found in your numbers):")
@@ -391,8 +400,10 @@ if not df_history.empty:
                 "Putts": st.column_config.TextColumn("Putts"),
                 "Penalty Strokes": st.column_config.TextColumn("Penalties"),
                 "Problem Area": st.column_config.TextColumn("Problem Area"),
-                "Primary Macro-Fault": st.column_config.TextColumn("Primary Fault 🎯"),
-                "Secondary Fault": st.column_config.TextColumn("Secondary Fault ⚠️"),
+                "Primary Macro-Fault": st.column_config.TextColumn("Primary Opportunity 🎯"),
+                "Primary Value Chain Stage": st.column_config.TextColumn("Value Chain Stage"),
+                "Course Mgmt Subtype": st.column_config.TextColumn("Strategy Subtype"),
+                "Secondary Fault": st.column_config.TextColumn("Secondary Opportunity ⚠️"),
                 "Miss Frequency": st.column_config.TextColumn("Miss Frequency"),
                 "Primary Drill": st.column_config.TextColumn("Primary Drill 🛠️"),
                 "ROI Opportunity": st.column_config.TextColumn("ROI Fix 📈"),
@@ -417,10 +428,22 @@ if not df_history.empty:
             .value_counts()
         )
         if not fault_counts.empty:
-            st.caption("Most frequent primary faults")
+            st.caption("Most frequent primary opportunities")
             st.bar_chart(fault_counts)
         else:
-            st.caption("No faults logged yet.")
+            st.caption("No primary opportunities logged yet.")
+
+        if "Course Mgmt Subtype" in df_history.columns:
+            strategy_counts = (
+                df_history[df_history["Course Mgmt Subtype"].notna()]
+                ["Course Mgmt Subtype"]
+                .replace("N/A", pd.NA)
+                .dropna()
+                .value_counts()
+            )
+            if not strategy_counts.empty:
+                st.caption("Course-management decision patterns")
+                st.bar_chart(strategy_counts)
 else:
     st.sidebar.caption(
         "No session history recorded yet. Complete a round diagnosis to populate"
@@ -444,9 +467,33 @@ render_progress_loop(df_history)
 # -------------------------------------------------------------
 # SCORE-ROI PRIORITY ENGINE
 # -------------------------------------------------------------
+VALUE_CHAIN_STAGES = [
+    ("Off-the-Tee Performance (Primary Drive)", "off_the_tee", "🏌️", "Off-the-Tee"),
+    ("Approach Precision (Mid Game)", "approach", "🎯", "Approach"),
+    ("Scoring/Scrambling (Short Game/Putting)", "scoring_scrambling", "⛳", "Scoring / Scrambling"),
+    ("Course Management / Strategic Decision-Making", "course_management", "🗺️", "Course Management"),
+    ("Mental Infrastructure (Support Systems)", "mental_infrastructure", "🧠", "Mental"),
+]
+
+COURSE_MANAGEMENT_SUBTYPES = [
+    "Target Selection",
+    "Club Selection",
+    "Hazard Avoidance",
+    "Layup/Go Decision",
+    "Recovery Decision",
+    "Aggression/Pin Selection",
+]
+
+
 def _interp_handicap_benchmark(handicap, benchmarks):
-    """Linearly interpolate between published Shot Scope handicap benchmarks."""
-    h = max(0.0, min(25.0, float(handicap or 0.0)))
+    """Linearly interpolate between published Shot Scope handicap benchmarks.
+
+    Missing handicap stays missing. A golfer is never silently benchmarked as
+    scratch simply because the handicap field was left blank.
+    """
+    if handicap in (None, ""):
+        return None
+    h = max(0.0, min(25.0, float(handicap)))
     keys = sorted(benchmarks)
     if h <= keys[0]:
         return float(benchmarks[keys[0]])
@@ -457,6 +504,13 @@ def _interp_handicap_benchmark(handicap, benchmarks):
             frac = (h - lo) / (hi - lo)
             return float(benchmarks[lo] + frac * (benchmarks[hi] - benchmarks[lo]))
     return float(benchmarks[keys[-1]])
+
+
+def _fmt_stat(value, suffix=""):
+    """Display a tracked zero as zero and missing data as Not tracked."""
+    if value is None or value == "":
+        return "Not tracked"
+    return f"{value}{suffix}"
 
 
 # Published Shot Scope amateur benchmarks. These are peer benchmarks, not
@@ -472,137 +526,181 @@ HANDICAP_BENCHMARKS = {
 
 
 def calculate_score_roi(round_score, fairways_hit, gir, putts, penalty_strokes,
-                       ob_lost_balls=0, three_putts=0, failed_up_downs=0,
-                       scrambling_opportunities=0, handicap=None):
-    """Estimate handicap-relative practice ROI from round-level evidence.
+                       ob_lost_balls=None, three_putts=None, failed_up_downs=None,
+                       scrambling_opportunities=None, handicap=None):
+    """Estimate practice ROI from round-level evidence.
 
-    The excess-strokes figures are transparent model estimates, not literal
-    Strokes Gained measurements. They estimate how many strokes the observed
-    category is above the golfer's handicap benchmark. Shot-level SG remains
-    the preferred evidence when available.
+    Handicap-relative estimates are only produced when a handicap was actually
+    supplied. Direct scoring events can still influence priority without one.
+    The putting estimate deliberately uses the larger of total-putt excess and
+    3-putt excess instead of adding both, preventing the same bad putts from
+    being counted twice.
     """
-    hcp = float(handicap or 0.0)
+    has_hcp = handicap not in (None, "")
+    hcp = float(handicap) if has_hcp else None
     score = 0.0
     reasons = []
     gaps = {}
-    excess = {}
+    excess = {
+        "Penalty / Trouble": None,
+        "Approach / GIR": None,
+        "Short Game / Scrambling": None,
+        "Putting": None,
+        "Driving / FIR": None,
+    }
 
-    # Direct penalty tax: this is the strongest round-level stroke evidence.
-    penalty_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["penalty_strokes"])
+    # Penalties: actual score events remain high-priority. The "excess vs peer"
+    # estimate is only calculated when a handicap benchmark exists.
     if penalty_strokes is not None:
-        penalty_gap = max(0.0, float(penalty_strokes) - penalty_bench)
-        gaps["penalty_strokes_vs_handicap"] = round(float(penalty_strokes) - penalty_bench, 2)
-        excess["Penalty / Trouble"] = round(penalty_gap, 2)
-        if penalty_gap > 0:
-            score += min(40.0, penalty_gap * 16.0)
-            reasons.append(f"Penalty strokes {penalty_strokes:.1f} vs {penalty_bench:.1f} handicap benchmark = +{penalty_gap:.1f} excess strokes")
+        if has_hcp:
+            penalty_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["penalty_strokes"])
+            penalty_gap = max(0.0, float(penalty_strokes) - penalty_bench)
+            gaps["penalty_strokes_vs_handicap"] = round(float(penalty_strokes) - penalty_bench, 2)
+            excess["Penalty / Trouble"] = round(penalty_gap, 2)
+            if penalty_gap > 0:
+                score += min(40.0, penalty_gap * 16.0)
+                reasons.append(
+                    f"Penalty strokes {float(penalty_strokes):.1f} vs {penalty_bench:.1f} handicap benchmark = "
+                    f"+{penalty_gap:.1f} estimated excess strokes"
+                )
+            else:
+                reasons.append(
+                    f"Penalty strokes {float(penalty_strokes):.1f} are at/below the {penalty_bench:.1f} handicap benchmark"
+                )
+        elif float(penalty_strokes) > 0:
+            score += min(40.0, float(penalty_strokes) * 14.0)
+            reasons.append(
+                f"{float(penalty_strokes):.0f} penalty stroke(s) are direct score events; "
+                "handicap-relative excess is unavailable because no handicap was provided"
+            )
 
-    # OB/lost balls explain trouble, but are not added again as full strokes.
-    if ob_lost_balls:
-        if penalty_strokes and ob_lost_balls >= penalty_strokes:
-            reasons.append(f"{ob_lost_balls} OB/lost ball event(s) likely explain penalty leakage; not double-counted")
+    # OB/lost balls identify the source of trouble but do not add a second full
+    # stroke estimate when penalties already capture the scoring cost.
+    if ob_lost_balls is not None and float(ob_lost_balls) > 0:
+        if penalty_strokes is not None and float(penalty_strokes) > 0:
+            reasons.append(
+                f"{int(ob_lost_balls)} OB/lost ball event(s) help explain the penalty leakage; not double-counted"
+            )
         else:
-            score += min(10.0, ob_lost_balls * 5.0)
-            reasons.append(f"{ob_lost_balls} OB/lost ball event(s) = direct trouble signal")
+            score += min(10.0, float(ob_lost_balls) * 5.0)
+            reasons.append(f"{int(ob_lost_balls)} OB/lost ball event(s) = direct trouble signal")
 
-    # Three-putts: each event contains at least one extra putt versus a 2-putt,
-    # so use the event count as a conservative direct-stroke estimate.
-    if three_putts:
-        excess["3-Putting"] = round(float(three_putts), 2)
-        score += min(24.0, three_putts * 10.0)
-        reasons.append(f"{three_putts} three-putt(s) = approximately {three_putts:.1f} avoidable stroke(s), before distance context")
-    else:
-        excess["3-Putting"] = 0.0
-
-    # GIR: translate excess missed greens into a conservative stroke proxy.
+    # Approach / GIR.
     if gir is not None:
-        gir_pct = float(gir) / 18.0 * 100.0
-        gir_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["gir_pct"])
-        expected_gir = 18.0 * gir_bench / 100.0
-        excess_missed_greens = max(0.0, expected_gir - float(gir))
-        # 0.35 is deliberately conservative: a missed green is not an
-        # automatic full stroke because short-game skill can recover it.
-        gir_excess_strokes = excess_missed_greens * 0.35
-        gir_gap = gir_pct - gir_bench
-        gaps["gir_pct_vs_handicap"] = round(gir_gap, 1)
-        excess["Approach / GIR"] = round(gir_excess_strokes, 2)
-        if gir_gap < -15:
-            score += 32.0
-            reasons.append(f"GIR {gir_pct:.0f}% vs {gir_bench:.0f}% benchmark = ~{gir_excess_strokes:.1f} estimated excess approach strokes")
-        elif gir_gap < -8:
-            score += 22.0
-            reasons.append(f"GIR {gir_pct:.0f}% vs {gir_bench:.0f}% benchmark = ~{gir_excess_strokes:.1f} estimated excess approach strokes")
-        elif gir_gap < -3:
-            score += 11.0
-            reasons.append(f"GIR {gir_pct:.0f}% vs {gir_bench:.0f}% benchmark = ~{gir_excess_strokes:.1f} estimated excess approach strokes")
-        elif gir_gap >= 0:
-            reasons.append(f"GIR {gir_pct:.0f}% is at/above the {gir_bench:.0f}% handicap benchmark")
-    else:
-        excess["Approach / GIR"] = 0.0
+        if has_hcp:
+            gir_pct = float(gir) / 18.0 * 100.0
+            gir_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["gir_pct"])
+            expected_gir = 18.0 * gir_bench / 100.0
+            excess_missed_greens = max(0.0, expected_gir - float(gir))
+            gir_excess_strokes = excess_missed_greens * 0.35
+            gir_gap = gir_pct - gir_bench
+            gaps["gir_pct_vs_handicap"] = round(gir_gap, 1)
+            excess["Approach / GIR"] = round(gir_excess_strokes, 2)
+            if gir_gap < -15:
+                score += 32.0
+                reasons.append(f"GIR {gir_pct:.0f}% vs {gir_bench:.0f}% benchmark = ~{gir_excess_strokes:.1f} estimated excess approach strokes")
+            elif gir_gap < -8:
+                score += 22.0
+                reasons.append(f"GIR {gir_pct:.0f}% vs {gir_bench:.0f}% benchmark = ~{gir_excess_strokes:.1f} estimated excess approach strokes")
+            elif gir_gap < -3:
+                score += 11.0
+                reasons.append(f"GIR {gir_pct:.0f}% vs {gir_bench:.0f}% benchmark = ~{gir_excess_strokes:.1f} estimated excess approach strokes")
+            else:
+                reasons.append(f"GIR {gir_pct:.0f}% is near/above the {gir_bench:.0f}% handicap benchmark")
+        else:
+            reasons.append("GIR was tracked, but no handicap was supplied for a peer-relative approach estimate")
 
-    # Short game: compare observed save rate to the handicap benchmark, then
-    # estimate excess failed saves. One excess failure is modeled as 0.7 stroke
-    # because a successful up-and-down is not always par-saving from identical lies.
-    if scrambling_opportunities and failed_up_downs is not None:
+    # Short game / scrambling.
+    if scrambling_opportunities is not None and int(scrambling_opportunities) > 0 and failed_up_downs is not None:
         opps = max(1, int(scrambling_opportunities))
         fails = min(opps, int(failed_up_downs))
         observed_ud = (opps - fails) / opps * 100.0
-        ud_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["up_down_pct"])
-        expected_fails = opps * (1.0 - ud_bench / 100.0)
-        excess_failures = max(0.0, float(fails) - expected_fails)
-        ud_excess_strokes = excess_failures * 0.70
-        ud_gap = observed_ud - ud_bench
-        gaps["up_down_pct_vs_handicap"] = round(ud_gap, 1)
-        excess["Short Game / Scrambling"] = round(ud_excess_strokes, 2)
-        if ud_gap < -15:
-            score += 24.0
-            reasons.append(f"Up-and-down {observed_ud:.0f}% vs {ud_bench:.0f}% benchmark = ~{ud_excess_strokes:.1f} estimated excess short-game strokes")
-        elif ud_gap < -8:
-            score += 16.0
-            reasons.append(f"Up-and-down {observed_ud:.0f}% vs {ud_bench:.0f}% benchmark = ~{ud_excess_strokes:.1f} estimated excess short-game strokes")
-        elif ud_gap < -3:
-            score += 8.0
-            reasons.append(f"Up-and-down {observed_ud:.0f}% vs {ud_bench:.0f}% benchmark = ~{ud_excess_strokes:.1f} estimated excess short-game strokes")
+        if has_hcp:
+            ud_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["up_down_pct"])
+            expected_fails = opps * (1.0 - ud_bench / 100.0)
+            excess_failures = max(0.0, float(fails) - expected_fails)
+            ud_excess_strokes = excess_failures * 0.70
+            ud_gap = observed_ud - ud_bench
+            gaps["up_down_pct_vs_handicap"] = round(ud_gap, 1)
+            excess["Short Game / Scrambling"] = round(ud_excess_strokes, 2)
+            if ud_gap < -15:
+                score += 24.0
+                reasons.append(f"Up-and-down {observed_ud:.0f}% vs {ud_bench:.0f}% benchmark = ~{ud_excess_strokes:.1f} estimated excess short-game strokes")
+            elif ud_gap < -8:
+                score += 16.0
+                reasons.append(f"Up-and-down {observed_ud:.0f}% vs {ud_bench:.0f}% benchmark = ~{ud_excess_strokes:.1f} estimated excess short-game strokes")
+            elif ud_gap < -3:
+                score += 8.0
+                reasons.append(f"Up-and-down {observed_ud:.0f}% vs {ud_bench:.0f}% benchmark = ~{ud_excess_strokes:.1f} estimated excess short-game strokes")
+            else:
+                reasons.append(f"Up-and-down {observed_ud:.0f}% is near/above the {ud_bench:.0f}% handicap benchmark")
         else:
-            reasons.append(f"Up-and-down {observed_ud:.0f}% is near/above the {ud_bench:.0f}% handicap benchmark")
-    else:
-        excess["Short Game / Scrambling"] = 0.0
-        if failed_up_downs:
-            reasons.append("Failed up-and-downs supplied without total opportunities — add opportunities for excess-stroke estimate")
+            reasons.append(
+                f"Up-and-down rate was {observed_ud:.0f}%, but no handicap was supplied for a peer-relative short-game estimate"
+            )
+    elif failed_up_downs is not None and int(failed_up_downs) > 0:
+        reasons.append("Failed up-and-downs were tracked without scrambling opportunities, so no save-rate estimate was calculated")
 
-    # Total putts: excess putts are a useful category signal, but are kept
-    # separate from 3-putts so the UI can show why the putting diagnosis exists.
+    # Putting: de-duplicate total putts and 3-putts. Each is evidence for the
+    # same putting bucket, so the modeled stroke estimate is the GREATER signal,
+    # not the sum of both.
+    putt_gap = None
+    total_putt_score = 0.0
     if putts is not None:
-        putt_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["putts_round"])
-        putt_gap = max(0.0, float(putts) - putt_bench)
-        gaps["putts_vs_handicap"] = round(float(putts) - putt_bench, 1)
-        excess["Putting / Total"] = round(putt_gap, 2)
-        if putt_gap >= 5:
-            score += 11.0
-            reasons.append(f"{putts} putts vs {putt_bench:.1f} benchmark = +{putt_gap:.1f} excess putts; check 3-putts and approach proximity")
-        elif putt_gap >= 3:
-            score += 6.0
-            reasons.append(f"{putts} putts vs {putt_bench:.1f} benchmark = +{putt_gap:.1f} excess putts")
-        elif putt_gap <= 0:
-            reasons.append(f"{putts} putts are at/below the {putt_bench:.1f} handicap benchmark")
-    else:
-        excess["Putting / Total"] = 0.0
+        if has_hcp:
+            putt_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["putts_round"])
+            putt_gap = max(0.0, float(putts) - putt_bench)
+            gaps["putts_vs_handicap"] = round(float(putts) - putt_bench, 1)
+            if putt_gap >= 5:
+                total_putt_score = 11.0
+                reasons.append(f"{int(putts)} putts vs {putt_bench:.1f} benchmark = +{putt_gap:.1f} excess putts")
+            elif putt_gap >= 3:
+                total_putt_score = 6.0
+                reasons.append(f"{int(putts)} putts vs {putt_bench:.1f} benchmark = +{putt_gap:.1f} excess putts")
+            elif putt_gap <= 0:
+                reasons.append(f"{int(putts)} putts are at/below the {putt_bench:.1f} handicap benchmark")
+        else:
+            reasons.append("Total putts were tracked, but no handicap was supplied for a peer-relative putting estimate")
 
-    # FIR remains a weak signal; estimate no strokes from accuracy alone.
+    three_putt_est = None
+    three_putt_score = 0.0
+    if three_putts is not None:
+        three_putt_est = float(three_putts)
+        if three_putt_est > 0:
+            three_putt_score = min(24.0, three_putt_est * 10.0)
+            reasons.append(
+                f"{int(three_putts)} three-putt(s) = direct putting leakage; used as a diagnostic signal without adding it on top of total-putt excess"
+            )
+
+    putting_candidates = [x for x in (putt_gap, three_putt_est) if x is not None]
+    if putting_candidates:
+        excess["Putting"] = round(max(putting_candidates), 2)
+        score += max(total_putt_score, three_putt_score)
+        if putt_gap is not None and three_putt_est is not None and putt_gap > 0 and three_putt_est > 0:
+            gaps["putting_dedup_rule"] = "max(total-putt gap, 3-putts)"
+
+    # FIR remains a weak signal and never receives a stroke estimate from
+    # accuracy alone. It can still raise priority when paired with real trouble.
     if fairways_hit is not None:
-        fir_pct = float(fairways_hit) / 14.0 * 100.0
-        fir_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["fir_pct"])
-        fir_gap = fir_pct - fir_bench
-        gaps["fir_pct_vs_handicap"] = round(fir_gap, 1)
-        excess["Driving / FIR"] = 0.0
-        if fir_gap < -15 and (penalty_strokes or ob_lost_balls):
-            score += 8.0
-            reasons.append(f"FIR {fir_pct:.0f}% vs {fir_bench:.0f}% benchmark plus trouble = tee-shot risk; no strokes credited from FIR alone")
-        elif fir_gap < -10:
-            score += 2.0
-            reasons.append(f"FIR {fir_pct:.0f}% is below the {fir_bench:.0f}% benchmark, but accuracy alone is weak ROI evidence")
+        if has_hcp:
+            fir_pct = float(fairways_hit) / 14.0 * 100.0
+            fir_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["fir_pct"])
+            fir_gap = fir_pct - fir_bench
+            gaps["fir_pct_vs_handicap"] = round(fir_gap, 1)
+            excess["Driving / FIR"] = 0.0
+            if fir_gap < -15 and ((penalty_strokes or 0) > 0 or (ob_lost_balls or 0) > 0):
+                score += 8.0
+                reasons.append(f"FIR {fir_pct:.0f}% vs {fir_bench:.0f}% benchmark plus trouble = tee-shot risk; no strokes credited from FIR alone")
+            elif fir_gap < -10:
+                score += 2.0
+                reasons.append(f"FIR {fir_pct:.0f}% is below the {fir_bench:.0f}% benchmark, but accuracy alone is weak ROI evidence")
+            else:
+                reasons.append(f"FIR {fir_pct:.0f}% is near/above the {fir_bench:.0f}% handicap benchmark")
+        else:
+            reasons.append("Fairways were tracked, but no handicap was supplied for a peer-relative FIR comparison")
 
-    total_excess = round(sum(excess.values()), 2)
+    numeric_excess = [float(v) for v in excess.values() if isinstance(v, (int, float)) and v > 0]
+    total_excess = round(sum(numeric_excess), 2)
     score = round(min(100.0, score), 1)
     if score >= 45:
         tier = "CRITICAL — Direct / Excess Score Leak"
@@ -611,11 +709,17 @@ def calculate_score_roi(round_score, fairways_hit, gir, putts, penalty_strokes,
     elif score >= 18:
         tier = "MEDIUM — Worth Targeting"
     else:
-        tier = "LOW — Near Handicap Benchmark / Need More Evidence"
+        tier = "LOW — Near Benchmark / Need More Evidence"
 
-    excess_display = " | ".join(
-        f"{k}: {v:.1f}" for k, v in excess.items() if v > 0
-    ) or "No material excess-stroke estimate"
+    excess_display_parts = []
+    for key, value in excess.items():
+        if isinstance(value, (int, float)) and value > 0:
+            excess_display_parts.append(f"{key}: {value:.1f}")
+    excess_display = " | ".join(excess_display_parts) or (
+        "No material handicap-relative excess estimate" if has_hcp
+        else "Handicap benchmark unavailable; direct-event priority only"
+    )
+
     return {
         "score": score,
         "tier": tier,
@@ -624,6 +728,80 @@ def calculate_score_roi(round_score, fairways_hit, gir, putts, penalty_strokes,
         "excess_strokes": excess,
         "total_excess_strokes": total_excess,
         "excess_display": excess_display,
+        "has_handicap_benchmark": has_hcp,
+    }
+
+
+def build_value_chain_roi_summary(roi_data, diag):
+    """Map grounded numerical signals into the same five-stage Value Chain UI.
+
+    Gemini is used only to attribute the cause of penalty/trouble events. It is
+    not allowed to invent stroke values; those remain sourced from roi_data.
+    """
+    values = {stage: 0.0 for stage, _, _, _ in VALUE_CHAIN_STAGES}
+    has_numeric = {stage: False for stage, _, _, _ in VALUE_CHAIN_STAGES}
+    evidence = {stage: [] for stage, _, _, _ in VALUE_CHAIN_STAGES}
+    raw = roi_data.get("excess_strokes", {}) if roi_data else {}
+
+    stage_by_key = {key: stage for stage, key, _, _ in VALUE_CHAIN_STAGES}
+
+    def add(stage, raw_key, label):
+        value = raw.get(raw_key)
+        if isinstance(value, (int, float)):
+            has_numeric[stage] = True
+            values[stage] += float(value)
+            evidence[stage].append(label)
+
+    add(stage_by_key["approach"], "Approach / GIR", "GIR vs handicap benchmark")
+    add(stage_by_key["scoring_scrambling"], "Short Game / Scrambling", "scrambling vs handicap benchmark")
+    add(stage_by_key["scoring_scrambling"], "Putting", "de-duplicated putting signal")
+    add(stage_by_key["off_the_tee"], "Driving / FIR", "FIR context (no stroke value from accuracy alone)")
+
+    penalty_value = raw.get("Penalty / Trouble")
+    penalty_attribution = (diag or {}).get("penalty_attribution", "unknown")
+    attribution_map = {
+        "course_management": stage_by_key["course_management"],
+        "off_the_tee": stage_by_key["off_the_tee"],
+        "approach": stage_by_key["approach"],
+        "scoring_scrambling": stage_by_key["scoring_scrambling"],
+    }
+    penalty_stage = attribution_map.get(penalty_attribution)
+    if penalty_stage is None:
+        fallback = (diag or {}).get("primary_miss_stage")
+        if fallback in values and fallback != stage_by_key["mental_infrastructure"]:
+            penalty_stage = fallback
+
+    unattributed_penalty = 0.0
+    if isinstance(penalty_value, (int, float)):
+        if penalty_stage:
+            has_numeric[penalty_stage] = True
+            values[penalty_stage] += float(penalty_value)
+            evidence[penalty_stage].append("penalty/trouble attribution")
+        elif penalty_value > 0:
+            unattributed_penalty = float(penalty_value)
+
+    primary_stage = (diag or {}).get("primary_miss_stage") or (diag or {}).get("value_chain_analysis", {}).get("primary_leak_stage")
+    secondary_stage = (diag or {}).get("secondary_miss_stage")
+
+    rows = []
+    for stage, key, icon, short_name in VALUE_CHAIN_STAGES:
+        if has_numeric[stage]:
+            modeled = f"+{values[stage]:.1f}" if values[stage] > 0 else "0.0"
+        else:
+            modeled = "—"
+        rank = "#1 Priority" if stage == primary_stage else ("#2 Priority" if stage == secondary_stage else "")
+        rows.append({
+            "Stage": f"{icon} {short_name}",
+            "Modeled Strokes": modeled,
+            "Role": rank,
+        })
+
+    return {
+        "values": values,
+        "has_numeric": has_numeric,
+        "evidence": evidence,
+        "rows": rows,
+        "unattributed_penalty": unattributed_penalty,
     }
 
 # -------------------------------------------------------------
@@ -1852,59 +2030,98 @@ if st.session_state["diag_step"] == 1:
         ),
     )
 
-    st.markdown("##### 🔢 Round Numbers (optional, but this powers the score-ROI analysis)")
-    col_n1, col_n2, col_n3 = st.columns(3)
-    col_n4, col_n5, col_n6 = st.columns(3)
-    with col_n1:
-        round_score = st.number_input(
-            "Score", min_value=0, max_value=200, value=0, step=1,
-            help="Total strokes. Leave at 0 if you'd rather skip this.",
-        )
-    with col_n2:
-        fairways_hit = st.number_input(
-            "Fairways Hit", min_value=0, max_value=18, value=0, step=1
-        )
-    with col_n3:
-        gir = st.number_input(
-            "GIR", min_value=0, max_value=18, value=0, step=1,
-            help="Greens hit in regulation.",
-        )
-    with col_n4:
-        putts = st.number_input(
-            "Putts", min_value=0, max_value=60, value=0, step=1,
-            help="Interpret with GIR; high putts do not automatically mean poor putting.",
-        )
-    with col_n5:
-        penalty_strokes = st.number_input(
-            "Penalty Strokes", min_value=0, max_value=20, value=0, step=1
-        )
-    with col_n6:
-        handicap = st.number_input(
-            "Handicap", min_value=0.0, max_value=54.0, value=0.0, step=0.1,
-            help="Optional context for handicap-relative benchmarking.",
-        )
+    stats_tracked = st.toggle(
+        "📋 I tracked round stats",
+        value=False,
+        help="Turn this on when these numbers are from the round. Once enabled, a zero is treated as a real zero rather than missing data.",
+    )
 
-    st.markdown("##### 🎯 Scoring Events (high-value hidden-fault signals)")
-    col_e1, col_e2, col_e3, col_e4 = st.columns(4)
-    with col_e1:
-        ob_lost_balls = st.number_input(
-            "OB / Lost Balls", min_value=0, max_value=20, value=0, step=1,
-            help="Count actual out-of-bounds or lost-ball events separately from total penalty strokes.",
-        )
-    with col_e2:
-        three_putts = st.number_input(
-            "3-Putts", min_value=0, max_value=18, value=0, step=1,
-            help="A concrete extra-stroke event; more useful for ROI than total putts alone.",
-        )
-    with col_e3:
-        failed_up_downs = st.number_input(
-            "Failed U&Ds", min_value=0, max_value=18, value=0, step=1,
-            help="Failed Up-and-Downs: count missed up-and-down opportunities after missing the green.",
-        )
-    with col_e4:
-        scrambling_opportunities = st.number_input(
-            "Scramble Opps.", min_value=0, max_value=18, value=0, step=1,
-            help="Scrambling Opportunities: number of holes where you missed the green and had a realistic up-and-down opportunity. Needed for handicap-relative short-game benchmarking.",
+    # Missing and zero are intentionally different. When the toggle is off,
+    # every numerical field stays None; when it is on, 0 is valid for FIR, GIR,
+    # penalties, OB, 3-putts, and scrambling outcomes.
+    round_score = None
+    fairways_hit = None
+    gir = None
+    putts = None
+    penalty_strokes = None
+    ob_lost_balls = None
+    three_putts = None
+    failed_up_downs = None
+    scrambling_opportunities = None
+    handicap = None
+    handicap_known = False
+
+    if stats_tracked:
+        st.markdown("##### 🔢 Round Numbers")
+        col_n1, col_n2, col_n3 = st.columns(3)
+        col_n4, col_n5, col_n6 = st.columns(3)
+        with col_n1:
+            score_input = st.number_input(
+                "Score", min_value=0, max_value=200, value=0, step=1,
+                help="Optional. Leave at 0 if you do not want to log total score.",
+            )
+            round_score = score_input if score_input > 0 else None
+        with col_n2:
+            fairways_hit = st.number_input(
+                "Fairways Hit", min_value=0, max_value=18, value=0, step=1,
+                help="A tracked zero remains a real zero.",
+            )
+        with col_n3:
+            gir = st.number_input(
+                "GIR", min_value=0, max_value=18, value=0, step=1,
+                help="Greens hit in regulation. A tracked zero remains a real zero.",
+            )
+        with col_n4:
+            putts = st.number_input(
+                "Putts", min_value=0, max_value=60, value=0, step=1,
+                help="Interpret with GIR; high putts do not automatically mean poor putting.",
+            )
+        with col_n5:
+            penalty_strokes = st.number_input(
+                "Penalty Strokes", min_value=0, max_value=20, value=0, step=1,
+                help="Use total penalty strokes from the round. Zero is valid when tracked.",
+            )
+        with col_n6:
+            st.markdown("<div style='height: 0.15rem'></div>", unsafe_allow_html=True)
+            handicap_known = st.checkbox(
+                "Use handicap benchmark",
+                value=False,
+                help="Leave unchecked if you do not know your current handicap. The app will not assume scratch.",
+            )
+            if handicap_known:
+                handicap = st.number_input(
+                    "Handicap Index", min_value=0.0, max_value=54.0, value=18.0, step=0.1,
+                    help="Used only for peer-relative benchmark estimates.",
+                )
+            else:
+                st.caption("Handicap: not provided")
+
+        st.markdown("##### 🎯 Scoring Events")
+        st.caption("High-value signals that help expose hidden scoring opportunities.")
+        col_e1, col_e2, col_e3, col_e4 = st.columns(4)
+        with col_e1:
+            ob_lost_balls = st.number_input(
+                "OB / Lost Balls", min_value=0, max_value=20, value=0, step=1,
+                help="Count actual out-of-bounds or lost-ball events separately from total penalty strokes.",
+            )
+        with col_e2:
+            three_putts = st.number_input(
+                "3-Putts", min_value=0, max_value=18, value=0, step=1,
+                help="A concrete putting event. It is not added on top of total-putt excess in the stroke estimate.",
+            )
+        with col_e3:
+            failed_up_downs = st.number_input(
+                "Failed U&Ds", min_value=0, max_value=18, value=0, step=1,
+                help="Failed Up-and-Downs: count missed up-and-down opportunities after missing the green.",
+            )
+        with col_e4:
+            scrambling_opportunities = st.number_input(
+                "Scramble Opps.", min_value=0, max_value=18, value=0, step=1,
+                help="Scrambling Opportunities: holes where you missed the green and had a realistic up-and-down opportunity.",
+            )
+    else:
+        st.caption(
+            "Turn this on if you tracked round stats. This keeps an actual 0 (for example, 0 GIR or 0 penalties) separate from 'not tracked'."
         )
 
     with st.expander(
@@ -1994,6 +2211,7 @@ if st.session_state["diag_step"] == 1:
             st.session_state["impact_feel"] = impact_feel
             st.session_state["miss_freq"] = miss_freq
             st.session_state["caddie_name"] = persona_display_name
+            st.session_state["round_stats_tracked"] = stats_tracked
             st.session_state["round_score"] = round_score
             st.session_state["round_fairways_hit"] = fairways_hit
             st.session_state["round_gir"] = gir
@@ -2004,18 +2222,23 @@ if st.session_state["diag_step"] == 1:
             st.session_state["round_failed_up_downs"] = failed_up_downs
             st.session_state["round_scrambling_opportunities"] = scrambling_opportunities
             st.session_state["round_handicap"] = handicap
+            st.session_state["round_handicap_known"] = handicap_known
 
-            round_numbers_block = f"""
-            - Score: {round_score if round_score else 'Not provided'}
-            - Fairways Hit: {fairways_hit if fairways_hit else 'Not provided'} (out of ~14 driving holes on a typical 18)
-            - Greens in Regulation: {gir if gir else 'Not provided'} (out of 18)
-            - Putts: {putts if putts else 'Not provided'}
-            - Penalty Strokes: {penalty_strokes if penalty_strokes else 'Not provided'}
-            - OB / Lost Balls: {ob_lost_balls if ob_lost_balls else 'Not provided'}
-            - 3-Putts: {three_putts if three_putts else 'Not provided'}
-            - Failed Up-and-Downs: {failed_up_downs if failed_up_downs else 'Not provided'}
-            - Scrambling Opportunities: {scrambling_opportunities if scrambling_opportunities else 'Not provided'}
-            """
+            if stats_tracked:
+                round_numbers_block = f"""
+                - Score: {_fmt_stat(round_score)}
+                - Fairways Hit: {_fmt_stat(fairways_hit)} (out of ~14 driving holes on a typical 18)
+                - Greens in Regulation: {_fmt_stat(gir)} (out of 18)
+                - Putts: {_fmt_stat(putts)}
+                - Penalty Strokes: {_fmt_stat(penalty_strokes)}
+                - OB / Lost Balls: {_fmt_stat(ob_lost_balls)}
+                - 3-Putts: {_fmt_stat(three_putts)}
+                - Failed Up-and-Downs: {_fmt_stat(failed_up_downs)}
+                - Scrambling Opportunities: {_fmt_stat(scrambling_opportunities)}
+                - Handicap: {_fmt_stat(handicap)}
+                """
+            else:
+                round_numbers_block = "No round stats were tracked for this diagnosis."
 
             question_prompt = f"""
             {active_persona['system_instruction']}
@@ -2056,7 +2279,7 @@ if st.session_state["diag_step"] == 1:
             numbers were logged, ask both questions based on the story as normal.
 
             Based on the above, craft 2 targeted diagnostic decision-tree follow-up questions in persona voice.
-            Address physical biomechanics or mental composure/focus issues depending on what they described.
+            Address swing execution, scoring skill, course-management decisions, or mental composure depending on what they described.
             For EACH question, provide 3 short, concrete multiple-choice options (Option A, Option B, Option C) to clarify their root cause without typing.
 
             Output strictly raw JSON with no markdown formatting:
@@ -2153,7 +2376,7 @@ elif st.session_state["diag_step"] == 2:
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
         if st.button(
-            "🔍 Synthesize Root Cause & Mindset Diagnosis", type="primary"
+            "🔍 Synthesize Highest-ROI Opportunities", type="primary"
         ):
             _rs = st.session_state.get("round_score")
             _fh = st.session_state.get("round_fairways_hit")
@@ -2170,70 +2393,10 @@ elif st.session_state["diag_step"] == 2:
                 st.session_state.get("round_handicap")
             )
 
-            # ---------------------------------------------------------
-            # VISIBLE HANDICAP-RELATIVE ROI BREAKDOWN
-            # ---------------------------------------------------------
-            st.markdown("### 📊 Where Your Strokes Are Actually Leaking")
-            st.caption(
-                "Handicap-relative model estimate. These are diagnostic estimates, not measured Strokes Gained."
-            )
-
-            total_excess = roi_data["total_excess_strokes"]
-            priority_col, total_col = st.columns([2, 1])
-            with priority_col:
-                st.markdown(f"**ROI Priority:** {roi_data['tier']}")
-                st.progress(min(1.0, roi_data["score"] / 100.0))
-                st.caption(f"Practice ROI score: {roi_data['score']:.1f} / 100")
-            with total_col:
-                st.metric("Estimated Excess Strokes", f"+{total_excess:.1f}")
-
-            # Show only categories that have usable evidence, while retaining
-            # zero-value categories when the golfer supplied the corresponding stat.
-            category_labels = {
-                "Penalty / Trouble": "Penalty / Trouble",
-                "3-Putting": "3-Putting",
-                "Approach / GIR": "Approach / GIR",
-                "Short Game / Scrambling": "Short Game / Scrambling",
-                "Putting / Total": "Putting / Total",
-                "Driving / FIR": "Driving / FIR",
-            }
-            visible_rows = []
-            for key, label in category_labels.items():
-                value = roi_data["excess_strokes"].get(key, 0.0)
-                if value > 0 or key in {"Driving / FIR"} and _fh is not None:
-                    visible_rows.append({
-                        "Category": label,
-                        "Estimated Excess Strokes": round(float(value), 2),
-                    })
-
-            if visible_rows:
-                roi_df = pd.DataFrame(visible_rows).sort_values(
-                    "Estimated Excess Strokes", ascending=False
-                )
-                st.dataframe(
-                    roi_df,
-                    hide_index=True,
-                    use_container_width=True,
-                    column_config={
-                        "Category": st.column_config.TextColumn("Scoring Category"),
-                        "Estimated Excess Strokes": st.column_config.NumberColumn(
-                            "Est. Excess Strokes", format="+%.2f"
-                        ),
-                    },
-                )
-
-                positive_rows = roi_df[roi_df["Estimated Excess Strokes"] > 0]
-                if not positive_rows.empty:
-                    top = positive_rows.iloc[0]
-                    st.info(
-                        f"**Largest modeled leak:** {top['Category']} at approximately "
-                        f"+{top['Estimated Excess Strokes']:.2f} excess stroke(s) versus your handicap benchmark."
-                    )
-
-            if roi_data["reasons"]:
-                with st.expander("Why the model reached this conclusion", expanded=False):
-                    for reason in roi_data["reasons"]:
-                        st.write(f"• {reason}")
+            # Preserve the grounded numerical model for the final unified scorecard.
+            # The user sees one five-stage framework after the AI has attributed
+            # penalty/trouble events to strategy vs execution.
+            st.session_state["roi_data"] = roi_data
 
             full_round_input = f"""
             User Story: "{st.session_state.get('user_round_story')}"
@@ -2245,13 +2408,15 @@ elif st.session_state["diag_step"] == 2:
             Miss Frequency: {format_selector_value(st.session_state['miss_freq'])}
             Decision Tree Q1: {q1_text} -> Selected: {ans1_selected}
             Decision Tree Q2: {q2_text} -> Selected: {ans2_selected}
-            Round Numbers: Score={_rs if _rs else 'N/A'}, Fairways Hit={_fh if _fh else 'N/A'} (of ~14),
-            GIR={_gir if _gir else 'N/A'} (of 18), Putts={_pt if _pt else 'N/A'}, Penalty Strokes={_pen if _pen else 'N/A'},
-            OB/Lost Balls={_ob if _ob else 'N/A'}, 3-Putts={_3p if _3p else 'N/A'}, Failed Up-and-Downs={_ud if _ud else 'N/A'}, Scrambling Opportunities={_scramble_opps if _scramble_opps else 'N/A'},
-            Handicap={st.session_state.get('round_handicap') or 'N/A'}
+            Round Stats Tracked: {st.session_state.get('round_stats_tracked', False)}
+            Round Numbers: Score={_fmt_stat(_rs)}, Fairways Hit={_fmt_stat(_fh)} (of ~14),
+            GIR={_fmt_stat(_gir)} (of 18), Putts={_fmt_stat(_pt)}, Penalty Strokes={_fmt_stat(_pen)},
+            OB/Lost Balls={_fmt_stat(_ob)}, 3-Putts={_fmt_stat(_3p)}, Failed Up-and-Downs={_fmt_stat(_ud)}, Scrambling Opportunities={_fmt_stat(_scramble_opps)},
+            Handicap={_fmt_stat(st.session_state.get('round_handicap'))}
             Score-ROI Engine: {roi_data['tier']} | {roi_data['score']}/100
-            Score-ROI Evidence: {'; '.join(roi_data['reasons']) if roi_data['reasons'] else 'No strong numerical leak detected'}
-            Estimated Excess Strokes: {roi_data['excess_display']} | Total model estimate: {roi_data['total_excess_strokes']:.1f}
+            Handicap Benchmark Available: {roi_data.get('has_handicap_benchmark', False)}
+            Score-ROI Evidence: {'; '.join(roi_data['reasons']) if roi_data['reasons'] else 'No strong numerical scoring signal detected'}
+            Estimated Excess Strokes: {roi_data['excess_display']} | Partial modeled total: {roi_data['total_excess_strokes']:.1f}
             """
 
             system_prompt = f"""
@@ -2314,7 +2479,12 @@ elif st.session_state["diag_step"] == 2:
 
             **Putting context rule:** Putts per round must be interpreted with GIR and short-game
             context. High putts are a flag to investigate, not proof that putting is the highest
-            ROI fault. Three-putt frequency or shot-level putting data is stronger evidence.
+            ROI opportunity. The supplied ROI engine already de-duplicates total-putt excess and
+            3-putts by using the stronger signal rather than adding both; do not add them again.
+
+            **Missing-data rule:** If handicap is Not tracked, do NOT compare the golfer to scratch
+            and do NOT invent a handicap-relative benchmark. If a zero is shown for a tracked stat,
+            treat it as a real zero. If a stat says Not tracked, do not infer a value.
 
             **Blind-Spot Directive (critical):** Players tend to talk about whatever is emotionally
             freshest. If the numerical evidence reveals a materially larger score leak that the story
@@ -2363,6 +2533,8 @@ elif st.session_state["diag_step"] == 2:
                 "leak_rationale": "string (1-2 sentences explaining why this stage outranks the others, citing the round numbers where available)"
               }},
               "diagnostic_blind_spot": "string or null — a stat-implied leak the player's story did not mention or explain",
+              "course_management_subtype": "one of: Target Selection | Club Selection | Hazard Avoidance | Layup/Go Decision | Recovery Decision | Aggression/Pin Selection | null; use null unless Course Management is a material primary or secondary opportunity",
+              "penalty_attribution": "exactly one of: course_management | off_the_tee | approach | scoring_scrambling | unknown — classify the best-supported cause of penalty/trouble strokes without inventing a stroke value",
               "roi_priority": "CRITICAL | HIGH | MEDIUM | LOW",
               "roi_score": 0.0,
               "estimated_excess_strokes": "string — report the handicap-relative model estimate by category when supported; explicitly label it as an estimate, not measured Strokes Gained",
@@ -2416,28 +2588,23 @@ elif st.session_state["diag_step"] == 2:
                         f"[Blind spot] {diag_data['diagnostic_blind_spot']}"
                     )
 
-                def _zero_to_blank(n):
-                    return n if n else ""
-
                 save_session_to_csv(
                     primary_miss=diag_data.get("primary_miss", "N/A"),
                     primary_drill=diag_data.get("recommended_primary_drill", "N/A"),
                     secondary_miss=diag_data.get("secondary_miss", ""),
                     roi_opportunity=roi_note,
-                    score=_zero_to_blank(st.session_state.get("round_score")),
-                    fairways_hit=_zero_to_blank(
-                        st.session_state.get("round_fairways_hit")
-                    ),
-                    gir=_zero_to_blank(st.session_state.get("round_gir")),
-                    putts=_zero_to_blank(st.session_state.get("round_putts")),
-                    penalty_strokes=_zero_to_blank(
-                        st.session_state.get("round_penalty_strokes")
-                    ),
-                    ob_lost_balls=_zero_to_blank(st.session_state.get("round_ob_lost_balls")),
-                    three_putts=_zero_to_blank(st.session_state.get("round_three_putts")),
-                    failed_up_downs=_zero_to_blank(st.session_state.get("round_failed_up_downs")),
-                    scrambling_opportunities=_zero_to_blank(st.session_state.get("round_scrambling_opportunities")),
+                    score=st.session_state.get("round_score"),
+                    fairways_hit=st.session_state.get("round_fairways_hit"),
+                    gir=st.session_state.get("round_gir"),
+                    putts=st.session_state.get("round_putts"),
+                    penalty_strokes=st.session_state.get("round_penalty_strokes"),
+                    ob_lost_balls=st.session_state.get("round_ob_lost_balls"),
+                    three_putts=st.session_state.get("round_three_putts"),
+                    failed_up_downs=st.session_state.get("round_failed_up_downs"),
+                    scrambling_opportunities=st.session_state.get("round_scrambling_opportunities"),
                     problem_area=st.session_state.get("club_category", ""),
+                    primary_stage=diag_data.get("primary_miss_stage", ""),
+                    course_management_subtype=diag_data.get("course_management_subtype", ""),
                     miss_freq=st.session_state.get("miss_freq", ""),
                     confidence=diag_data.get("confidence_score", ""),
                     handicap=st.session_state.get("round_handicap"),
@@ -2456,100 +2623,118 @@ elif st.session_state["diag_step"] == 2:
             st.session_state["diag_step"] = 1
             st.rerun()
 
-# --- STEP 1C: DIAGNOSTIC & SWOT DISPLAY ---
+# --- STEP 1C: UNIFIED ROUND SCORECARD ---
 if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
     diag = st.session_state["diagnosis"]
     caddie = st.session_state.get("caddie_name", persona_display_name)
+    roi_data = st.session_state.get("roi_data", {})
+    vc = diag.get("value_chain_analysis", {})
+    stage_summary = build_value_chain_roi_summary(roi_data, diag)
+
+    st.markdown("### 🧾 Round Scorecard")
+    st.caption(
+        "One five-stage view of your highest-ROI scoring opportunities. Numerical stroke estimates come from logged round data; strategy/mental attribution comes from your story and follow-up answers."
+    )
 
     intro_text = diag.get("expanded_caddie_intro", "")
-    st.success(f"**{caddie}:** \"{intro_text}\"")
+    if intro_text:
+        st.success(f"**{caddie}:** \"{intro_text}\"")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("**🎯 Primary Macro-Fault (Highest ROI Target)**")
-        p_persona_msg = diag.get(
-            "primary_miss_persona", diag.get("primary_miss", "Not detected")
+    primary_stage = diag.get("primary_miss_stage") or vc.get("primary_leak_stage", "Highest-ROI Focus")
+    primary_title = diag.get("primary_miss", "Primary scoring opportunity")
+    primary_persona = diag.get("primary_miss_persona", primary_title)
+    primary_value = stage_summary["values"].get(primary_stage, 0.0)
+    primary_has_numeric = stage_summary["has_numeric"].get(primary_stage, False)
+    primary_metric = f"~+{primary_value:.1f}" if primary_has_numeric and primary_value > 0 else (
+        "0.0" if primary_has_numeric else "Qualitative"
+    )
+
+    st.markdown(f"#### 🥇 #1 Priority: {primary_stage}")
+    st.warning(f"**{primary_title}** — {primary_persona}")
+
+    m1, m2, m3 = st.columns(3)
+    with m1:
+        st.metric("Modeled Scoring Opportunity", primary_metric)
+    with m2:
+        priority_label = diag.get("roi_priority") or roi_data.get("tier", "N/A").split(" —")[0]
+        st.metric("ROI Priority", priority_label)
+    with m3:
+        try:
+            confidence_pct = float(diag.get("confidence_score", 0)) * 100
+            confidence_label = f"{confidence_pct:.0f}%"
+        except Exception:
+            confidence_label = str(diag.get("confidence_score", "N/A"))
+        st.metric("AI Confidence", confidence_label)
+
+    subtype = diag.get("course_management_subtype")
+    if subtype and subtype != "null":
+        st.caption(f"🗺️ **Course-management subtype:** {subtype}")
+
+    roi_evidence = diag.get("roi_evidence") or vc.get("leak_rationale")
+    if roi_evidence:
+        st.markdown(f"**Evidence:** {roi_evidence}")
+    primary_causes = diag.get("primary_cause_breakdown")
+    if primary_causes:
+        st.markdown(f"**Why it matters:** {primary_causes}")
+    st.markdown(f"**Highest-ROI practice focus:** `{diag.get('recommended_primary_drill', 'N/A')}`")
+
+    secondary = diag.get("secondary_miss")
+    if secondary:
+        secondary_stage = diag.get("secondary_miss_stage", "Secondary opportunity")
+        secondary_value = stage_summary["values"].get(secondary_stage, 0.0)
+        secondary_has_numeric = stage_summary["has_numeric"].get(secondary_stage, False)
+        secondary_metric = f"~+{secondary_value:.1f} modeled strokes" if secondary_has_numeric and secondary_value > 0 else (
+            "0.0 modeled strokes" if secondary_has_numeric else "qualitative signal"
         )
-        st.warning(f"\"{p_persona_msg}\"")
-        p_plain = diag.get("primary_miss")
-        if p_plain:
-            st.markdown(f"*({p_plain})*")
+        st.info(
+            f"**🥈 #2 Priority: {secondary_stage}**  \n"
+            f"**{secondary}** • {secondary_metric} • Drill: `{diag.get('recommended_secondary_drill') or 'N/A'}`"
+        )
+        if diag.get("secondary_cause_breakdown"):
+            st.caption(diag.get("secondary_cause_breakdown"))
 
-        st.write(f"**Primary Drill:** `{diag.get('recommended_primary_drill')}`")
-        p_causes = diag.get("primary_cause_breakdown")
-        if p_causes:
-            st.caption(f"**Root Cause & ROI Impact:** {p_causes}")
-        p_stage = diag.get("primary_miss_stage")
-        if p_stage:
-            st.caption(f"📍 **Value Chain Stage:** {p_stage}")
+    st.markdown("#### Five-Stage ROI Snapshot")
+    snapshot_df = pd.DataFrame(stage_summary["rows"])
+    st.dataframe(
+        snapshot_df,
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            "Stage": st.column_config.TextColumn("Value Chain Stage"),
+            "Modeled Strokes": st.column_config.TextColumn("Est. Opportunity"),
+            "Role": st.column_config.TextColumn("Current Focus"),
+        },
+    )
 
-    with col2:
-        st.markdown("**⚠️ Secondary Fault Callout**")
-        sec_miss = diag.get("secondary_miss")
-        if sec_miss:
-            s_persona_msg = diag.get("secondary_miss_persona", sec_miss)
-            st.info(f"\"{s_persona_msg}\"")
-            st.markdown(f"*({sec_miss})*")
-
-            sec_drill = diag.get("recommended_secondary_drill")
-            st.write(f"**Secondary Drill:** `{sec_drill if sec_drill else 'N/A'}`")
-            s_causes = diag.get("secondary_cause_breakdown")
-            if s_causes:
-                st.caption(f"**Root Cause & Relative Impact:** {s_causes}")
-            s_stage = diag.get("secondary_miss_stage")
-            if s_stage:
-                st.caption(f"📍 **Value Chain Stage:** {s_stage}")
-        else:
-            st.info(
-                '"No major secondary fault detected. Fix your primary macro-fault to'
-                ' unlock your game!"'
-            )
-            st.write("**Secondary Drill:** `N/A`")
-
-    # Value Chain Leak Breakdown (replaces the old generic SWOT summary)
-    vc = diag.get("value_chain_analysis")
-    if vc:
-        st.markdown("---")
-        st.markdown("### 🧭 Value Chain Leak Breakdown")
+    if not roi_data.get("has_handicap_benchmark", False):
         st.caption(
-            "Where your strokes actually leak, stage by stage — not just what you"
-            " happened to talk about most."
+            "ℹ️ Handicap was not provided, so handicap-relative stroke estimates are intentionally omitted where a peer benchmark is required. Direct scoring events still influence priority."
+        )
+    if stage_summary.get("unattributed_penalty", 0) > 0:
+        st.caption(
+            f"ℹ️ ~+{stage_summary['unattributed_penalty']:.1f} penalty/trouble stroke(s) remain numerically unattributed because the story did not establish whether the cause was strategy or execution."
         )
 
-        leak_stage = vc.get("primary_leak_stage", "")
-        stage_order = [
-            ("Off-the-Tee Performance (Primary Drive)", "off_the_tee", "🏌️"),
-            ("Approach Precision (Mid Game)", "approach", "🎯"),
-            ("Scoring/Scrambling (Short Game/Putting)", "scoring_scrambling", "⛳"),
-            ("Course Management / Strategic Decision-Making", "course_management", "🗺️"),
-            ("Mental Infrastructure (Support Systems)", "mental_infrastructure", "🧠"),
-        ]
+    if roi_data.get("reasons"):
+        with st.expander("Why the numerical model reached this conclusion", expanded=False):
+            for reason in roi_data["reasons"]:
+                st.write(f"• {reason}")
 
-        # Five cards: 2 + 2 + 1 centered. This keeps long stage names readable
-        # in Streamlit's centered layout instead of squeezing three cards across.
-        vc_row1 = st.columns(2)
-        vc_row2 = st.columns(2)
-        vc_row3 = st.columns([1, 2, 1])
-        vc_slots = list(vc_row1) + list(vc_row2) + [vc_row3[1]]
-
-        for slot, (stage_name, key, icon) in zip(vc_slots, stage_order):
-            with slot:
-                text = vc.get(key, "N/A")
-                if stage_name == leak_stage:
-                    st.error(f"{icon} **{stage_name}**\n\n🔴 **#1 LEAK** — {text}")
-                else:
-                    st.info(f"{icon} **{stage_name}**\n\n{text}")
-
-        leak_rationale = vc.get("leak_rationale")
-        if leak_rationale:
-            st.caption(f"**Why this stage wins the ROI ranking:** {leak_rationale}")
+    if vc:
+        with st.expander("View full five-stage Value Chain analysis", expanded=False):
+            leak_stage = vc.get("primary_leak_stage", "")
+            for stage_name, key, icon, _ in VALUE_CHAIN_STAGES:
+                marker = " — **#1 priority**" if stage_name == leak_stage else ""
+                st.markdown(f"**{icon} {stage_name}{marker}**")
+                st.write(vc.get(key, "N/A"))
+            if vc.get("leak_rationale"):
+                st.markdown(f"**Why this stage ranks first:** {vc.get('leak_rationale')}")
 
     blind_spot = diag.get("diagnostic_blind_spot")
     if blind_spot:
         st.warning(
-            f"🔍 **Blind Spot Flagged:** {blind_spot}\n\n"
-            "This didn't come up in your round story, but your logged numbers"
-            " pointed to it — it's already factored into the practice plan below."
+            f"🔍 **Hidden scoring opportunity:** {blind_spot}\n\n"
+            "This was not prominent in your round story, but the logged evidence made it relevant to the practice plan."
         )
 
     st.markdown("---")
@@ -2680,7 +2865,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
 
     p_drill = diag.get("recommended_primary_drill", "Alignment Stick Gate Drill")
     s_drill = diag.get("recommended_secondary_drill")
-    p_miss = diag.get("primary_miss", "your main swing fault")
+    p_miss = diag.get("primary_miss", "your highest-ROI scoring opportunity")
     s_miss = diag.get("secondary_miss")
     rationale = diag.get("drill_rationale")
     pep_talk = diag.get("caddie_drill_pep_talk")
