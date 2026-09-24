@@ -179,118 +179,6 @@ def render_indented_ul(items: list, margin_left: int = 24):
     )
 
 
-def parse_drill_sections(vivid_description: str) -> dict:
-    """Split a drill's blended 'SETUP: ... EXECUTION: ... SUCCESS: ... AVOID: ...'
-    description into separate labeled sections so they can be displayed on
-    their own lines instead of as one dense paragraph."""
-    pattern = r"(SETUP|EXECUTION|SUCCESS|AVOID):\s*"
-    parts = re.split(pattern, vivid_description)
-    sections = {}
-    it = iter(parts[1:])
-    for label, text in zip(it, it):
-        sections[label] = text.strip()
-    return sections
-
-
-def render_drill_setup_execution(vivid_description: str):
-    """Render a drill's setup, execution, success check, and common mistake
-    to avoid as clearly separated, individually labeled sections."""
-    sections = parse_drill_sections(vivid_description)
-    if not sections:
-        st.markdown("**📖 Setup & Execution**")
-        render_indented_html(vivid_description)
-        return
-
-    if sections.get("SETUP"):
-        st.markdown("**🧩 Setup**")
-        render_indented_html(sections["SETUP"])
-    if sections.get("EXECUTION"):
-        st.markdown("**⚙️ Execution & Reps**")
-        render_indented_html(sections["EXECUTION"])
-    if sections.get("SUCCESS"):
-        st.markdown("**✅ Success Check — How You'll Know It's Working**")
-        render_indented_html(sections["SUCCESS"])
-    if sections.get("AVOID"):
-        st.markdown("**🚫 Common Mistake to Avoid**")
-        render_indented_html(sections["AVOID"])
-
-
-def render_strokes_leak_section(roi_data):
-    """Full-width 'Where Your Strokes Are Actually Leaking' breakdown.
-
-    Pulled out into its own function so it can be computed once (right
-    when the round is analyzed) and then rendered persistently on the
-    results page — instead of flashing briefly inside a half-width
-    column and disappearing on the rerun into Step 1C.
-    """
-    if not roi_data:
-        return
-
-    st.markdown("### 📊 Where Your Strokes Are Actually Leaking")
-    st.caption(
-        "Handicap-relative model estimate. These are diagnostic estimates, not"
-        " measured Strokes Gained."
-    )
-
-    total_excess = roi_data["total_excess_strokes"]
-    priority_col, total_col = st.columns([2, 1])
-    with priority_col:
-        st.markdown(f"**ROI Priority:** {roi_data['tier']}")
-        st.progress(min(1.0, roi_data["score"] / 100.0))
-        st.caption(f"Practice ROI score: {roi_data['score']:.1f} / 100")
-    with total_col:
-        st.metric("Excess Strokes (Est.)", f"+{total_excess:.1f}")
-
-    category_labels = {
-        "Penalty / Trouble": "Penalty / Trouble",
-        "3-Putting": "3-Putting",
-        "Approach / GIR": "Approach / GIR",
-        "Short Game / Scrambling": "Short Game / Scrambling",
-        "Putting / Total": "Putting / Total",
-        "Driving / FIR": "Driving / FIR",
-    }
-    visible_rows = []
-    for key, label in category_labels.items():
-        value = roi_data["excess_strokes"].get(key, 0.0)
-        fir_data_provided = key == "Driving / FIR" and key in roi_data["excess_strokes"]
-        if value > 0 or fir_data_provided:
-            visible_rows.append({
-                "Category": label,
-                "Estimated Excess Strokes": round(float(value), 2),
-            })
-
-    if visible_rows:
-        roi_df = pd.DataFrame(visible_rows).sort_values(
-            "Estimated Excess Strokes", ascending=False
-        )
-        st.dataframe(
-            roi_df,
-            hide_index=True,
-            use_container_width=True,
-            column_config={
-                "Category": st.column_config.TextColumn("Scoring Category", width="medium"),
-                "Estimated Excess Strokes": st.column_config.NumberColumn(
-                    "Est. Excess Strokes", format="+%.2f", width="medium"
-                ),
-            },
-        )
-
-        positive_rows = roi_df[roi_df["Estimated Excess Strokes"] > 0]
-        if not positive_rows.empty:
-            top = positive_rows.iloc[0]
-            st.info(
-                f"**Largest modeled leak:** {top['Category']} at approximately "
-                f"+{top['Estimated Excess Strokes']:.2f} excess stroke(s) versus your handicap benchmark."
-            )
-
-    if roi_data["reasons"]:
-        with st.expander("Why the model reached this conclusion", expanded=False):
-            for reason in roi_data["reasons"]:
-                st.write(f"• {reason}")
-
-    st.markdown("---")
-
-
 def render_progress_loop(df_history):
     """Front-and-center 'did the fix actually work' banner.
 
@@ -386,10 +274,13 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
     lines.append("-" * 50)
     lines.append("\nVALUE CHAIN LEAK BREAKDOWN:")
     vc = diag.get("value_chain_analysis", {})
-    lines.append(f"- Off-the-Tee Strategy (Primary Drive): {vc.get('off_the_tee', 'N/A')}")
+    lines.append(f"- Off-the-Tee Performance (Primary Drive): {vc.get('off_the_tee', 'N/A')}")
     lines.append(f"- Approach Precision (Mid Game): {vc.get('approach', 'N/A')}")
     lines.append(
         f"- Scoring/Scrambling (Short Game/Putting): {vc.get('scoring_scrambling', 'N/A')}"
+    )
+    lines.append(
+        f"- Course Management / Strategic Decision-Making: {vc.get('course_management', 'N/A')}"
     )
     lines.append(
         f"- Mental Infrastructure (Support Systems): {vc.get('mental_infrastructure', 'N/A')}"
@@ -429,18 +320,7 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
         lines.append(f"\nDRILL #{idx+1}: {d_name.upper()}")
         lines.append(f"Target: {balls_per_drill} Balls | {time_per_drill} Mins")
         lines.append(f"Equipment: {schematic['equipment']}")
-        drill_sections = parse_drill_sections(schematic["vivid_description"])
-        if drill_sections:
-            if drill_sections.get("SETUP"):
-                lines.append(f"Setup: {drill_sections['SETUP']}")
-            if drill_sections.get("EXECUTION"):
-                lines.append(f"Execution: {drill_sections['EXECUTION']}")
-            if drill_sections.get("SUCCESS"):
-                lines.append(f"Success Check: {drill_sections['SUCCESS']}")
-            if drill_sections.get("AVOID"):
-                lines.append(f"Avoid: {drill_sections['AVOID']}")
-        else:
-            lines.append(f"Setup & Execution: {schematic['vivid_description']}")
+        lines.append(f"Setup & Execution: {schematic['vivid_description']}")
         lines.append(f"Mental Analogy: {schematic['analogy']}")
         lines.append(
             f"Pro Tip: {schematic['pro_tip'].replace('🏆 **Pro Tip:** ', '')}"
@@ -1796,60 +1676,6 @@ DRILL_SCHEMATICS = {
             "release or impact so the cue becomes rhythmic, not chatty."
         ),
     },
-
-    # --- COURSE MANAGEMENT / STRATEGIC DECISION-MAKING DRILLS (2) ---
-    "Bail-Out Zone Targeting Drill": {
-        "equipment": "2 Alignment Sticks or Small Flags (to mark a 'danger line'), Scorecard or Notepad, Full Golf Bag",
-        "vivid_description": (
-            "SETUP: Before hitting, identify the real trouble on the hole (water, OB, deep "
-            "rough, a false front) and place a stick or flag marking the edge of your "
-            "'danger line' — the spot you are not allowed to cross. Pick a specific bail-out "
-            "target well away from that line, even if it leaves a longer next shot. "
-            "EXECUTION: Play 9–18 holes (or simulate on the range against an imagined hazard "
-            "map) where every tee shot and approach must be aimed at the bail-out target, "
-            "never at the pin or the center of a hazard-guarded green. Write down, hole by "
-            "hole, which target you aimed at and why, before you swing. "
-            "SUCCESS: Your written targets consistently favor the fat, safe part of the "
-            "fairway or green over the flag; your penalty-stroke count for the round drops "
-            "versus your recent average. "
-            "AVOID: Picking a bail-out target that still requires a hero shot to reach, or "
-            "aiming at the pin 'just this once' on a hole you already flagged as dangerous."
-        ),
-        "analogy": (
-            "Chess, Not Checkers: you're not just hitting the ball forward — you're "
-            "choosing the square that sets up your *next* move, not just this one."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** Write your bail-out target on the scorecard before you tee off "
-            "the hole, not after you're already standing over the ball — decisions made "
-            "under pressure are how good plans get overridden."
-        ),
-    },
-    "Worst-Ball Scramble Drill": {
-        "equipment": "2 Golf Balls per Hole, Scorecard, Full Golf Bag",
-        "vivid_description": (
-            "SETUP: Play a round (or a 6–9 hole loop) where you hit two balls from every "
-            "tee. On every shot after that, you must play your worse-positioned ball and "
-            "leave the better one out of play entirely. "
-            "EXECUTION: Continue playing worst-ball all the way to the green on every hole. "
-            "This forces you to plan every shot around avoiding a truly bad outcome, not "
-            "just chasing a great one, since one loose swing can define the whole hole. "
-            "SUCCESS: Your decision-making slows down and gets more conservative as the "
-            "drill goes on; you start taking extra club or aiming away from flags without "
-            "being told to; your worst-ball score ends up closer to your normal score than "
-            "you expected. "
-            "AVOID: Secretly playing your better ball when no one is watching — the entire "
-            "value of this drill is being forced to survive your own mistakes."
-        ),
-        "analogy": (
-            "Playing Not to Lose the Hand: like a poker player protecting a stack, every "
-            "shot is chosen to survive the worst realistic outcome, not just chase the best one."
-        ),
-        "pro_tip": (
-            "🏆 **Pro Tip:** This drill is brutal on your ego and great for your scorecard — "
-            "expect your worst-ball round to feel like a grind. That grind is the whole point."
-        ),
-    },
 }
 
 DRILL_COMPLEXITY = {
@@ -1898,8 +1724,6 @@ DRILL_COMPLEXITY = {
     "Positive Box Pre-Shot Routine Drill": "Medium",
     "Target Visual Anchoring Drill": "Low",
     "Mantra & Thought Neutralizer Drill": "Medium",
-    "Bail-Out Zone Targeting Drill": "Low",
-    "Worst-Ball Scramble Drill": "High",
 }
 
 GAME_MODE_DRILL_MAP = {
@@ -1941,9 +1765,44 @@ GAME_MODE_DRILL_MAP = {
     "Positive Box Pre-Shot Routine Drill": "Target Visual Anchoring Drill",
     "Target Visual Anchoring Drill": "Target Visual Anchoring Drill",
     "Mantra & Thought Neutralizer Drill": "Positive Box Pre-Shot Routine Drill",
-    "Bail-Out Zone Targeting Drill": "Worst-Ball Scramble Drill",
-    "Worst-Ball Scramble Drill": "Worst-Ball Scramble Drill",
 }
+
+# -------------------------------------------------------------
+# CLOSE THE LOOP: ask about LAST round's drill before starting a new one
+# -------------------------------------------------------------
+_init_history()
+_history_rows = st.session_state["practice_history"]
+if (
+    _history_rows
+    and st.session_state.get("diag_step", 1) == 1
+    and _history_rows[-1].get("Drill Completed?", "") == ""
+):
+    _last = _history_rows[-1]
+    with st.container(border=True):
+        st.markdown(
+            f"##### 🔁 Quick check-in: your last drill was "
+            f"**{_last.get('Primary Drill', 'your drill')}**"
+        )
+        col_fb1, col_fb2, col_fb3 = st.columns([1, 1, 1])
+        with col_fb1:
+            fb_completed = st.selectbox(
+                "Did you do it?",
+                ["Not yet", "Yes, a little", "Yes, fully"],
+                key="fb_completed",
+            )
+        with col_fb2:
+            fb_effectiveness = st.slider(
+                "Did it help? (1-5)", 1, 5, 3, key="fb_effectiveness"
+            )
+        with col_fb3:
+            st.write("")
+            st.write("")
+            if st.button("Log Feedback", use_container_width=True):
+                update_last_session_feedback(fb_completed, fb_effectiveness)
+                st.rerun()
+        if st.button("Skip for now"):
+            update_last_session_feedback("Skipped", "")
+            st.rerun()
 
 # -------------------------------------------------------------
 # STEP 1: HYBRID STORY + MULTI-CHOICE DIAGNOSTIC
@@ -2039,13 +1898,13 @@ if st.session_state["diag_step"] == 1:
         )
     with col_e3:
         failed_up_downs = st.number_input(
-            "Failed Up-and-Downs", min_value=0, max_value=18, value=0, step=1,
-            help="Count missed up-and-down opportunities after missing the green.",
+            "Failed U&Ds", min_value=0, max_value=18, value=0, step=1,
+            help="Failed Up-and-Downs: count missed up-and-down opportunities after missing the green.",
         )
     with col_e4:
         scrambling_opportunities = st.number_input(
-            "Scrambling Opportunities", min_value=0, max_value=18, value=0, step=1,
-            help="Number of holes where you missed the green and had a realistic up-and-down opportunity. Needed for handicap-relative short-game benchmarking.",
+            "Scramble Opps.", min_value=0, max_value=18, value=0, step=1,
+            help="Scrambling Opportunities: number of holes where you missed the green and had a realistic up-and-down opportunity. Needed for handicap-relative short-game benchmarking.",
         )
 
     with st.expander(
@@ -2082,6 +1941,7 @@ if st.session_state["diag_step"] == 1:
                     "Mid / Long Irons",
                     "Short Game / Wedges",
                     "Putting Greens",
+                    "Course Management / Strategy",
                     "Mental Game / Focus / Temper",
                 ],
             )
@@ -2180,7 +2040,12 @@ if st.session_state["diag_step"] == 1:
             - OB/Lost Balls → direct score leak; probe the cause if the story does not explain it.
             - 3-Putts → concrete extra-stroke event; probe distance control/first-putt leave.
             - Failed Up-and-Downs → short-game opportunity; interpret relative to handicap and GIR.
-            - Penalty Strokes → direct score leak; identify whether tee strategy or decisions caused them.
+            - Penalty Strokes → direct score leak; determine whether the cause was execution/mechanics or a poor strategic decision.
+            - Course-management language (hero shot, tucked pin, forced carry, recovery through trees,
+              attacking after trouble, driver near OB, refusing a layup) → probe whether the player
+              chose an unnecessarily high-risk option when a lower-risk target/club was available.
+            - OB/Lost Balls + risky-shot language → strong Course Management / Strategic Decision-Making signal;
+              if the story does not establish whether the loss came from strategy or execution, ask directly.
             - GIR well below ~30% → possible approach-game leak.
             - Putts at 35+ → investigate only after checking GIR and 3-putts.
             - Fairways below ~50% → investigate only if misses create meaningful scoring damage.
@@ -2304,10 +2169,71 @@ elif st.session_state["diag_step"] == 2:
                 _rs, _fh, _gir, _pt, _pen, _ob, _3p, _ud, _scramble_opps,
                 st.session_state.get("round_handicap")
             )
-            # Stored so it can be rendered full-width and persistently on the
-            # results page (Step 1C) instead of flashing here and vanishing
-            # on the rerun that follows a successful diagnosis.
-            st.session_state["roi_data"] = roi_data
+
+            # ---------------------------------------------------------
+            # VISIBLE HANDICAP-RELATIVE ROI BREAKDOWN
+            # ---------------------------------------------------------
+            st.markdown("### 📊 Where Your Strokes Are Actually Leaking")
+            st.caption(
+                "Handicap-relative model estimate. These are diagnostic estimates, not measured Strokes Gained."
+            )
+
+            total_excess = roi_data["total_excess_strokes"]
+            priority_col, total_col = st.columns([2, 1])
+            with priority_col:
+                st.markdown(f"**ROI Priority:** {roi_data['tier']}")
+                st.progress(min(1.0, roi_data["score"] / 100.0))
+                st.caption(f"Practice ROI score: {roi_data['score']:.1f} / 100")
+            with total_col:
+                st.metric("Estimated Excess Strokes", f"+{total_excess:.1f}")
+
+            # Show only categories that have usable evidence, while retaining
+            # zero-value categories when the golfer supplied the corresponding stat.
+            category_labels = {
+                "Penalty / Trouble": "Penalty / Trouble",
+                "3-Putting": "3-Putting",
+                "Approach / GIR": "Approach / GIR",
+                "Short Game / Scrambling": "Short Game / Scrambling",
+                "Putting / Total": "Putting / Total",
+                "Driving / FIR": "Driving / FIR",
+            }
+            visible_rows = []
+            for key, label in category_labels.items():
+                value = roi_data["excess_strokes"].get(key, 0.0)
+                if value > 0 or key in {"Driving / FIR"} and _fh is not None:
+                    visible_rows.append({
+                        "Category": label,
+                        "Estimated Excess Strokes": round(float(value), 2),
+                    })
+
+            if visible_rows:
+                roi_df = pd.DataFrame(visible_rows).sort_values(
+                    "Estimated Excess Strokes", ascending=False
+                )
+                st.dataframe(
+                    roi_df,
+                    hide_index=True,
+                    use_container_width=True,
+                    column_config={
+                        "Category": st.column_config.TextColumn("Scoring Category"),
+                        "Estimated Excess Strokes": st.column_config.NumberColumn(
+                            "Est. Excess Strokes", format="+%.2f"
+                        ),
+                    },
+                )
+
+                positive_rows = roi_df[roi_df["Estimated Excess Strokes"] > 0]
+                if not positive_rows.empty:
+                    top = positive_rows.iloc[0]
+                    st.info(
+                        f"**Largest modeled leak:** {top['Category']} at approximately "
+                        f"+{top['Estimated Excess Strokes']:.2f} excess stroke(s) versus your handicap benchmark."
+                    )
+
+            if roi_data["reasons"]:
+                with st.expander("Why the model reached this conclusion", expanded=False):
+                    for reason in roi_data["reasons"]:
+                        st.write(f"• {reason}")
 
             full_round_input = f"""
             User Story: "{st.session_state.get('user_round_story')}"
@@ -2335,29 +2261,33 @@ elif st.session_state["diag_step"] == 2:
             Analyze the user's round narrative, decision tree answers, and round numbers through a
             **Golf Value Chain ROI Lens** — the same "where does the value actually leak" logic used
             in a business value chain, applied to a round of golf. Every fault belongs to exactly one
-            of these five sequential stages:
+            of these five Value Chain stages. Course Management is intentionally separate from Mental
+            Infrastructure: choosing the wrong shot is a strategic error; failing to stay composed or
+            committed after the choice is made is a mental-execution error.
 
-            1. **Off-the-Tee Strategy (Primary Drive):** driver/tee shot accuracy and strategy. If this
+            1. **Off-the-Tee Performance (Primary Drive):** tee-shot execution and dispersion. If this
                stage is leaking (e.g. low Fairways Hit), probe whether those misses create actual
                scoring damage. Do not assume tee shots are the highest-ROI fix without score evidence.
-            2. **Approach Precision (Mid Game):** iron/approach shot accuracy into greens (GIR).
-            3. **Course Management / Strategic Decision-Making:** club and target selection, risk
-               tolerance around hazards, and whether the player is aiming at the smart miss or the
-               hero shot. This is distinct from swing mechanics — a technically good swing aimed at
-               the wrong target still bleeds strokes. Evidence includes penalty strokes/OB clustered
-               around aggressive language in the story (e.g. "went for it," "tried to cut the corner"),
-               or repeated trouble despite otherwise solid ball-striking numbers.
-            4. **Scoring/Scrambling (Short Game/Putting):** chipping, pitching, sand, and putting —
+            2. **Approach Precision (Mid Game):** iron/approach shot execution into greens (GIR).
+            3. **Scoring/Scrambling (Short Game/Putting):** chipping, pitching, sand, and putting —
                converting positions already gained into a low score.
-            5. **Mental Infrastructure (Support Systems):** routine, composure, and recovery after a
-               bad shot or hole — the emotional system that supports the other four stages. Keep this
-               distinct from Course Management: this stage is about *state* (staying calm, sticking to
-               routine), not the *strategic choice itself*.
+            4. **Course Management / Strategic Decision-Making:** target selection, club choice,
+               aggression level, layup-vs-hero-shot decisions, playing away from hazards/OB, choosing
+               the fat side of the green, and recovery-shot decisions. This stage can be the #1 ROI
+               leak even when the underlying swing is unchanged. Penalties alone do NOT prove a
+               strategy fault: use the story/follow-up answers to distinguish poor decisions from
+               poor execution.
+            5. **Mental Infrastructure (Support Systems):** routine, composure, emotional recovery,
+               confidence, commitment, and focus after the strategic choice has already been made.
+               Do not place target/club/risk-selection mistakes here.
 
             **Score-ROI Evidence Hierarchy:** Direct score events (OB/lost balls, penalty strokes, 3-putts)
             are stronger evidence of lost strokes than broad accuracy statistics. Failed up-and-downs
             are then interpreted against handicap/GIR context. FIR is only elevated when misses create
             meaningful trouble. Total putts are weak evidence unless supported by 3-putt frequency.
+            For Course Management, the strongest evidence is a costly result PLUS evidence that the
+            player voluntarily selected a higher-risk line, club, target, or recovery option when a
+            reasonable lower-risk alternative existed.
 
             **Score-ROI Priority Rule (critical):** NEVER rank a fault merely because it occurs
             earlier in the golf value chain. The old "tee shots always outrank downstream faults"
@@ -2366,9 +2296,7 @@ elif st.session_state["diag_step"] == 2:
 
             Priority logic:
             1. **CRITICAL — Direct Score Leak:** actual penalty strokes, repeated OB/lost-ball/water
-               events, or clearly documented mistakes that immediately added strokes. When these
-               events cluster around an aggressive club/target choice rather than a mis-hit, treat it
-               as a Course Management leak, not a swing-mechanics leak.
+               events, or clearly documented mistakes that immediately added strokes.
             2. **HIGH — Major Scoring Opportunity:** large approach/GIR deficits, repeated costly
                approach misses, or repeated short-game failures that prevent conversion.
             3. **MEDIUM — Repeatable Scoring Leakage:** repeated 3-putts/poor distance control,
@@ -2376,10 +2304,13 @@ elif st.session_state["diag_step"] == 2:
                or penalties.
             4. **LOW — Technique Polish:** small FIR differences, isolated contact errors, or
                mechanical issues without evidence of repeated scoring damage.
-            5. **MENTAL / DECISION-MAKING:** elevate Mental Infrastructure only when the story shows
-               emotional/composure breakdown causing repeated scoring damage across multiple holes.
-               Frustration alone is not enough. Elevate Course Management instead when the issue is a
-               repeated *choice* (going for a risky line, wrong club) rather than a state of mind.
+            5. **COURSE MANAGEMENT / STRATEGIC DECISION-MAKING:** elevate when avoidable risk choices
+               repeatedly expose hazards, OB, short-sided misses, low-percentage recovery shots, or
+               unnecessary pin hunting. A single bad swing into trouble is not automatically a
+               course-management fault.
+            6. **MENTAL INFRASTRUCTURE:** elevate when routine, composure, commitment, or emotional
+               recovery caused repeated scoring damage. Frustration alone is not enough, and strategic
+               target/club/risk choices belong in Course Management instead.
 
             **Putting context rule:** Putts per round must be interpreted with GIR and short-game
             context. High putts are a flag to investigate, not proof that putting is the highest
@@ -2396,19 +2327,24 @@ elif st.session_state["diag_step"] == 2:
                  **MAXIMUM score reduction** per the Value Chain + numbers analysis above — not
                  necessarily the fault the player talked about most.
                - Select `recommended_secondary_drill` for the second highest ROI issue.
+               - If **Course Management / Strategic Decision-Making** is the primary or secondary leak,
+                 do NOT invent a new drill. Use an existing implementation scaffold only: choose
+                 'Target Visual Anchoring Drill' for target/aim discipline or 'Positive Box Pre-Shot
+                 Routine Drill' for a repeatable club/target/risk decision gate. Keep the diagnosed
+                 Value Chain stage as Course Management — do not relabel it as Mental Infrastructure
+                 merely because an existing mental-game drill is used to rehearse the decision process.
 
-            Map faults to the most effective drills from this EXACT list of 47 drills:
+            Map faults to the most effective drills from this EXACT list of 45 drills:
             - FULL SWING: 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill', 'Towel Under Armpits Drill', 'Coin Strike Low-Point Drill', 'Split-Hands Release Drill', 'Feet-Together Balance Drill', 'Wall-Head Posture Drill', 'Impact Bag Compression Drill', 'Two-Step Pump Lag Drill'
             - SHORT GAME: 'Towel Behind Ball Drill', 'Lead Foot Weight Anchor Drill', 'Brush Turf Chipping Drill', 'Coin Lead-Point Pitch Drill', 'Ruler in Glove Wrist Anchor Drill', 'Hinge-and-Hold Chipping Drill', 'Clock System Wedge Drill', 'Landing Zone Target Towel Drill', 'Trail-Hand Only Pitch Drill', 'Line in the Sand Drill', 'Dollar Bill Sand Extraction Drill', 'Open-Face Sand Splash Drill', 'Continuous Motion Pendulum Chipping Drill', 'Accelerating Through Impact Gate Drill', 'Target-Focused Eyes-Up Chipping Drill'
             - PUTTING: 'Putting Tee Gate Drill', 'Chalk Line Straight Target Drill', 'Mirror Alignment Face Drill', 'Trail-Hand Push Putting Drill', 'Metal Yardstick Roll Drill', 'Parallel Rod Putting Channel Drill', 'Ladder Distance Lag Drill', 'Fringe-to-Fringe Feel Drill', 'Eyes-Closed Distance Perception Drill', 'Rubber Band Putter Sweet-Spot Drill', 'Two-Tee Putter Gate Drill', 'Coin Balance Putter Back Drill', 'Push-Putting No-Backswing Drill', 'Short Back Long Through Stroke Drill', 'Coin Balance Motion Stroke Drill'
             - MENTAL GAME: '1-2-3 Box Breathing Reset Drill', 'Post-Shot Acceptance Hold Drill', 'Positive Box Pre-Shot Routine Drill', 'Target Visual Anchoring Drill', 'Mantra & Thought Neutralizer Drill'
-            - COURSE MANAGEMENT: 'Bail-Out Zone Targeting Drill', 'Worst-Ball Scramble Drill'
 
             Output strictly raw JSON with no markdown formatting:
             {{
               "diagnosis_category": "Strategic ROI & Value Chain Diagnosis",
               "primary_miss": "string (title of highest ROI root cause)",
-              "primary_miss_stage": "string — exactly one of: 'Off-the-Tee Strategy (Primary Drive)', 'Approach Precision (Mid Game)', 'Course Management / Strategic Decision-Making', 'Scoring/Scrambling (Short Game/Putting)', 'Mental Infrastructure (Support Systems)'",
+              "primary_miss_stage": "string — exactly one of: 'Off-the-Tee Performance (Primary Drive)', 'Approach Precision (Mid Game)', 'Scoring/Scrambling (Short Game/Putting)', 'Course Management / Strategic Decision-Making', 'Mental Infrastructure (Support Systems)'",
               "primary_miss_persona": "string (1 short, witty sentence calling out primary flaw in character)",
               "primary_cause_breakdown": "string (2-3 sentences explaining biomechanical/psychological cause and why fixing this yields the highest stroke reduction)",
               "secondary_miss": "string or null",
@@ -2420,9 +2356,9 @@ elif st.session_state["diag_step"] == 2:
               "value_chain_analysis": {{
                 "off_the_tee": "string (1 sentence assessment of driving/tee-shot performance, grounded in the numbers if provided)",
                 "approach": "string (1 sentence assessment of mid-iron/approach performance)",
-                "course_management": "string (1 sentence assessment of club/target selection and risk decisions, grounded in penalty strokes / risky-shot language if available)",
                 "scoring_scrambling": "string (1 sentence assessment of short game & putting performance)",
-                "mental_infrastructure": "string (1 sentence assessment of routine/composure/recovery after a bad shot, separate from course-management decisions)",
+                "course_management": "string (1 sentence assessment of target selection, club choice, risk/reward decisions, layups, hazard/OB avoidance, and recovery choices; distinguish strategy from execution)",
+                "mental_infrastructure": "string (1 sentence assessment of routine, composure, commitment, focus, and emotional recovery after a decision is made)",
                 "primary_leak_stage": "string — exactly one of the five stage names above, the stage actually costing the most strokes",
                 "leak_rationale": "string (1-2 sentences explaining why this stage outranks the others, citing the round numbers where available)"
               }},
@@ -2528,8 +2464,6 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
     intro_text = diag.get("expanded_caddie_intro", "")
     st.success(f"**{caddie}:** \"{intro_text}\"")
 
-    render_strokes_leak_section(st.session_state.get("roi_data"))
-
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("**🎯 Primary Macro-Fault (Highest ROI Target)**")
@@ -2584,15 +2518,19 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
 
         leak_stage = vc.get("primary_leak_stage", "")
         stage_order = [
-            ("Off-the-Tee Strategy (Primary Drive)", "off_the_tee", "🏌️"),
+            ("Off-the-Tee Performance (Primary Drive)", "off_the_tee", "🏌️"),
             ("Approach Precision (Mid Game)", "approach", "🎯"),
             ("Scoring/Scrambling (Short Game/Putting)", "scoring_scrambling", "⛳"),
+            ("Course Management / Strategic Decision-Making", "course_management", "🗺️"),
             ("Mental Infrastructure (Support Systems)", "mental_infrastructure", "🧠"),
         ]
 
+        # Five cards: 2 + 2 + 1 centered. This keeps long stage names readable
+        # in Streamlit's centered layout instead of squeezing three cards across.
         vc_row1 = st.columns(2)
         vc_row2 = st.columns(2)
-        vc_slots = list(vc_row1) + list(vc_row2)
+        vc_row3 = st.columns([1, 2, 1])
+        vc_slots = list(vc_row1) + list(vc_row2) + [vc_row3[1]]
 
         for slot, (stage_name, key, icon) in zip(vc_slots, stage_order):
             with slot:
@@ -2877,7 +2815,8 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         equip_items = re.split(r",\s*(?![^()]*\))", schematic["equipment"])
         render_indented_ul(equip_items)
 
-        render_drill_setup_execution(schematic["vivid_description"])
+        st.markdown("**📖 Setup & Execution**")
+        render_indented_html(schematic["vivid_description"])
 
         st.markdown("**🧠 Mental Analogy**")
         render_indented_html(schematic["analogy"])
@@ -2906,42 +2845,15 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         st.markdown("**🛠️ Range Equipment Needed**")
         render_indented_ul([
             "Full Golf Bag (All Clubs)",
-            "Laser Rangefinder or Target Flags (or a course/range app with yardages)",
-            "Pre-shot Routine Line (a spare alignment stick or towel a few feet behind the ball works)",
-            "A scorecard or notepad to track makes vs. misses against your targets",
+            "Laser Rangefinder or Target Flags",
+            "Pre-shot Routine Line",
         ])
 
-        st.markdown("**🧩 Setup**")
+        st.markdown("**📖 Setup & Execution**")
         render_indented_html(
-            "Pick specific, named targets before you start — a flag, a yardage marker, "
-            "a section of the range green — instead of just hitting 'out there.' If you "
-            "have a rangefinder or an app, dial in the exact yardage for each target the "
-            "way you would for an approach shot on the course."
-        )
-
-        st.markdown("**⚙️ Execution & Reps**")
-        render_indented_html(
-            f"Hit all {gm_balls} balls in this phase — alternating target flags and clubs "
-            "for every single ball; never hit the same club to the same target twice in a "
-            "row. Step fully away from the mat between shots and walk through your complete "
-            "pre-shot routine (grip, alignment, practice waggle, final look at the target) "
-            "exactly as you would on the course, then commit to the shot."
-        )
-
-        st.markdown("**✅ Success Check — How You'll Know It's Working**")
-        render_indented_html(
-            "Your pre-shot routine takes roughly the same amount of time on ball #1 as it "
-            "does on your last ball of the phase — no rushing as fatigue sets in. You're "
-            "logging a make/miss against each named target, not just watching where the "
-            "ball happens to land, and you can feel a small flicker of real pressure on "
-            "shots that matter (like a closing hole)."
-        )
-
-        st.markdown("**🚫 Common Mistake to Avoid**")
-        render_indented_html(
-            "Falling back into 'range mode' — raking over a bucket of balls to the same "
-            "spot with no routine and no target. If you're not walking away from the mat "
-            "between shots, this phase isn't doing its job."
+            "Simulate real course conditions. Alternate target flags and clubs for"
+            " every single ball. Step away from the mat and execute your complete"
+            " pre-shot routine before every swing."
         )
 
         st.markdown("**🧠 Mental Analogy**")
@@ -2966,40 +2878,6 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         file_name="birdie_buddy_practice_plan.txt",
         mime="text/plain",
     )
-
-    # ---------------------------------------------------------
-    # CLOSE THE LOOP: log this round's practice right here, right away —
-    # no need to click "Describe Another Round" first.
-    # ---------------------------------------------------------
-    _history_rows = st.session_state.get("practice_history", [])
-    if _history_rows and _history_rows[-1].get("Drill Completed?", "") == "":
-        _last = _history_rows[-1]
-        st.markdown("---")
-        with st.container(border=True):
-            st.markdown(
-                f"##### 📝 Log This Session: did you complete "
-                f"**{_last.get('Primary Drill', 'your drill')}**?"
-            )
-            col_fb1, col_fb2, col_fb3 = st.columns([1, 1, 1])
-            with col_fb1:
-                fb_completed = st.selectbox(
-                    "Did you do it?",
-                    ["Not yet", "Yes, a little", "Yes, fully"],
-                    key="fb_completed",
-                )
-            with col_fb2:
-                fb_effectiveness = st.slider(
-                    "Did it help? (1-5)", 1, 5, 3, key="fb_effectiveness"
-                )
-            with col_fb3:
-                st.write("")
-                st.write("")
-                if st.button("Log Feedback", use_container_width=True):
-                    update_last_session_feedback(fb_completed, fb_effectiveness)
-                    st.rerun()
-            if st.button("Skip for now"):
-                update_last_session_feedback("Skipped", "")
-                st.rerun()
 
 elif "diagnosis" in st.session_state:
     st.warning(
