@@ -174,6 +174,47 @@ def render_indented_html(content: str, margin_left: int = 24):
     )
 
 
+def render_instruction_steps(content: str, margin_left: int = 24):
+    """Render SETUP / EXECUTION / SUCCESS / AVOID as clearly separated blocks."""
+    pattern = r"(SETUP|EXECUTION|SUCCESS|AVOID):\s*"
+    matches = list(re.finditer(pattern, content, flags=re.IGNORECASE))
+
+    # Fall back to the normal paragraph renderer when a drill does not use
+    # structured instruction labels.
+    if not matches:
+        render_indented_html(content, margin_left=margin_left)
+        return
+
+    blocks = []
+    for idx, match in enumerate(matches):
+        label = match.group(1).upper()
+        start = match.end()
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(content)
+        body = content[start:end].strip()
+        blocks.append(
+            f"<div style='margin-bottom: 14px;'>"
+            f"<strong>{label}:</strong><br>"
+            f"<span style='line-height: 1.65;'>{body}</span>"
+            f"</div>"
+        )
+
+    st.markdown(
+        f"<div style='margin-left: {margin_left}px; margin-top: 6px;"
+        f" margin-bottom: 10px;'>{''.join(blocks)}</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def format_instruction_steps_for_export(content: str) -> str:
+    """Add line breaks between structured drill instruction sections in exports."""
+    return re.sub(
+        r"\s+(?=(?:SETUP|EXECUTION|SUCCESS|AVOID):)",
+        "\n",
+        content.strip(),
+        flags=re.IGNORECASE,
+    )
+
+
 def render_indented_ul(items: list, margin_left: int = 24):
     list_items = "".join(
         [f"<li>{item.strip()}</li>" for item in items if item.strip()]
@@ -329,7 +370,7 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
         lines.append(f"\nDRILL #{idx+1}: {d_name.upper()}")
         lines.append(f"Target: {balls_per_drill} Balls | {time_per_drill} Mins")
         lines.append(f"Equipment: {schematic['equipment']}")
-        lines.append(f"Setup & Execution: {schematic['vivid_description']}")
+        lines.append("Setup & Execution:\n" + format_instruction_steps_for_export(schematic["vivid_description"]))
         lines.append(f"Mental Analogy: {schematic['analogy']}")
         lines.append(
             f"Pro Tip: {schematic['pro_tip'].replace('🏆 **Pro Tip:** ', '')}"
@@ -3162,7 +3203,7 @@ with st.container(border=True):
                 render_indented_ul(equip_items)
 
                 st.markdown("**📖 Setup & Execution**")
-                render_indented_html(schematic["vivid_description"])
+                render_instruction_steps(schematic["vivid_description"])
 
                 st.markdown("**🧠 Mental Analogy**")
                 render_indented_html(schematic["analogy"])
