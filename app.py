@@ -179,6 +179,118 @@ def render_indented_ul(items: list, margin_left: int = 24):
     )
 
 
+def parse_drill_sections(vivid_description: str) -> dict:
+    """Split a drill's blended 'SETUP: ... EXECUTION: ... SUCCESS: ... AVOID: ...'
+    description into separate labeled sections so they can be displayed on
+    their own lines instead of as one dense paragraph."""
+    pattern = r"(SETUP|EXECUTION|SUCCESS|AVOID):\s*"
+    parts = re.split(pattern, vivid_description)
+    sections = {}
+    it = iter(parts[1:])
+    for label, text in zip(it, it):
+        sections[label] = text.strip()
+    return sections
+
+
+def render_drill_setup_execution(vivid_description: str):
+    """Render a drill's setup, execution, success check, and common mistake
+    to avoid as clearly separated, individually labeled sections."""
+    sections = parse_drill_sections(vivid_description)
+    if not sections:
+        st.markdown("**📖 Setup & Execution**")
+        render_indented_html(vivid_description)
+        return
+
+    if sections.get("SETUP"):
+        st.markdown("**🧩 Setup**")
+        render_indented_html(sections["SETUP"])
+    if sections.get("EXECUTION"):
+        st.markdown("**⚙️ Execution & Reps**")
+        render_indented_html(sections["EXECUTION"])
+    if sections.get("SUCCESS"):
+        st.markdown("**✅ Success Check — How You'll Know It's Working**")
+        render_indented_html(sections["SUCCESS"])
+    if sections.get("AVOID"):
+        st.markdown("**🚫 Common Mistake to Avoid**")
+        render_indented_html(sections["AVOID"])
+
+
+def render_strokes_leak_section(roi_data):
+    """Full-width 'Where Your Strokes Are Actually Leaking' breakdown.
+
+    Pulled out into its own function so it can be computed once (right
+    when the round is analyzed) and then rendered persistently on the
+    results page — instead of flashing briefly inside a half-width
+    column and disappearing on the rerun into Step 1C.
+    """
+    if not roi_data:
+        return
+
+    st.markdown("### 📊 Where Your Strokes Are Actually Leaking")
+    st.caption(
+        "Handicap-relative model estimate. These are diagnostic estimates, not"
+        " measured Strokes Gained."
+    )
+
+    total_excess = roi_data["total_excess_strokes"]
+    priority_col, total_col = st.columns([2, 1])
+    with priority_col:
+        st.markdown(f"**ROI Priority:** {roi_data['tier']}")
+        st.progress(min(1.0, roi_data["score"] / 100.0))
+        st.caption(f"Practice ROI score: {roi_data['score']:.1f} / 100")
+    with total_col:
+        st.metric("Excess Strokes (Est.)", f"+{total_excess:.1f}")
+
+    category_labels = {
+        "Penalty / Trouble": "Penalty / Trouble",
+        "3-Putting": "3-Putting",
+        "Approach / GIR": "Approach / GIR",
+        "Short Game / Scrambling": "Short Game / Scrambling",
+        "Putting / Total": "Putting / Total",
+        "Driving / FIR": "Driving / FIR",
+    }
+    visible_rows = []
+    for key, label in category_labels.items():
+        value = roi_data["excess_strokes"].get(key, 0.0)
+        fir_data_provided = key == "Driving / FIR" and key in roi_data["excess_strokes"]
+        if value > 0 or fir_data_provided:
+            visible_rows.append({
+                "Category": label,
+                "Estimated Excess Strokes": round(float(value), 2),
+            })
+
+    if visible_rows:
+        roi_df = pd.DataFrame(visible_rows).sort_values(
+            "Estimated Excess Strokes", ascending=False
+        )
+        st.dataframe(
+            roi_df,
+            hide_index=True,
+            use_container_width=True,
+            column_config={
+                "Category": st.column_config.TextColumn("Scoring Category", width="medium"),
+                "Estimated Excess Strokes": st.column_config.NumberColumn(
+                    "Est. Excess Strokes", format="+%.2f", width="medium"
+                ),
+            },
+        )
+
+        positive_rows = roi_df[roi_df["Estimated Excess Strokes"] > 0]
+        if not positive_rows.empty:
+            top = positive_rows.iloc[0]
+            st.info(
+                f"**Largest modeled leak:** {top['Category']} at approximately "
+                f"+{top['Estimated Excess Strokes']:.2f} excess stroke(s) versus your handicap benchmark."
+            )
+
+    if roi_data["reasons"]:
+        with st.expander("Why the model reached this conclusion", expanded=False):
+            for reason in roi_data["reasons"]:
+                st.write(f"• {reason}")
+
+    st.markdown("---")
+
+
 def render_progress_loop(df_history):
     """Front-and-center 'did the fix actually work' banner.
 
@@ -317,7 +429,18 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
         lines.append(f"\nDRILL #{idx+1}: {d_name.upper()}")
         lines.append(f"Target: {balls_per_drill} Balls | {time_per_drill} Mins")
         lines.append(f"Equipment: {schematic['equipment']}")
-        lines.append(f"Setup & Execution: {schematic['vivid_description']}")
+        drill_sections = parse_drill_sections(schematic["vivid_description"])
+        if drill_sections:
+            if drill_sections.get("SETUP"):
+                lines.append(f"Setup: {drill_sections['SETUP']}")
+            if drill_sections.get("EXECUTION"):
+                lines.append(f"Execution: {drill_sections['EXECUTION']}")
+            if drill_sections.get("SUCCESS"):
+                lines.append(f"Success Check: {drill_sections['SUCCESS']}")
+            if drill_sections.get("AVOID"):
+                lines.append(f"Avoid: {drill_sections['AVOID']}")
+        else:
+            lines.append(f"Setup & Execution: {schematic['vivid_description']}")
         lines.append(f"Mental Analogy: {schematic['analogy']}")
         lines.append(
             f"Pro Tip: {schematic['pro_tip'].replace('🏆 **Pro Tip:** ', '')}"
@@ -1765,43 +1888,6 @@ GAME_MODE_DRILL_MAP = {
 }
 
 # -------------------------------------------------------------
-# CLOSE THE LOOP: ask about LAST round's drill before starting a new one
-# -------------------------------------------------------------
-_init_history()
-_history_rows = st.session_state["practice_history"]
-if (
-    _history_rows
-    and st.session_state.get("diag_step", 1) == 1
-    and _history_rows[-1].get("Drill Completed?", "") == ""
-):
-    _last = _history_rows[-1]
-    with st.container(border=True):
-        st.markdown(
-            f"##### 🔁 Quick check-in: your last drill was "
-            f"**{_last.get('Primary Drill', 'your drill')}**"
-        )
-        col_fb1, col_fb2, col_fb3 = st.columns([1, 1, 1])
-        with col_fb1:
-            fb_completed = st.selectbox(
-                "Did you do it?",
-                ["Not yet", "Yes, a little", "Yes, fully"],
-                key="fb_completed",
-            )
-        with col_fb2:
-            fb_effectiveness = st.slider(
-                "Did it help? (1-5)", 1, 5, 3, key="fb_effectiveness"
-            )
-        with col_fb3:
-            st.write("")
-            st.write("")
-            if st.button("Log Feedback", use_container_width=True):
-                update_last_session_feedback(fb_completed, fb_effectiveness)
-                st.rerun()
-        if st.button("Skip for now"):
-            update_last_session_feedback("Skipped", "")
-            st.rerun()
-
-# -------------------------------------------------------------
 # STEP 1: HYBRID STORY + MULTI-CHOICE DIAGNOSTIC
 # -------------------------------------------------------------
 st.subheader("1. Round Story & Diagnostic Intake")
@@ -2160,71 +2246,10 @@ elif st.session_state["diag_step"] == 2:
                 _rs, _fh, _gir, _pt, _pen, _ob, _3p, _ud, _scramble_opps,
                 st.session_state.get("round_handicap")
             )
-
-            # ---------------------------------------------------------
-            # VISIBLE HANDICAP-RELATIVE ROI BREAKDOWN
-            # ---------------------------------------------------------
-            st.markdown("### 📊 Where Your Strokes Are Actually Leaking")
-            st.caption(
-                "Handicap-relative model estimate. These are diagnostic estimates, not measured Strokes Gained."
-            )
-
-            total_excess = roi_data["total_excess_strokes"]
-            priority_col, total_col = st.columns([2, 1])
-            with priority_col:
-                st.markdown(f"**ROI Priority:** {roi_data['tier']}")
-                st.progress(min(1.0, roi_data["score"] / 100.0))
-                st.caption(f"Practice ROI score: {roi_data['score']:.1f} / 100")
-            with total_col:
-                st.metric("Estimated Excess Strokes", f"+{total_excess:.1f}")
-
-            # Show only categories that have usable evidence, while retaining
-            # zero-value categories when the golfer supplied the corresponding stat.
-            category_labels = {
-                "Penalty / Trouble": "Penalty / Trouble",
-                "3-Putting": "3-Putting",
-                "Approach / GIR": "Approach / GIR",
-                "Short Game / Scrambling": "Short Game / Scrambling",
-                "Putting / Total": "Putting / Total",
-                "Driving / FIR": "Driving / FIR",
-            }
-            visible_rows = []
-            for key, label in category_labels.items():
-                value = roi_data["excess_strokes"].get(key, 0.0)
-                if value > 0 or key in {"Driving / FIR"} and _fh is not None:
-                    visible_rows.append({
-                        "Category": label,
-                        "Estimated Excess Strokes": round(float(value), 2),
-                    })
-
-            if visible_rows:
-                roi_df = pd.DataFrame(visible_rows).sort_values(
-                    "Estimated Excess Strokes", ascending=False
-                )
-                st.dataframe(
-                    roi_df,
-                    hide_index=True,
-                    use_container_width=True,
-                    column_config={
-                        "Category": st.column_config.TextColumn("Scoring Category"),
-                        "Estimated Excess Strokes": st.column_config.NumberColumn(
-                            "Est. Excess Strokes", format="+%.2f"
-                        ),
-                    },
-                )
-
-                positive_rows = roi_df[roi_df["Estimated Excess Strokes"] > 0]
-                if not positive_rows.empty:
-                    top = positive_rows.iloc[0]
-                    st.info(
-                        f"**Largest modeled leak:** {top['Category']} at approximately "
-                        f"+{top['Estimated Excess Strokes']:.2f} excess stroke(s) versus your handicap benchmark."
-                    )
-
-            if roi_data["reasons"]:
-                with st.expander("Why the model reached this conclusion", expanded=False):
-                    for reason in roi_data["reasons"]:
-                        st.write(f"• {reason}")
+            # Stored so it can be rendered full-width and persistently on the
+            # results page (Step 1C) instead of flashing here and vanishing
+            # on the rerun that follows a successful diagnosis.
+            st.session_state["roi_data"] = roi_data
 
             full_round_input = f"""
             User Story: "{st.session_state.get('user_round_story')}"
@@ -2430,6 +2455,8 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
 
     intro_text = diag.get("expanded_caddie_intro", "")
     st.success(f"**{caddie}:** \"{intro_text}\"")
+
+    render_strokes_leak_section(st.session_state.get("roi_data"))
 
     col1, col2 = st.columns(2)
     with col1:
@@ -2778,8 +2805,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         equip_items = re.split(r",\s*(?![^()]*\))", schematic["equipment"])
         render_indented_ul(equip_items)
 
-        st.markdown("**📖 Setup & Execution**")
-        render_indented_html(schematic["vivid_description"])
+        render_drill_setup_execution(schematic["vivid_description"])
 
         st.markdown("**🧠 Mental Analogy**")
         render_indented_html(schematic["analogy"])
@@ -2808,15 +2834,42 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         st.markdown("**🛠️ Range Equipment Needed**")
         render_indented_ul([
             "Full Golf Bag (All Clubs)",
-            "Laser Rangefinder or Target Flags",
-            "Pre-shot Routine Line",
+            "Laser Rangefinder or Target Flags (or a course/range app with yardages)",
+            "Pre-shot Routine Line (a spare alignment stick or towel a few feet behind the ball works)",
+            "A scorecard or notepad to track makes vs. misses against your targets",
         ])
 
-        st.markdown("**📖 Setup & Execution**")
+        st.markdown("**🧩 Setup**")
         render_indented_html(
-            "Simulate real course conditions. Alternate target flags and clubs for"
-            " every single ball. Step away from the mat and execute your complete"
-            " pre-shot routine before every swing."
+            "Pick specific, named targets before you start — a flag, a yardage marker, "
+            "a section of the range green — instead of just hitting 'out there.' If you "
+            "have a rangefinder or an app, dial in the exact yardage for each target the "
+            "way you would for an approach shot on the course."
+        )
+
+        st.markdown("**⚙️ Execution & Reps**")
+        render_indented_html(
+            f"Hit all {gm_balls} balls in this phase — alternating target flags and clubs "
+            "for every single ball; never hit the same club to the same target twice in a "
+            "row. Step fully away from the mat between shots and walk through your complete "
+            "pre-shot routine (grip, alignment, practice waggle, final look at the target) "
+            "exactly as you would on the course, then commit to the shot."
+        )
+
+        st.markdown("**✅ Success Check — How You'll Know It's Working**")
+        render_indented_html(
+            "Your pre-shot routine takes roughly the same amount of time on ball #1 as it "
+            "does on your last ball of the phase — no rushing as fatigue sets in. You're "
+            "logging a make/miss against each named target, not just watching where the "
+            "ball happens to land, and you can feel a small flicker of real pressure on "
+            "shots that matter (like a closing hole)."
+        )
+
+        st.markdown("**🚫 Common Mistake to Avoid**")
+        render_indented_html(
+            "Falling back into 'range mode' — raking over a bucket of balls to the same "
+            "spot with no routine and no target. If you're not walking away from the mat "
+            "between shots, this phase isn't doing its job."
         )
 
         st.markdown("**🧠 Mental Analogy**")
@@ -2841,6 +2894,40 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         file_name="birdie_buddy_practice_plan.txt",
         mime="text/plain",
     )
+
+    # ---------------------------------------------------------
+    # CLOSE THE LOOP: log this round's practice right here, right away —
+    # no need to click "Describe Another Round" first.
+    # ---------------------------------------------------------
+    _history_rows = st.session_state.get("practice_history", [])
+    if _history_rows and _history_rows[-1].get("Drill Completed?", "") == "":
+        _last = _history_rows[-1]
+        st.markdown("---")
+        with st.container(border=True):
+            st.markdown(
+                f"##### 📝 Log This Session: did you complete "
+                f"**{_last.get('Primary Drill', 'your drill')}**?"
+            )
+            col_fb1, col_fb2, col_fb3 = st.columns([1, 1, 1])
+            with col_fb1:
+                fb_completed = st.selectbox(
+                    "Did you do it?",
+                    ["Not yet", "Yes, a little", "Yes, fully"],
+                    key="fb_completed",
+                )
+            with col_fb2:
+                fb_effectiveness = st.slider(
+                    "Did it help? (1-5)", 1, 5, 3, key="fb_effectiveness"
+                )
+            with col_fb3:
+                st.write("")
+                st.write("")
+                if st.button("Log Feedback", use_container_width=True):
+                    update_last_session_feedback(fb_completed, fb_effectiveness)
+                    st.rerun()
+            if st.button("Skip for now"):
+                update_last_session_feedback("Skipped", "")
+                st.rerun()
 
 elif "diagnosis" in st.session_state:
     st.warning(
