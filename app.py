@@ -1,10 +1,12 @@
 from datetime import datetime
+import io
 import json
 import os
 import re
 import google.generativeai as genai
 import pandas as pd
 import streamlit as st
+from PIL import Image
 
 st.set_page_config(
     page_title="Birdie Buddy", page_icon="⛳", layout="centered"
@@ -767,6 +769,187 @@ def _fmt_stat(value, suffix=""):
     if value is None or value == "":
         return "Not tracked"
     return f"{value}{suffix}"
+
+
+
+def _as_int_or_none(value):
+    """Safely coerce an extracted scorecard value to int without inventing zeroes."""
+    if value in (None, "", "null", "N/A", "Not shown", "Unknown"):
+        return None
+    try:
+        return int(round(float(value)))
+    except (TypeError, ValueError):
+        return None
+
+
+def _as_float_or_none(value):
+    """Safely coerce an extracted scorecard value to float."""
+    if value in (None, "", "null", "N/A", "Not shown", "Unknown"):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _extract_scorecard_with_gemini(uploaded_file):
+    """Read a paper/app scorecard image with Gemini and return grounded JSON.
+
+    The extraction layer is intentionally conservative: unclear or absent values
+    must stay null so the golfer can review them instead of silently accepting a
+    hallucinated stat.
+    """
+    image_bytes = uploaded_file.getvalue()
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+
+    extraction_prompt = r"""
+    You are Birdie Buddy's scorecard-reading layer. Read this golf scorecard photo
+    or golf-app screenshot carefully. Extract ONLY information that is visibly
+    supported by the image. Never guess a stat from a typical golf round.
+
+    RULES:
+    - If a number, icon, direction, or label is unreadable or not shown, return null.
+    - Do not infer penalty strokes or OB from a high hole score.
+    - Do not infer scrambling results merely because a green was missed.
+    - You MAY derive 3-putt count from clearly readable hole-by-hole putt counts.
+    - You MAY derive total score from clearly readable scores only when the full
+      played round shown is complete enough to support it. List derived fields.
+    - Preserve useful directional tracking such as fairway misses left/right and
+      GIR misses short/long/left/right when the app visibly provides those markers.
+    - For screenshots such as 18Birdies, use labels/icons actually present rather
+      than assuming the app's layout.
+    - Capture hole-level evidence when readable because it can expose patterns that
+      aggregate totals hide.
+
+    Output STRICT raw JSON with no markdown:
+    {
+      "source_type": "paper_scorecard | app_screenshot | unknown",
+      "round_score": null,
+      "fairways_hit": null,
+      "fairways_total": null,
+      "fairway_misses_left": null,
+      "fairway_misses_right": null,
+      "gir": null,
+      "gir_total": null,
+      "gir_misses_short": null,
+      "gir_misses_long": null,
+      "gir_misses_left": null,
+      "gir_misses_right": null,
+      "putts": null,
+      "penalty_strokes": null,
+      "ob_lost_balls": null,
+      "three_putts": null,
+      "failed_up_downs": null,
+      "scrambling_opportunities": null,
+      "handicap": null,
+      "holes": [
+        {
+          "hole": 1,
+          "par": null,
+          "score": null,
+          "fairway": "hit | left | right | other | n/a | unknown",
+          "gir": null,
+          "putts": null,
+          "penalty_strokes": null,
+          "notes": null
+        }
+      ],
+      "visible_patterns": ["short factual pattern supported by the image"],
+      "other_visible_stats": ["label: value"],
+      "derived_fields": ["field name and how it was derived"],
+      "unclear_fields": ["important item that appears present but cannot be read confidently"],
+      "extraction_notes": "short factual summary of what the image does and does not support",
+      "extraction_confidence": 0.0
+    }
+    """
+
+    flash_models = [
+        m.name
+        for m in genai.list_models()
+        if "generateContent" in m.supported_generation_methods
+        and "flash" in m.name.lower()
+    ]
+    flash_models.sort(reverse=True)
+
+    last_error = None
+    for model_name in flash_models:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content([extraction_prompt, image])
+            if response and response.text:
+                clean = response.text.replace("```json", "").replace("```", "").strip()
+                data = json.loads(clean)
+                if isinstance(data, dict):
+                    return data
+        except Exception as exc:
+            last_error = exc
+            continue
+
+    raise RuntimeError(
+        f"No Gemini Flash model could read this scorecard. {last_error or ''}".strip()
+    )
+
+
+def _normalize_followup_questions(payload):
+    """Support the new adaptive list schema and older fixed-question sessions."""
+    if isinstance(payload, dict) and isinstance(payload.get("questions"), list):
+        normalized = []
+        for item in payload["questions"][:5]:
+            if not isinstance(item, dict):
+                continue
+            question = str(item.get("question", "")).strip()
+            options = item.get("options", [])
+            if not question or not isinstance(options, list) or len(options) < 2:
+                continue
+            normalized.append({
+                "focus": str(item.get("focus", "Diagnostic clarification")).strip(),
+                "question": question,
+                "why": str(item.get("why", "This answer helps rank the highest-ROI scoring opportunity.")).strip(),
+                "options": [str(opt) for opt in options[:5]],
+            })
+        if len(normalized) >= 2:
+            return normalized
+
+    # Backward-compatible fallback for sessions generated by the previous schema.
+    fallback = []
+    if isinstance(payload, dict):
+        for idx in range(1, 4):
+            q = str(payload.get(f"question_{idx}", "")).strip()
+            opts = payload.get(f"options_q{idx}", [])
+            if q and isinstance(opts, list) and len(opts) >= 2:
+                fallback.append({
+                    "focus": str(payload.get(f"focus_q{idx}", f"Question {idx}")),
+                    "question": q,
+                    "why": str(payload.get(f"why_q{idx}", "This answer helps narrow the diagnosis.")),
+                    "options": [str(opt) for opt in opts[:5]],
+                })
+    if len(fallback) >= 2:
+        return fallback
+
+    return [
+        {
+            "focus": "Strategy vs. execution",
+            "question": "When the costly mistakes happened, was the bigger issue the shot choice or the execution?",
+            "why": "This separates a Course Management opportunity from a swing-execution problem.",
+            "options": [
+                "The club/target choice created unnecessary risk",
+                "The choice was reasonable, but I executed it poorly",
+                "Both choice and execution contributed",
+                "It varied / I'm not sure",
+            ],
+        },
+        {
+            "focus": "Scoring pattern",
+            "question": "Which repeated mistake felt most responsible for turning playable holes into bigger numbers?",
+            "why": "This identifies the strongest competing source of avoidable strokes.",
+            "options": [
+                "Penalty or recovery situations",
+                "Approach misses",
+                "Short-game or putting mistakes",
+                "It varied / I'm not sure",
+            ],
+        },
+    ]
 
 
 # Published Shot Scope amateur benchmarks. These are peer benchmarks, not
@@ -2230,35 +2413,26 @@ with st.container(border=True):
         )
 
 
-    # --- STEP 1A: FREE TEXT STORY & OPTIONAL SELECTORS ---
+    # --- STEP 1A: STORY, MANUAL STATS, OR SCORECARD UPLOAD ---
     if st.session_state["diag_step"] == 1:
-        st.markdown("### 🗣️ Tell Us How Your Round Went")
+        st.markdown("### 📝 Add Your Round")
         st.caption(
-            "Talk naturally about what happened during your round—your misses,"
-            " feelings, mental blow-ups, or frustration. The AI Caddie will pinpoint"
-            " key themes and ask three concise diagnostic follow-up questions."
+            "Describe the round yourself, enter tracked stats, or upload a scorecard/app screenshot. "
+            "Birdie Buddy will use the information available and ask only the clarifying questions it still needs."
         )
 
-        user_round_story = st.text_area(
-            "Describe your round in your own words:",
-            height=120,
-            placeholder=(
-                "e.g., I played 18 holes today and couldn't hit a fairway with my"
-                " driver—everything kept slicing hard into the trees on the right. I"
-                " got super frustrated on hole 6 after a bad double bogey and"
-                " completely lost my mental focus for the next 4 holes..."
-            ),
+        intake_mode = st.radio(
+            "Round intake method",
+            ["✍️ Describe / Enter Stats", "📷 Upload Scorecard"],
+            horizontal=True,
+            key="round_intake_mode",
         )
 
-        stats_tracked = st.toggle(
-            "📋 I tracked round stats",
-            value=False,
-            help="Turn this on when these numbers are from the round. Once enabled, a zero is treated as a real zero rather than missing data.",
-        )
-
-        # Missing and zero are intentionally different. When the toggle is off,
-        # every numerical field stays None; when it is on, 0 is valid for FIR, GIR,
-        # penalties, OB, 3-putts, and scrambling outcomes.
+        # Defaults shared by both intake paths. Missing is intentionally distinct
+        # from a tracked zero throughout the diagnostic engine.
+        user_round_story = ""
+        scorecard_context = "No scorecard image was used."
+        stats_tracked = False
         round_score = None
         fairways_hit = None
         gir = None
@@ -2271,78 +2445,257 @@ with st.container(border=True):
         handicap = None
         handicap_known = False
 
-        if stats_tracked:
-            st.markdown("##### 🔢 Round Numbers")
-            col_n1, col_n2, col_n3 = st.columns(3)
-            col_n4, col_n5, col_n6 = st.columns(3)
-            with col_n1:
-                score_input = st.number_input(
-                    "Score", min_value=0, max_value=200, value=0, step=1,
-                    help="Optional. Leave at 0 if you do not want to log total score.",
-                )
-                round_score = score_input if score_input > 0 else None
-            with col_n2:
-                fairways_hit = st.number_input(
-                    "Fairways Hit", min_value=0, max_value=18, value=0, step=1,
-                    help="A tracked zero remains a real zero.",
-                )
-            with col_n3:
-                gir = st.number_input(
-                    "GIR", min_value=0, max_value=18, value=0, step=1,
-                    help="Greens hit in regulation. A tracked zero remains a real zero.",
-                )
-            with col_n4:
-                putts = st.number_input(
-                    "Putts", min_value=0, max_value=60, value=0, step=1,
-                    help="Interpret with GIR; high putts do not automatically mean poor putting.",
-                )
-            with col_n5:
-                penalty_strokes = st.number_input(
-                    "Penalty Strokes", min_value=0, max_value=20, value=0, step=1,
-                    help="Use total penalty strokes from the round. Zero is valid when tracked.",
-                )
-            with col_n6:
-                st.markdown("<div style='height: 0.15rem'></div>", unsafe_allow_html=True)
-                handicap_known = st.checkbox(
-                    "Use handicap benchmark",
-                    value=False,
-                    help="Leave unchecked if you do not know your current handicap. The app will not assume scratch.",
-                )
-                if handicap_known:
-                    handicap = st.number_input(
-                        "Handicap Index", min_value=0.0, max_value=54.0, value=18.0, step=0.1,
-                        help="Used only for peer-relative benchmark estimates.",
-                    )
-                else:
-                    st.caption("Handicap: not provided")
-
-            st.markdown("##### 🎯 Scoring Events")
-            st.caption("High-value signals that help expose hidden scoring opportunities.")
-            col_e1, col_e2, col_e3, col_e4 = st.columns(4)
-            with col_e1:
-                ob_lost_balls = st.number_input(
-                    "OB / Lost Balls", min_value=0, max_value=20, value=0, step=1,
-                    help="Count actual out-of-bounds or lost-ball events separately from total penalty strokes.",
-                )
-            with col_e2:
-                three_putts = st.number_input(
-                    "3-Putts", min_value=0, max_value=18, value=0, step=1,
-                    help="A concrete putting event. It is not added on top of total-putt excess in the stroke estimate.",
-                )
-            with col_e3:
-                failed_up_downs = st.number_input(
-                    "Failed U&Ds", min_value=0, max_value=18, value=0, step=1,
-                    help="Failed Up-and-Downs: count missed up-and-down opportunities after missing the green.",
-                )
-            with col_e4:
-                scrambling_opportunities = st.number_input(
-                    "Scramble Opps.", min_value=0, max_value=18, value=0, step=1,
-                    help="Scrambling Opportunities: holes where you missed the green and had a realistic up-and-down opportunity.",
-                )
-        else:
-            st.caption(
-                "Turn this on if you tracked round stats. This keeps an actual 0 (for example, 0 GIR or 0 penalties) separate from 'not tracked'."
+        if intake_mode == "✍️ Describe / Enter Stats":
+            user_round_story = st.text_area(
+                "Describe your round in your own words:",
+                height=120,
+                placeholder=(
+                    "e.g., I hit several solid drives but kept choosing aggressive targets after bogeys. "
+                    "My approaches tended to finish short-right and I struggled with long-putt distance control..."
+                ),
             )
+
+            stats_tracked = st.toggle(
+                "📋 I tracked round stats",
+                value=False,
+                help="Turn this on when these numbers are from the round. Once enabled, a zero is treated as a real zero rather than missing data.",
+            )
+
+            if stats_tracked:
+                st.markdown("##### 🔢 Round Numbers")
+                col_n1, col_n2, col_n3 = st.columns(3)
+                col_n4, col_n5, col_n6 = st.columns(3)
+                with col_n1:
+                    score_input = st.number_input(
+                        "Score", min_value=0, max_value=200, value=0, step=1,
+                        help="Optional. Leave at 0 if you do not want to log total score.",
+                    )
+                    round_score = score_input if score_input > 0 else None
+                with col_n2:
+                    fairways_hit = st.number_input(
+                        "Fairways Hit", min_value=0, max_value=18, value=0, step=1,
+                        help="A tracked zero remains a real zero.",
+                    )
+                with col_n3:
+                    gir = st.number_input(
+                        "GIR", min_value=0, max_value=18, value=0, step=1,
+                        help="Greens hit in regulation. A tracked zero remains a real zero.",
+                    )
+                with col_n4:
+                    putts = st.number_input(
+                        "Putts", min_value=0, max_value=60, value=0, step=1,
+                        help="Interpret with GIR; high putts do not automatically mean poor putting.",
+                    )
+                with col_n5:
+                    penalty_strokes = st.number_input(
+                        "Penalty Strokes", min_value=0, max_value=20, value=0, step=1,
+                        help="Use total penalty strokes from the round. Zero is valid when tracked.",
+                    )
+                with col_n6:
+                    st.markdown("<div style='height: 0.15rem'></div>", unsafe_allow_html=True)
+                    handicap_known = st.checkbox(
+                        "Use handicap benchmark",
+                        value=False,
+                        help="Leave unchecked if you do not know your current handicap. The app will not assume scratch.",
+                    )
+                    if handicap_known:
+                        handicap = st.number_input(
+                            "Handicap Index", min_value=0.0, max_value=54.0, value=18.0, step=0.1,
+                            help="Used only for peer-relative benchmark estimates.",
+                        )
+                    else:
+                        st.caption("Handicap: not provided")
+
+                st.markdown("##### 🎯 Scoring Events")
+                st.caption("High-value signals that help expose hidden scoring opportunities.")
+                col_e1, col_e2, col_e3, col_e4 = st.columns(4)
+                with col_e1:
+                    ob_lost_balls = st.number_input(
+                        "OB / Lost Balls", min_value=0, max_value=20, value=0, step=1,
+                        help="Count actual out-of-bounds or lost-ball events separately from total penalty strokes.",
+                    )
+                with col_e2:
+                    three_putts = st.number_input(
+                        "3-Putts", min_value=0, max_value=18, value=0, step=1,
+                        help="A concrete putting event. It is not added on top of total-putt excess in the stroke estimate.",
+                    )
+                with col_e3:
+                    failed_up_downs = st.number_input(
+                        "Failed U&Ds", min_value=0, max_value=18, value=0, step=1,
+                        help="Failed Up-and-Downs: count missed up-and-down opportunities after missing the green.",
+                    )
+                with col_e4:
+                    scrambling_opportunities = st.number_input(
+                        "Scramble Opps.", min_value=0, max_value=18, value=0, step=1,
+                        help="Scrambling Opportunities: holes where you missed the green and had a realistic up-and-down opportunity.",
+                    )
+            else:
+                st.caption(
+                    "Turn this on if you tracked round stats. This keeps an actual 0 (for example, 0 GIR or 0 penalties) separate from 'not tracked'."
+                )
+
+        else:
+            st.markdown("##### 📷 Upload a Scorecard or Tracking Screenshot")
+            st.caption(
+                "Upload a clear photo of a paper scorecard or a screenshot from a golf app such as 18Birdies. "
+                "The AI will read visible totals, hole-by-hole stats, miss directions, and other tracked data when available."
+            )
+            scorecard_file = st.file_uploader(
+                "Scorecard image",
+                type=["png", "jpg", "jpeg", "webp"],
+                key="scorecard_upload",
+                help="For best results, use a sharp image where stat labels and hole rows are readable.",
+            )
+
+            if scorecard_file is not None:
+                upload_signature = (scorecard_file.name, len(scorecard_file.getvalue()))
+                if st.session_state.get("scorecard_upload_signature") != upload_signature:
+                    st.session_state["scorecard_upload_signature"] = upload_signature
+                    st.session_state.pop("scorecard_extraction", None)
+                    for key in list(st.session_state.keys()):
+                        if key.startswith("upload_") and key != "upload_round_notes":
+                            st.session_state.pop(key, None)
+
+                st.image(scorecard_file, caption="Uploaded scorecard", use_container_width=True)
+                if st.button("📷 Read Scorecard", type="secondary", use_container_width=True):
+                    try:
+                        with st.spinner("Reading the scorecard and checking visible stats..."):
+                            extraction = _extract_scorecard_with_gemini(scorecard_file)
+                        for key in list(st.session_state.keys()):
+                            if key.startswith("upload_"):
+                                st.session_state.pop(key, None)
+                        st.session_state["scorecard_extraction"] = extraction
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(f"Could not read this scorecard: {exc}")
+
+            extraction = st.session_state.get("scorecard_extraction")
+            if extraction:
+                st.success("Scorecard read. Review the extracted values below before diagnosis.")
+                confidence = _as_float_or_none(extraction.get("extraction_confidence"))
+                note = extraction.get("extraction_notes")
+                if confidence is not None:
+                    if confidence > 1:
+                        confidence = confidence / 100.0
+                    confidence = max(0.0, min(1.0, confidence))
+                    st.caption(f"Image-reading confidence: {confidence:.0%}")
+                if note:
+                    st.caption(str(note))
+
+                unclear = extraction.get("unclear_fields") or []
+                if unclear:
+                    st.warning("Some items were unclear: " + "; ".join(str(x) for x in unclear[:6]))
+
+                visible_patterns = extraction.get("visible_patterns") or []
+                holes = extraction.get("holes") or []
+                with st.expander("👁️ What Birdie Buddy could read from the image", expanded=False):
+                    if visible_patterns:
+                        st.markdown("**Visible patterns**")
+                        for pattern in visible_patterns:
+                            st.write(f"• {pattern}")
+                    if extraction.get("other_visible_stats"):
+                        st.markdown("**Other visible stats**")
+                        for stat in extraction.get("other_visible_stats", []):
+                            st.write(f"• {stat}")
+                    readable_holes = [h for h in holes if isinstance(h, dict) and h.get("hole") is not None]
+                    if readable_holes:
+                        hole_df = pd.DataFrame(readable_holes)
+                        st.dataframe(hole_df, hide_index=True, use_container_width=True)
+
+                st.markdown("##### ✅ Review / Correct Extracted Stats")
+                st.caption(
+                    "These fields are editable. Leave a field blank when the scorecard does not actually support it. "
+                    "Your confirmed values override the raw image extraction."
+                )
+                stats_tracked = True
+                col_n1, col_n2, col_n3 = st.columns(3)
+                col_n4, col_n5, col_n6 = st.columns(3)
+                with col_n1:
+                    round_score = st.number_input(
+                        "Score", min_value=0, max_value=200,
+                        value=_as_int_or_none(extraction.get("round_score")), step=1,
+                        placeholder="Not shown", key="upload_score_review",
+                    )
+                with col_n2:
+                    fairways_hit = st.number_input(
+                        "Fairways Hit", min_value=0, max_value=18,
+                        value=_as_int_or_none(extraction.get("fairways_hit")), step=1,
+                        placeholder="Not shown", key="upload_fir_review",
+                    )
+                with col_n3:
+                    gir = st.number_input(
+                        "GIR", min_value=0, max_value=18,
+                        value=_as_int_or_none(extraction.get("gir")), step=1,
+                        placeholder="Not shown", key="upload_gir_review",
+                    )
+                with col_n4:
+                    putts = st.number_input(
+                        "Putts", min_value=0, max_value=60,
+                        value=_as_int_or_none(extraction.get("putts")), step=1,
+                        placeholder="Not shown", key="upload_putts_review",
+                    )
+                with col_n5:
+                    penalty_strokes = st.number_input(
+                        "Penalty Strokes", min_value=0, max_value=20,
+                        value=_as_int_or_none(extraction.get("penalty_strokes")), step=1,
+                        placeholder="Not shown", key="upload_penalty_review",
+                    )
+                with col_n6:
+                    extracted_hcp = _as_float_or_none(extraction.get("handicap"))
+                    handicap_known = st.checkbox(
+                        "Use handicap benchmark",
+                        value=extracted_hcp is not None,
+                        key="upload_hcp_known",
+                    )
+                    if handicap_known:
+                        handicap = st.number_input(
+                            "Handicap Index", min_value=0.0, max_value=54.0,
+                            value=extracted_hcp if extracted_hcp is not None else 18.0,
+                            step=0.1, key="upload_hcp_review",
+                        )
+
+                st.markdown("##### 🎯 Scoring Events")
+                col_e1, col_e2, col_e3, col_e4 = st.columns(4)
+                with col_e1:
+                    ob_lost_balls = st.number_input(
+                        "OB / Lost Balls", min_value=0, max_value=20,
+                        value=_as_int_or_none(extraction.get("ob_lost_balls")), step=1,
+                        placeholder="Not shown", key="upload_ob_review",
+                    )
+                with col_e2:
+                    three_putts = st.number_input(
+                        "3-Putts", min_value=0, max_value=18,
+                        value=_as_int_or_none(extraction.get("three_putts")), step=1,
+                        placeholder="Not shown", key="upload_3putt_review",
+                    )
+                with col_e3:
+                    failed_up_downs = st.number_input(
+                        "Failed U&Ds", min_value=0, max_value=18,
+                        value=_as_int_or_none(extraction.get("failed_up_downs")), step=1,
+                        placeholder="Not shown", key="upload_ud_review",
+                    )
+                with col_e4:
+                    scrambling_opportunities = st.number_input(
+                        "Scramble Opps.", min_value=0, max_value=18,
+                        value=_as_int_or_none(extraction.get("scrambling_opportunities")), step=1,
+                        placeholder="Not shown", key="upload_scramble_review",
+                    )
+
+                user_round_story = st.text_area(
+                    "Anything the scorecard does not show? (optional)",
+                    height=100,
+                    placeholder=(
+                        "e.g., The two penalty holes came from aggressive recovery attempts; "
+                        "my driver contact actually felt solid most of the day."
+                    ),
+                    key="upload_round_notes",
+                )
+
+                scorecard_context = json.dumps(extraction, ensure_ascii=False)
+            elif scorecard_file is not None:
+                st.info("Click **Read Scorecard** to extract the tracked stats before continuing.")
+            else:
+                st.info("Upload a scorecard image or app screenshot to begin.")
 
         with st.expander(
             "⚙️ Optional: Tweak Observable Ball-Flight & Focus Selectors (Default:"
@@ -2414,16 +2767,22 @@ with st.container(border=True):
                     ],
                 )
 
-        if st.button(
-            f"Analyze Round Narrative with {persona_display_name}", type="primary"
-        ):
-            if not user_round_story.strip():
+        analyze_label = (
+            "Analyze Uploaded Scorecard"
+            if intake_mode == "📷 Upload Scorecard"
+            else f"Analyze Round with {persona_display_name}"
+        )
+        if st.button(analyze_label, type="primary"):
+            scorecard_ready = (
+                intake_mode == "📷 Upload Scorecard"
+                and bool(st.session_state.get("scorecard_extraction"))
+            )
+            if not user_round_story.strip() and not scorecard_ready:
                 st.warning(
-                    "Please type a few words about your round story above so your Caddie"
-                    " can analyze it!"
+                    "Describe your round, or upload and read a scorecard, before starting the diagnosis."
                 )
             else:
-                st.session_state["user_round_story"] = user_round_story
+                st.session_state["user_round_story"] = user_round_story.strip()
                 st.session_state["start_dir"] = start_dir
                 st.session_state["curvature"] = curvature
                 st.session_state["club_category"] = club_category
@@ -2431,6 +2790,8 @@ with st.container(border=True):
                 st.session_state["impact_feel"] = impact_feel
                 st.session_state["miss_freq"] = miss_freq
                 st.session_state["caddie_name"] = persona_display_name
+                st.session_state["round_intake_source"] = intake_mode
+                st.session_state["scorecard_context"] = scorecard_context
                 st.session_state["round_stats_tracked"] = stats_tracked
                 st.session_state["round_score"] = round_score
                 st.session_state["round_fairways_hit"] = fairways_hit
@@ -2469,8 +2830,13 @@ with st.container(border=True):
                 - Use plain, direct golf language that a recreational golfer can understand immediately.
                 - The persona will return AFTER the diagnostic questions are answered.
 
-                The golfer provided this open-ended story about their round:
-                "{user_round_story}"
+                The golfer's optional round notes/story:
+                "{user_round_story if user_round_story.strip() else 'No additional story supplied.'}"
+
+                Scorecard / screenshot extraction (if one was uploaded):
+                {scorecard_context}
+
+                IMPORTANT: the reviewed round numbers below supersede any conflicting raw extraction values.
 
                 Optional observable settings (if marked 'Not specified', rely strictly on the story text above):
                 - Start Direction: {format_selector_value(start_dir)}
@@ -2483,8 +2849,9 @@ with st.container(border=True):
                 Round numbers they logged:
                 {round_numbers_block}
 
-                Your job is NOT to diagnose the golfer yet. Your job is to identify the THREE highest-value
-                uncertainties that could materially change which Value Chain stage deserves the #1 practice priority.
+                Your job is NOT to diagnose the golfer yet. Your job is to identify only the
+                remaining uncertainties that could materially change which Value Chain stage deserves
+                the #1 practice priority.
 
                 Use these five stages:
                 1. Off-the-Tee Performance — tee-shot execution/dispersion.
@@ -2494,45 +2861,45 @@ with st.container(border=True):
                    hazard avoidance, pin selection, and recovery-shot choices.
                 5. Mental Infrastructure — composure, commitment, routine, focus, emotional recovery.
 
-                DIAGNOSTIC QUESTION RULES:
-                - Ask exactly 3 questions.
-                - Each question must investigate a DIFFERENT uncertainty; do not ask the same issue twice.
-                - Question 1 must resolve the ambiguity most likely to change the #1 ROI category.
-                - Question 2 must investigate the strongest competing scoring leak supported by the story/stats.
-                - Question 3 must test an important remaining cause or context that would change the recommended fix.
-                - Do NOT ask for information the golfer already stated clearly. Instead, probe what remains unknown.
-                - Prefer cause-discriminating questions over symptom questions. Example: distinguish bad target/club
-                  selection from bad execution rather than merely asking whether the shot went into trouble.
+                ADAPTIVE QUESTION RULES:
+                - Ask between 2 and 5 questions. Use the FEWEST questions needed for a confident ranking.
+                - Ask 2 when the scorecard/story already resolves most competing explanations.
+                - Ask 3 for a normal round with a few meaningful uncertainties.
+                - Use 4 or 5 only when several high-value ambiguities remain, the scorecard has important
+                  unreadable fields, or multiple Value Chain stages have similarly strong evidence.
+                - Each question must investigate a DIFFERENT uncertainty.
+                - The first question must address the ambiguity most likely to change the #1 ROI category.
+                - Do NOT ask the golfer to repeat a stat that is clearly visible on the uploaded scorecard
+                  or already present in the reviewed round numbers.
+                - Use hole-by-hole and directional scorecard evidence when available. If the scorecard shows
+                  repeated misses right, do not ask whether misses were right; ask what CAUSED or followed them.
+                - Prefer cause-discriminating questions over symptom questions.
                 - If penalties/OB occurred, distinguish strategy from execution before labeling Course Management.
-                - If 3-putts occurred, distinguish pace control, starting line/read, short-putt conversion, and unusually long first-putt distance.
-                - If GIR is poor, distinguish contact, start direction/curve, distance control/club selection, and intentionally conservative targets.
+                - If 3-putts occurred, distinguish first-putt pace, read/start line, short-putt conversion,
+                  and unusually long first-putt distance.
+                - If GIR is poor, distinguish contact, start direction/curve, distance/club selection, and target choice.
                 - If scrambling is poor, distinguish strike quality, landing-spot selection, lie difficulty, and putting conversion.
-                - If emotional reactions are already explicit in the story, do not waste a question asking whether the golfer was frustrated;
-                  ask what the reaction changed in the NEXT decision or execution.
-                - Keep each question under 28 words when possible.
-                - Use 4 concrete, mutually distinct answer choices. The fourth choice should be a useful
-                  "It varied / I'm not sure" option when appropriate.
-                - Keep options short and behavior-based. Avoid technical jargon unless the golfer used it.
-                - No leading questions and no implied diagnosis.
+                - If fairway/GIR miss directions are visible, use them as evidence instead of asking the direction again.
+                - If the uploaded scorecard has an important unclear field that would materially change the diagnosis,
+                  ask a direct clarification about it rather than pretending the image supplied the answer.
+                - If emotional reactions are already explicit, ask what they changed in the NEXT decision/execution.
+                - Keep each question under 30 words when possible.
+                - Give 3-5 short, mutually distinct, behavior-based answer choices.
+                - Include "It varied / I'm not sure" when uncertainty is realistic.
+                - No leading questions, no persona roleplay, and no implied diagnosis.
 
-                For each question, also provide:
-                - a short `focus` label (2-5 words) so the golfer knows what is being tested;
-                - a one-sentence `why` explanation in plain language describing why this answer matters.
+                For each question provide a short `focus` label and a one-sentence `why` explanation.
 
                 Output strictly raw JSON with no markdown formatting:
                 {{
-                  "focus_q1": "short label",
-                  "question_1": "plain-English question",
-                  "why_q1": "brief explanation of why this matters",
-                  "options_q1": ["Option A", "Option B", "Option C", "It varied / I'm not sure"],
-                  "focus_q2": "short label",
-                  "question_2": "plain-English question",
-                  "why_q2": "brief explanation of why this matters",
-                  "options_q2": ["Option A", "Option B", "Option C", "It varied / I'm not sure"],
-                  "focus_q3": "short label",
-                  "question_3": "plain-English question",
-                  "why_q3": "brief explanation of why this matters",
-                  "options_q3": ["Option A", "Option B", "Option C", "It varied / I'm not sure"]
+                  "questions": [
+                    {{
+                      "focus": "2-5 word label",
+                      "question": "plain-English clarification question",
+                      "why": "why this answer could change the ROI diagnosis",
+                      "options": ["Option A", "Option B", "Option C", "It varied / I'm not sure"]
+                    }}
+                  ]
                 }}
                 """
 
@@ -2573,117 +2940,51 @@ with st.container(border=True):
 
     # --- STEP 1B: TARGETED MULTI-CHOICE DECISION TREE ---
     elif st.session_state["diag_step"] == 2:
-        st.info(
-            f"📖 **Your Round Narrative:** \"{st.session_state.get('user_round_story')}\""
-        )
+        if st.session_state.get("round_intake_source") == "📷 Upload Scorecard":
+            st.info("📷 **Scorecard-based diagnosis:** Birdie Buddy is using the reviewed stats and visible scorecard patterns below.")
+            story_note = st.session_state.get("user_round_story", "").strip()
+            if story_note:
+                st.caption(f"Additional round note: {story_note}")
+        else:
+            st.info(
+                f"📖 **Your Round Narrative:** \"{st.session_state.get('user_round_story')}\""
+            )
         caddie = st.session_state.get("caddie_name", persona_display_name)
         qs = st.session_state.get("followup_questions", {})
 
         st.markdown("### 🔎 Quick Diagnostic Follow-Ups")
         st.caption(
-            "Answer these in plain golf terms. They are designed to separate strategy, execution, "
-            "scoring skill, and mental causes before the app ranks your highest-ROI opportunity."
+            "Answer only the clarifications Birdie Buddy still needs. The number of questions adapts to "
+            "how much the story, scorecard, and tracked stats already explain."
         )
         st.caption(f"{caddie} will bring the personality back in the final diagnosis.")
 
-        focus_q1 = qs.get("focus_q1", "Primary cause")
-        q1_text = qs.get(
-            "question_1",
-            "When the costly mistake happened, was the bigger issue the shot choice or the execution?",
-        )
-        why_q1 = qs.get(
-            "why_q1",
-            "This helps separate Course Management from a swing-execution problem.",
-        )
-        q1_opts = qs.get(
-            "options_q1",
-            [
-                "The club/target choice created unnecessary risk",
-                "The choice was reasonable, but I executed it poorly",
-                "Both the choice and execution contributed",
-                "It varied / I'm not sure",
-            ],
-        )
+        question_items = _normalize_followup_questions(qs)
+        selected_answers = []
+        for idx, item in enumerate(question_items, start=1):
+            with st.container(border=True):
+                st.caption(f"QUESTION {idx} · {item['focus']}")
+                st.markdown(f"**{item['question']}**")
+                st.caption(f"Why we're asking: {item['why']}")
+                answer = st.radio(
+                    f"Q{idx} Choice:",
+                    options=item["options"],
+                    index=None,
+                    key=f"followup_answer_{idx}",
+                    label_visibility="collapsed",
+                )
+                selected_answers.append(answer)
 
-        focus_q2 = qs.get("focus_q2", "Secondary scoring leak")
-        q2_text = qs.get(
-            "question_2",
-            "What most often caused your extra strokes on the green?",
-        )
-        why_q2 = qs.get(
-            "why_q2",
-            "This distinguishes pace control from read, start-line, or short-putt problems.",
-        )
-        q2_opts = qs.get(
-            "options_q2",
-            [
-                "My first putt finished too far from the hole",
-                "I misread the break or started putts off line",
-                "I missed too many short second putts",
-                "It varied / I'm not sure",
-            ],
-        )
-
-        focus_q3 = qs.get("focus_q3", "Remaining uncertainty")
-        q3_text = qs.get(
-            "question_3",
-            "On your approach misses, what was the most common pattern?",
-        )
-        why_q3 = qs.get(
-            "why_q3",
-            "This shows whether the approach leak is mainly contact, direction, distance, or decision-making.",
-        )
-        q3_opts = qs.get(
-            "options_q3",
-            [
-                "Poor contact changed the distance",
-                "The ball started or curved off line",
-                "Club or target selection left me in the wrong place",
-                "It varied / I'm not sure",
-            ],
-        )
-
-        with st.container(border=True):
-            st.caption(f"QUESTION 1 · {focus_q1}")
-            st.markdown(f"**{q1_text}**")
-            st.caption(f"Why we're asking: {why_q1}")
-            ans1_selected = st.radio(
-                "Q1 Choice:",
-                options=q1_opts,
-                index=None,
-                key="ans1_radio",
-                label_visibility="collapsed",
-            )
-
-        with st.container(border=True):
-            st.caption(f"QUESTION 2 · {focus_q2}")
-            st.markdown(f"**{q2_text}**")
-            st.caption(f"Why we're asking: {why_q2}")
-            ans2_selected = st.radio(
-                "Q2 Choice:",
-                options=q2_opts,
-                index=None,
-                key="ans2_radio",
-                label_visibility="collapsed",
-            )
-
-        with st.container(border=True):
-            st.caption(f"QUESTION 3 · {focus_q3}")
-            st.markdown(f"**{q3_text}**")
-            st.caption(f"Why we're asking: {why_q3}")
-            ans3_selected = st.radio(
-                "Q3 Choice:",
-                options=q3_opts,
-                index=None,
-                key="ans3_radio",
-                label_visibility="collapsed",
-            )
-
-        answers_complete = all(
-            answer is not None for answer in (ans1_selected, ans2_selected, ans3_selected)
+        answers_complete = bool(question_items) and all(
+            answer is not None for answer in selected_answers
         )
         if not answers_complete:
-            st.caption("Choose one answer for each question to continue.")
+            st.caption(f"Choose one answer for each of the {len(question_items)} clarification questions to continue.")
+
+        followup_context = "\n".join(
+            f"Diagnostic Follow-Up {idx} ({item['focus']}): {item['question']} -> Selected: {answer}"
+            for idx, (item, answer) in enumerate(zip(question_items, selected_answers), start=1)
+        )
 
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
@@ -2720,9 +3021,10 @@ with st.container(border=True):
                 Divot / Turf Location: {format_selector_value(st.session_state['divot_loc'])}
                 Impact Sound & Feel: {format_selector_value(st.session_state['impact_feel'])}
                 Miss Frequency: {format_selector_value(st.session_state['miss_freq'])}
-                Diagnostic Follow-Up Q1 ({focus_q1}): {q1_text} -> Selected: {ans1_selected}
-                Diagnostic Follow-Up Q2 ({focus_q2}): {q2_text} -> Selected: {ans2_selected}
-                Diagnostic Follow-Up Q3 ({focus_q3}): {q3_text} -> Selected: {ans3_selected}
+                Diagnostic Follow-Ups:
+                {followup_context}
+                Scorecard / Screenshot Context:
+                {st.session_state.get('scorecard_context', 'No scorecard image was used.')}
                 Round Stats Tracked: {st.session_state.get('round_stats_tracked', False)}
                 Round Numbers: Score={_fmt_stat(_rs)}, Fairways Hit={_fmt_stat(_fh)} (of ~14),
                 GIR={_fmt_stat(_gir)} (of 18), Putts={_fmt_stat(_pt)}, Penalty Strokes={_fmt_stat(_pen)},
@@ -2760,6 +3062,11 @@ with st.container(border=True):
                 5. **Mental Infrastructure (Support Systems):** routine, composure, emotional recovery,
                    confidence, commitment, and focus after the strategic choice has already been made.
                    Do not place target/club/risk-selection mistakes here.
+
+                **Scorecard Grounding Rule:** When a scorecard/screenshot was uploaded, treat the reviewed
+                numeric fields as authoritative for totals. Use raw image extraction only for supporting
+                hole-by-hole/directional context. Never invent a stat that the extraction marked null/unclear,
+                and never treat an unreadable icon as evidence.
 
                 **Score-ROI Evidence Hierarchy:** Direct score events (OB/lost balls, penalty strokes, 3-putts)
                 are stronger evidence of lost strokes than broad accuracy statistics. Failed up-and-downs
@@ -2946,8 +3253,14 @@ with st.container(border=True):
             if st.button("↺ Start Over"):
                 # Clear the prior question set and radio selections so a new round
                 # cannot inherit answers generated for the previous story.
-                for key in ("followup_questions", "ans1_radio", "ans2_radio", "ans3_radio"):
-                    st.session_state.pop(key, None)
+                st.session_state.pop("followup_questions", None)
+                for key in list(st.session_state.keys()):
+                    if (
+                        key.startswith("followup_answer_")
+                        or key.startswith("upload_")
+                        or key.startswith("scorecard_")
+                    ):
+                        st.session_state.pop(key, None)
                 st.session_state["diag_step"] = 1
                 st.rerun()
 
