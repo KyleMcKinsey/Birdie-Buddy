@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 
 st.set_page_config(
-    page_title="Birdie Buddy MVP", page_icon="⛳", layout="centered"
+    page_title="Birdie Buddy", page_icon="⛳", layout="centered"
 )
 
 CSV_FILE = "birdie_buddy_practice_history.csv"
@@ -558,8 +558,8 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
 
 
 with st.container(border=True):
-    st.title("⛳ Birdie Buddy (Phase 1 MVP)")
-    st.caption("AI Golf Caddie & Practice Asset Allocator powered by Gemini")
+    st.title("⛳ Birdie Buddy")
+    st.caption("AI-Powered Golf Coach & Practice Asset Allocator")
 
 # Sidebar - API Key Input & Spreadsheet History Exporter
 with st.sidebar.container(border=True):
@@ -2158,43 +2158,6 @@ GAME_MODE_DRILL_MAP = {
 }
 
 # -------------------------------------------------------------
-# CLOSE THE LOOP: ask about LAST round's drill before starting a new one
-# -------------------------------------------------------------
-_init_history()
-_history_rows = st.session_state["practice_history"]
-if (
-    _history_rows
-    and st.session_state.get("diag_step", 1) == 1
-    and _history_rows[-1].get("Drill Completed?", "") == ""
-):
-    _last = _history_rows[-1]
-    with st.container(border=True):
-        st.markdown(
-            f"##### 🔁 Quick check-in: your last drill was "
-            f"**{_last.get('Primary Drill', 'your drill')}**"
-        )
-        col_fb1, col_fb2, col_fb3 = st.columns([1, 1, 1])
-        with col_fb1:
-            fb_completed = st.selectbox(
-                "Did you do it?",
-                ["Not yet", "Yes, a little", "Yes, fully"],
-                key="fb_completed",
-            )
-        with col_fb2:
-            fb_effectiveness = st.slider(
-                "Did it help? (1-5)", 1, 5, 3, key="fb_effectiveness"
-            )
-        with col_fb3:
-            st.write("")
-            st.write("")
-            if st.button("Log Feedback", use_container_width=True):
-                update_last_session_feedback(fb_completed, fb_effectiveness)
-                st.rerun()
-        if st.button("Skip for now"):
-            update_last_session_feedback("Skipped", "")
-            st.rerun()
-
-# -------------------------------------------------------------
 # STEP 1: HYBRID STORY + MULTI-CHOICE DIAGNOSTIC
 # -------------------------------------------------------------
 with st.container(border=True):
@@ -3461,6 +3424,117 @@ with st.container(border=True):
                 file_name="birdie_buddy_practice_plan.txt",
                 mime="text/plain",
             )
+
+        # ---------------------------------------------------------
+        # END-OF-PRACTICE FEEDBACK — close the loop without requiring
+        # the golfer to begin another round first.
+        # ---------------------------------------------------------
+        _init_history()
+        _practice_rows = st.session_state.get("practice_history", [])
+        _current_log = _practice_rows[-1] if _practice_rows else None
+
+        with st.container(border=True):
+            st.markdown("### ✅ Log This Practice Session")
+            st.caption(
+                "When you finish the plan, record how much you completed and whether "
+                "the prescribed work helped. Birdie Buddy will use this feedback in "
+                "your practice history and future progress tracking."
+            )
+
+            if _current_log:
+                _logged_drill = _current_log.get(
+                    "Primary Drill", diag.get("recommended_primary_drill", "your primary drill")
+                )
+                st.markdown(f"**Primary practice focus:** `{_logged_drill}`")
+
+                _completion_options = ["Not yet", "Yes, partially", "Yes, fully"]
+                _existing_completion = str(
+                    _current_log.get("Drill Completed?", "") or ""
+                ).strip()
+                # Backward compatibility with older wording used by previous builds.
+                _completion_aliases = {
+                    "Yes, a little": "Yes, partially",
+                    "Skipped": "Not yet",
+                }
+                _existing_completion = _completion_aliases.get(
+                    _existing_completion, _existing_completion
+                )
+                _completion_index = (
+                    _completion_options.index(_existing_completion)
+                    if _existing_completion in _completion_options
+                    else 0
+                )
+
+                _existing_effectiveness = _current_log.get(
+                    "Fix Effectiveness (1-5)", ""
+                )
+                try:
+                    _effectiveness_default = int(float(_existing_effectiveness))
+                    _effectiveness_default = max(1, min(5, _effectiveness_default))
+                except (TypeError, ValueError):
+                    _effectiveness_default = 3
+
+                log_col1, log_col2 = st.columns(2)
+                with log_col1:
+                    practice_completed = st.selectbox(
+                        "How much of the practice plan did you complete?",
+                        _completion_options,
+                        index=_completion_index,
+                        key="end_practice_completed",
+                    )
+                with log_col2:
+                    practice_effectiveness = st.slider(
+                        "How effective did the practice feel?",
+                        min_value=1,
+                        max_value=5,
+                        value=_effectiveness_default,
+                        key="end_practice_effectiveness",
+                        help=(
+                            "1 = no noticeable benefit, 3 = some improvement, "
+                            "5 = clear improvement you would keep practicing."
+                        ),
+                        disabled=practice_completed == "Not yet",
+                    )
+
+                existing_saved = bool(
+                    str(_current_log.get("Drill Completed?", "")).strip()
+                )
+                button_label = (
+                    "💾 Update Practice Log"
+                    if existing_saved
+                    else "💾 Log Practice & Effectiveness"
+                )
+
+                if st.button(
+                    button_label,
+                    type="primary",
+                    use_container_width=True,
+                    key="log_practice_feedback_btn",
+                ):
+                    effectiveness_to_save = (
+                        "" if practice_completed == "Not yet" else practice_effectiveness
+                    )
+                    update_last_session_feedback(
+                        practice_completed, effectiveness_to_save
+                    )
+                    st.session_state["practice_feedback_saved"] = True
+                    st.rerun()
+
+                if existing_saved:
+                    saved_completion = _current_log.get("Drill Completed?", "")
+                    saved_effectiveness = _current_log.get("Fix Effectiveness (1-5)", "")
+                    if saved_effectiveness not in (None, ""):
+                        st.success(
+                            f"Practice logged: **{saved_completion}** • "
+                            f"Effectiveness **{saved_effectiveness}/5**"
+                        )
+                    else:
+                        st.info(f"Practice status logged: **{saved_completion}**")
+            else:
+                st.info(
+                    "Complete the round diagnosis first so Birdie Buddy has a "
+                    "practice session to attach this feedback to."
+                )
 
     elif "diagnosis" in st.session_state:
         st.warning(
