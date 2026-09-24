@@ -2599,6 +2599,12 @@ elif st.session_state["diag_step"] == 2:
                  Value Chain stage as Course Management — do not relabel it as Mental Infrastructure
                  merely because an existing mental-game drill is used to rehearse the decision process.
 
+            **Primary/Secondary Card Consistency:** Diagnose the secondary opportunity with the same
+            rigor as the primary. Give it its own severity (`secondary_roi_priority`), evidence
+            (`secondary_roi_evidence`), confidence (`secondary_confidence_score`), concise persona
+            line, cause explanation, and drill. Being ranked #2 does not automatically mean LOW;
+            a round can contain two HIGH or CRITICAL opportunities.
+
             Map faults to the most effective drills from this EXACT list of 45 drills:
             - FULL SWING: 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill', 'Towel Under Armpits Drill', 'Coin Strike Low-Point Drill', 'Split-Hands Release Drill', 'Feet-Together Balance Drill', 'Wall-Head Posture Drill', 'Impact Bag Compression Drill', 'Two-Step Pump Lag Drill'
             - SHORT GAME: 'Towel Behind Ball Drill', 'Lead Foot Weight Anchor Drill', 'Brush Turf Chipping Drill', 'Coin Lead-Point Pitch Drill', 'Ruler in Glove Wrist Anchor Drill', 'Hinge-and-Hold Chipping Drill', 'Clock System Wedge Drill', 'Landing Zone Target Towel Drill', 'Trail-Hand Only Pitch Drill', 'Line in the Sand Drill', 'Dollar Bill Sand Extraction Drill', 'Open-Face Sand Splash Drill', 'Continuous Motion Pendulum Chipping Drill', 'Accelerating Through Impact Gate Drill', 'Target-Focused Eyes-Up Chipping Drill'
@@ -2614,8 +2620,11 @@ elif st.session_state["diag_step"] == 2:
               "primary_cause_breakdown": "string (2-3 sentences explaining biomechanical/psychological cause and why fixing this yields the highest stroke reduction)",
               "secondary_miss": "string or null",
               "secondary_miss_stage": "string or null — one of the same five Value Chain stage names",
-              "secondary_miss_persona": "string or null",
+              "secondary_miss_persona": "string or null (1 short, witty sentence calling out the secondary opportunity in character)",
               "secondary_cause_breakdown": "string or null (2-3 sentences explaining secondary cause and its relative stroke impact)",
+              "secondary_roi_priority": "CRITICAL | HIGH | MEDIUM | LOW | null — severity of the secondary opportunity itself, independent of being ranked #2",
+              "secondary_roi_evidence": "string or null — specific round evidence supporting the secondary opportunity",
+              "secondary_confidence_score": "number from 0.0 to 1.0 or null — confidence in the secondary diagnosis",
               "expanded_caddie_intro": "string (3-4 robust sentences in persona referencing their story and strategic ROI fix)",
               "caddie_drill_pep_talk": "string (2-3 sentences in persona giving encouraging range advice)",
               "value_chain_analysis": {{
@@ -2748,49 +2757,98 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
         "0.0" if primary_has_numeric else "Qualitative"
     )
 
-    st.markdown(f"#### 🥇 #1 Priority: {primary_stage}")
-    st.warning(f"**{primary_title}** — {primary_persona}")
-
-    m1, m2, m3 = st.columns(3)
-    with m1:
-        st.metric("Modeled Scoring Opportunity", primary_metric)
-    with m2:
-        priority_label = diag.get("roi_priority") or roi_data.get("tier", "N/A").split(" —")[0]
-        st.metric("ROI Priority", priority_label)
-    with m3:
+    def _confidence_label(value, fallback="N/A"):
         try:
-            confidence_pct = float(diag.get("confidence_score", 0)) * 100
-            confidence_label = f"{confidence_pct:.0f}%"
+            if value in (None, "", "null"):
+                return fallback
+            return f"{float(value) * 100:.0f}%"
         except Exception:
-            confidence_label = str(diag.get("confidence_score", "N/A"))
-        st.metric("AI Confidence", confidence_label)
+            return str(value) if value not in (None, "") else fallback
 
+    def _render_priority_card(
+        rank, stage, title, persona_line, modeled_metric, priority_label,
+        confidence_label, evidence, why_it_matters, practice_focus,
+        subtype=None, accent="warning"
+    ):
+        medal = "🥇" if rank == 1 else "🥈"
+        with st.container(border=True):
+            st.markdown(f"#### {medal} #{rank} Priority: {stage}")
+            callout = f"**{title}**"
+            if persona_line and persona_line != title:
+                callout += f" — {persona_line}"
+            if accent == "warning":
+                st.warning(callout)
+            else:
+                st.info(callout)
+
+            m1, m2, m3 = st.columns(3)
+            with m1:
+                st.metric("Modeled Scoring Opportunity", modeled_metric)
+            with m2:
+                st.metric("ROI Priority", priority_label or "N/A")
+            with m3:
+                st.metric("AI Confidence", confidence_label)
+
+            if subtype and subtype != "null":
+                st.caption(f"🗺️ **Course-management subtype:** {subtype}")
+            if evidence:
+                st.markdown(f"**Evidence:** {evidence}")
+            if why_it_matters:
+                st.markdown(f"**Why it matters:** {why_it_matters}")
+            st.markdown(f"**Highest-ROI practice focus:** `{practice_focus or 'N/A'}`")
+
+    priority_label = diag.get("roi_priority") or roi_data.get("tier", "N/A").split(" —")[0]
+    confidence_label = _confidence_label(diag.get("confidence_score"))
     subtype = diag.get("course_management_subtype")
-    if subtype and subtype != "null":
-        st.caption(f"🗺️ **Course-management subtype:** {subtype}")
-
     roi_evidence = diag.get("roi_evidence") or vc.get("leak_rationale")
-    if roi_evidence:
-        st.markdown(f"**Evidence:** {roi_evidence}")
     primary_causes = diag.get("primary_cause_breakdown")
-    if primary_causes:
-        st.markdown(f"**Why it matters:** {primary_causes}")
-    st.markdown(f"**Highest-ROI practice focus:** `{diag.get('recommended_primary_drill', 'N/A')}`")
+
+    _render_priority_card(
+        rank=1,
+        stage=primary_stage,
+        title=primary_title,
+        persona_line=primary_persona,
+        modeled_metric=primary_metric,
+        priority_label=priority_label,
+        confidence_label=confidence_label,
+        evidence=roi_evidence,
+        why_it_matters=primary_causes,
+        practice_focus=diag.get("recommended_primary_drill"),
+        subtype=subtype if primary_stage == "Course Management / Strategic Decision-Making" else None,
+        accent="warning",
+    )
 
     secondary = diag.get("secondary_miss")
     if secondary:
         secondary_stage = diag.get("secondary_miss_stage", "Secondary opportunity")
         secondary_value = stage_summary["values"].get(secondary_stage, 0.0)
         secondary_has_numeric = stage_summary["has_numeric"].get(secondary_stage, False)
-        secondary_metric = f"~+{secondary_value:.1f} modeled strokes" if secondary_has_numeric and secondary_value > 0 else (
-            "0.0 modeled strokes" if secondary_has_numeric else "qualitative signal"
+        secondary_metric = f"~+{secondary_value:.1f}" if secondary_has_numeric and secondary_value > 0 else (
+            "0.0" if secondary_has_numeric else "Qualitative"
         )
-        st.info(
-            f"**🥈 #2 Priority: {secondary_stage}**  \n"
-            f"**{secondary}** • {secondary_metric} • Drill: `{diag.get('recommended_secondary_drill') or 'N/A'}`"
+        secondary_persona = diag.get("secondary_miss_persona") or secondary
+        secondary_priority = diag.get("secondary_roi_priority") or "SECONDARY"
+        secondary_confidence = _confidence_label(
+            diag.get("secondary_confidence_score"), fallback=confidence_label
         )
-        if diag.get("secondary_cause_breakdown"):
-            st.caption(diag.get("secondary_cause_breakdown"))
+        secondary_evidence = diag.get("secondary_roi_evidence")
+        if not secondary_evidence:
+            secondary_evidence = diag.get("secondary_cause_breakdown")
+
+        _render_priority_card(
+            rank=2,
+            stage=secondary_stage,
+            title=secondary,
+            persona_line=secondary_persona,
+            modeled_metric=secondary_metric,
+            priority_label=secondary_priority,
+            confidence_label=secondary_confidence,
+            evidence=secondary_evidence,
+            why_it_matters=diag.get("secondary_cause_breakdown"),
+            practice_focus=diag.get("recommended_secondary_drill"),
+            subtype=subtype if secondary_stage == "Course Management / Strategic Decision-Making" else None,
+            accent="info",
+        )
 
     st.markdown("#### Five-Stage ROI Snapshot")
     snapshot_df = pd.DataFrame(stage_summary["rows"])
