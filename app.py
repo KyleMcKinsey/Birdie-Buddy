@@ -198,11 +198,23 @@ def render_progress_loop(df_history):
         if previous is not None:
             prev_fault = previous.get("Primary Macro-Fault", "N/A")
             if last_fault != "N/A" and last_fault == prev_fault:
-                st.metric("Primary Fault", last_fault, delta="Recurring", delta_color="off")
+                tag_html = "<span style='color:#b91c1c; font-weight:600;'>🔁 Recurring</span>"
             else:
-                st.metric("Primary Fault", last_fault, delta="New focus", delta_color="off")
+                tag_html = "<span style='color:#15803d; font-weight:600;'>🆕 New focus</span>"
         else:
-            st.metric("Primary Fault", last_fault)
+            tag_html = ""
+
+        # Custom markup instead of st.metric: st.metric's big-number style
+        # truncates/clips long drill-fault names, so we render this as a
+        # normal-sized, wrapping label instead.
+        st.markdown(
+            "<div style='font-size: 0.75rem; color: #808495; margin-bottom: 2px;'>"
+            "Primary Fault</div>"
+            f"<div style='font-size: 0.85rem; font-weight: 600; line-height: 1.25;"
+            f" word-wrap: break-word; overflow-wrap: break-word; hyphens: auto;'>{last_fault}</div>"
+            f"<div style='font-size: 0.8rem; margin-top: 2px;'>{tag_html}</div>",
+            unsafe_allow_html=True,
+        )
 
     drill_done = str(latest.get("Drill Completed?", "")).strip()
     if not drill_done:
@@ -236,14 +248,23 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
         f" (@ {res['sec_per_ball']}s/ball)"
     )
     lines.append("-" * 50)
-    lines.append("\nROUND SWOT SUMMARY:")
-    swot = diag.get("swot_analysis", {})
-    lines.append(f"- Strength (What Worked): {swot.get('strengths', 'N/A')}")
-    lines.append(f"- Weakness (Main Flaw): {swot.get('weaknesses', 'N/A')}")
+    lines.append("\nVALUE CHAIN LEAK BREAKDOWN:")
+    vc = diag.get("value_chain_analysis", {})
+    lines.append(f"- Off-the-Tee Strategy (Primary Drive): {vc.get('off_the_tee', 'N/A')}")
+    lines.append(f"- Approach Precision (Mid Game): {vc.get('approach', 'N/A')}")
     lines.append(
-        f"- Opportunity (Highest ROI Fix): {swot.get('opportunities', 'N/A')}"
+        f"- Scoring/Scrambling (Short Game/Putting): {vc.get('scoring_scrambling', 'N/A')}"
     )
-    lines.append(f"- Threat (Blow-up Risk): {swot.get('threats', 'N/A')}")
+    lines.append(
+        f"- Mental Infrastructure (Support Systems): {vc.get('mental_infrastructure', 'N/A')}"
+    )
+    lines.append(f"- #1 Leak Stage: {vc.get('primary_leak_stage', 'N/A')}")
+    if vc.get("leak_rationale"):
+        lines.append(f"- Why This Stage Wins ROI: {vc.get('leak_rationale')}")
+    blind_spot = diag.get("diagnostic_blind_spot")
+    if blind_spot:
+        lines.append(f"\nBLIND SPOT FLAGGED (not in your story, found in your numbers):")
+        lines.append(f"- {blind_spot}")
     lines.append("\n" + "=" * 50)
     lines.append("DRILL EXECUTION SCHEDULE")
     lines.append("=" * 50)
@@ -1442,6 +1463,14 @@ if st.session_state["diag_step"] == 1:
             st.session_state["round_putts"] = putts
             st.session_state["round_penalty_strokes"] = penalty_strokes
 
+            round_numbers_block = f"""
+            - Score: {round_score if round_score else 'Not provided'}
+            - Fairways Hit: {fairways_hit if fairways_hit else 'Not provided'} (out of ~14 driving holes on a typical 18)
+            - Greens in Regulation: {gir if gir else 'Not provided'} (out of 18)
+            - Putts: {putts if putts else 'Not provided'}
+            - Penalty Strokes: {penalty_strokes if penalty_strokes else 'Not provided'}
+            """
+
             question_prompt = f"""
             {active_persona['system_instruction']}
 
@@ -1456,13 +1485,29 @@ if st.session_state["diag_step"] == 1:
             - Impact Feel: {format_selector_value(impact_feel)}
             - Consistency: {format_selector_value(miss_freq)}
 
-            Based directly on their story and attributes, craft 2 targeted diagnostic decision-tree follow-up questions in persona voice.
+            Round numbers they logged (may be more reliable than what they choose to talk about):
+            {round_numbers_block}
+
+            **Blind-Spot Check (do this BEFORE writing questions):** Players narrate whatever is
+            emotionally fresh (e.g. one bad chip), which is not always where they're actually
+            losing the most strokes. Compare the round numbers above to the story:
+            - Fairways Hit well below ~50% of driving holes → possible off-the-tee leak.
+            - Putts at 34+ → possible putting/scoring leak.
+            - Penalty Strokes at 2+ → possible course-management/decision leak.
+            - GIR well below ~30% → possible approach-game leak.
+            If any of these stat-implied leaks is NOT addressed anywhere in the story, you MUST
+            spend one of the two follow-up questions probing that specific blind spot directly
+            (e.g. asking what typically causes missed fairways) instead of only following the
+            narrative. If the numbers and the story already agree on the main issue, or no
+            numbers were logged, ask both questions based on the story as normal.
+
+            Based on the above, craft 2 targeted diagnostic decision-tree follow-up questions in persona voice.
             Address physical biomechanics or mental composure/focus issues depending on what they described.
             For EACH question, provide 3 short, concrete multiple-choice options (Option A, Option B, Option C) to clarify their root cause without typing.
 
             Output strictly raw JSON with no markdown formatting:
             {{
-              "question_1": "string (Question 1 directly addressing a key detail in their story)",
+              "question_1": "string (Question 1 — from the story, or from a stat-implied blind spot if one was found)",
               "options_q1": ["Option A string", "Option B string", "Option C string"],
               "question_2": "string (Question 2 addressing secondary mechanic or mental reaction)",
               "options_q2": ["Option A string", "Option B string", "Option C string"]
@@ -1556,6 +1601,12 @@ elif st.session_state["diag_step"] == 2:
         if st.button(
             "🔍 Synthesize Root Cause & Mindset Diagnosis", type="primary"
         ):
+            _rs = st.session_state.get("round_score")
+            _fh = st.session_state.get("round_fairways_hit")
+            _gir = st.session_state.get("round_gir")
+            _pt = st.session_state.get("round_putts")
+            _pen = st.session_state.get("round_penalty_strokes")
+
             full_round_input = f"""
             User Story: "{st.session_state.get('user_round_story')}"
             Start Direction: {format_selector_value(st.session_state['start_dir'])}
@@ -1566,21 +1617,48 @@ elif st.session_state["diag_step"] == 2:
             Miss Frequency: {format_selector_value(st.session_state['miss_freq'])}
             Decision Tree Q1: {q1_text} -> Selected: {ans1_selected}
             Decision Tree Q2: {q2_text} -> Selected: {ans2_selected}
+            Round Numbers: Score={_rs if _rs else 'N/A'}, Fairways Hit={_fh if _fh else 'N/A'} (of ~14),
+            GIR={_gir if _gir else 'N/A'} (of 18), Putts={_pt if _pt else 'N/A'}, Penalty Strokes={_pen if _pen else 'N/A'}
             """
 
             system_prompt = f"""
             {active_persona['system_instruction']}
 
             Act as an expert biomechanical, sports psychology, and strategic golf instructor AI.
-            Analyze the user's round narrative and decision tree answers through a **Strategic Game ROI ("Bang for Your Buck") Lens**:
+            Analyze the user's round narrative, decision tree answers, and round numbers through a
+            **Golf Value Chain ROI Lens** — the same "where does the value actually leak" logic used
+            in a business value chain, applied to a round of golf. Every fault belongs to exactly one
+            of these four sequential stages:
 
-            1. **Stroke Tax & ROI Ranking Framework:**
-               - **Tier 1 (Highest ROI / Highest Stroke Tax):** Errors that cause penalty strokes, lost balls, severe blow-up holes (doubles/triples), or emotional meltdowns that wreck multiple consecutive holes.
-               - **Tier 2 (Medium ROI):** Short game and putting errors that directly burn 1-2 waste strokes per hole (e.g., 3-putts, chunked chips).
-               - **Tier 3 (Lower ROI):** Minor distance loss or aesthetic swing flaws that still result in playable shots.
+            1. **Off-the-Tee Strategy (Primary Drive):** driver/tee shot accuracy and strategy. If this
+               stage is leaking (e.g. low Fairways Hit), everything downstream is played from trouble,
+               which makes it structurally the highest-ROI stage to fix even if the player didn't
+               mention it.
+            2. **Approach Precision (Mid Game):** iron/approach shot accuracy into greens (GIR).
+            3. **Scoring/Scrambling (Short Game/Putting):** chipping, pitching, sand, and putting —
+               converting positions already gained into a low score.
+            4. **Mental Infrastructure (Support Systems):** routine, composure, decision-making, and
+               recovery after a bad shot or hole — the system that supports the other three stages.
 
-            2. **Drill Assignment Directive:**
-               - Select `recommended_primary_drill` strictly for the issue that will yield the **MAXIMUM score reduction** (the biggest return on practice time).
+            **Stroke Tax & ROI Ranking Rule:** a leak in an earlier stage (Off-the-Tee) outranks a
+            leak in a later stage (Scoring/Scrambling) even if the later stage feels more painful or
+            got more airtime in the story — fixing a mid-game leak while ignoring a worse tee-shot leak
+            is a bad practice-time allocation. Rank stages using BOTH the narrative AND the round
+            numbers below, not narrative alone.
+
+            **Blind-Spot Directive (critical):** Players tend to talk about whatever is emotionally
+            freshest (e.g. one chunked chip), which is not always their real leak. If the round numbers
+            show a clear leak the story does NOT mention or explain — e.g. Fairways Hit under ~50% of
+            driving holes, GIR under ~30%, Putts at 34+, or 2+ Penalty Strokes — you MUST surface that
+            in `diagnostic_blind_spot` and factor it into the ROI ranking, even overriding the
+            narrative's stated focus if the numbers indicate a bigger leak elsewhere in the chain. If
+            the numbers and the story already agree, or no numbers were logged, set
+            `diagnostic_blind_spot` to null.
+
+            **Drill Assignment Directive:**
+               - Select `recommended_primary_drill` strictly for the stage/issue that will yield the
+                 **MAXIMUM score reduction** per the Value Chain + numbers analysis above — not
+                 necessarily the fault the player talked about most.
                - Select `recommended_secondary_drill` for the second highest ROI issue.
 
             Map faults to the most effective drills from this EXACT list of 45 drills:
@@ -1591,21 +1669,26 @@ elif st.session_state["diag_step"] == 2:
 
             Output strictly raw JSON with no markdown formatting:
             {{
-              "diagnosis_category": "Strategic ROI & Mindset Diagnosis",
+              "diagnosis_category": "Strategic ROI & Value Chain Diagnosis",
               "primary_miss": "string (title of highest ROI root cause)",
+              "primary_miss_stage": "string — exactly one of: 'Off-the-Tee Strategy (Primary Drive)', 'Approach Precision (Mid Game)', 'Scoring/Scrambling (Short Game/Putting)', 'Mental Infrastructure (Support Systems)'",
               "primary_miss_persona": "string (1 short, witty sentence calling out primary flaw in character)",
               "primary_cause_breakdown": "string (2-3 sentences explaining biomechanical/psychological cause and why fixing this yields the highest stroke reduction)",
               "secondary_miss": "string or null",
+              "secondary_miss_stage": "string or null — one of the same four Value Chain stage names",
               "secondary_miss_persona": "string or null",
               "secondary_cause_breakdown": "string or null (2-3 sentences explaining secondary cause and its relative stroke impact)",
               "expanded_caddie_intro": "string (3-4 robust sentences in persona referencing their story and strategic ROI fix)",
               "caddie_drill_pep_talk": "string (2-3 sentences in persona giving encouraging range advice)",
-              "swot_analysis": {{
-                "strengths": "string (1 sentence: what worked best according to narrative)",
-                "weaknesses": "string (1 sentence: main physical swing flaw or mental barrier costing accuracy)",
-                "opportunities": "string (1 sentence: highest ROI quick mechanical or mental fix)",
-                "threats": "string (1 sentence: big mistake causing severe missed shots or mental tilt)"
+              "value_chain_analysis": {{
+                "off_the_tee": "string (1 sentence assessment of driving/tee-shot performance, grounded in the numbers if provided)",
+                "approach": "string (1 sentence assessment of mid-iron/approach performance)",
+                "scoring_scrambling": "string (1 sentence assessment of short game & putting performance)",
+                "mental_infrastructure": "string (1 sentence assessment of routine/composure/decision-making)",
+                "primary_leak_stage": "string — exactly one of the four stage names above, the stage actually costing the most strokes",
+                "leak_rationale": "string (1-2 sentences explaining why this stage outranks the others, citing the round numbers where available)"
               }},
+              "diagnostic_blind_spot": "string or null — a stat-implied leak the player's story did not mention or explain",
               "confidence_score": 0.95,
               "recommended_primary_drill": "string",
               "recommended_secondary_drill": "string or null",
@@ -1646,7 +1729,14 @@ elif st.session_state["diag_step"] == 2:
                 st.session_state["diagnosis"] = diag_data
 
                 # --- SAVE TO PERSISTENT CSV SPREADSHEET ---
-                swot_opp = diag_data.get("swot_analysis", {}).get("opportunities", "")
+                vc_data = diag_data.get("value_chain_analysis", {})
+                roi_note = vc_data.get("leak_rationale") or vc_data.get(
+                    "primary_leak_stage", ""
+                )
+                if diag_data.get("diagnostic_blind_spot"):
+                    roi_note = (
+                        f"[Blind spot] {diag_data['diagnostic_blind_spot']}"
+                    )
 
                 def _zero_to_blank(n):
                     return n if n else ""
@@ -1655,7 +1745,7 @@ elif st.session_state["diag_step"] == 2:
                     primary_miss=diag_data.get("primary_miss", "N/A"),
                     primary_drill=diag_data.get("recommended_primary_drill", "N/A"),
                     secondary_miss=diag_data.get("secondary_miss", ""),
-                    roi_opportunity=swot_opp,
+                    roi_opportunity=roi_note,
                     score=_zero_to_blank(st.session_state.get("round_score")),
                     fairways_hit=_zero_to_blank(
                         st.session_state.get("round_fairways_hit")
@@ -1703,6 +1793,9 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
         p_causes = diag.get("primary_cause_breakdown")
         if p_causes:
             st.caption(f"**Root Cause & ROI Impact:** {p_causes}")
+        p_stage = diag.get("primary_miss_stage")
+        if p_stage:
+            st.caption(f"📍 **Value Chain Stage:** {p_stage}")
 
     with col2:
         st.markdown("**⚠️ Secondary Fault Callout**")
@@ -1717,6 +1810,9 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
             s_causes = diag.get("secondary_cause_breakdown")
             if s_causes:
                 st.caption(f"**Root Cause & Relative Impact:** {s_causes}")
+            s_stage = diag.get("secondary_miss_stage")
+            if s_stage:
+                st.caption(f"📍 **Value Chain Stage:** {s_stage}")
         else:
             st.info(
                 '"No major secondary fault detected. Fix your primary macro-fault to'
@@ -1724,25 +1820,47 @@ if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
             )
             st.write("**Secondary Drill:** `N/A`")
 
-    # Strategic SWOT Analysis
-    if "swot_analysis" in diag and diag["swot_analysis"]:
+    # Value Chain Leak Breakdown (replaces the old generic SWOT summary)
+    vc = diag.get("value_chain_analysis")
+    if vc:
         st.markdown("---")
-        st.markdown("### 📊 Round SWOT Breakdown")
-        swot = diag["swot_analysis"]
-        sc1, sc2 = st.columns(2)
-        with sc1:
-            st.success(
-                f"**💪 Strength (What Worked):** {swot.get('strengths', 'N/A')}"
-            )
-            st.info(
-                "**📈 Opportunity (Highest ROI Fix):**"
-                f" {swot.get('opportunities', 'N/A')}"
-            )
-        with sc2:
-            st.warning(
-                f"**⚠️ Weakness (Main Flaw):** {swot.get('weaknesses', 'N/A')}"
-            )
-            st.error(f"**🎯 Threat (Blow-up Risk):** {swot.get('threats', 'N/A')}")
+        st.markdown("### 🧭 Value Chain Leak Breakdown")
+        st.caption(
+            "Where your strokes actually leak, stage by stage — not just what you"
+            " happened to talk about most."
+        )
+
+        leak_stage = vc.get("primary_leak_stage", "")
+        stage_order = [
+            ("Off-the-Tee Strategy (Primary Drive)", "off_the_tee", "🏌️"),
+            ("Approach Precision (Mid Game)", "approach", "🎯"),
+            ("Scoring/Scrambling (Short Game/Putting)", "scoring_scrambling", "⛳"),
+            ("Mental Infrastructure (Support Systems)", "mental_infrastructure", "🧠"),
+        ]
+
+        vc_row1 = st.columns(2)
+        vc_row2 = st.columns(2)
+        vc_slots = list(vc_row1) + list(vc_row2)
+
+        for slot, (stage_name, key, icon) in zip(vc_slots, stage_order):
+            with slot:
+                text = vc.get(key, "N/A")
+                if stage_name == leak_stage:
+                    st.error(f"{icon} **{stage_name}**\n\n🔴 **#1 LEAK** — {text}")
+                else:
+                    st.info(f"{icon} **{stage_name}**\n\n{text}")
+
+        leak_rationale = vc.get("leak_rationale")
+        if leak_rationale:
+            st.caption(f"**Why this stage wins the ROI ranking:** {leak_rationale}")
+
+    blind_spot = diag.get("diagnostic_blind_spot")
+    if blind_spot:
+        st.warning(
+            f"🔍 **Blind Spot Flagged:** {blind_spot}\n\n"
+            "This didn't come up in your round story, but your logged numbers"
+            " pointed to it — it's already factored into the practice plan below."
+        )
 
     st.markdown("---")
     if st.button("🔄 Describe Another Round"):
