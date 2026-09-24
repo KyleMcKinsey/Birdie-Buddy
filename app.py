@@ -395,6 +395,50 @@ def render_indented_ul(items: list, margin_left: int = 24):
     )
 
 
+def render_compact_metric(label, value, subtext=None, delta=None, good_when_lower=False):
+    """Render a restrained metric that fits the app's card-based visual hierarchy."""
+    value_text = str(value)
+    subtext_html = ""
+    if subtext not in (None, ""):
+        subtext_html = (
+            "<div style='font-size:0.76rem; color:#8b919d; margin-top:3px;"
+            " line-height:1.25;'>"
+            f"{subtext}</div>"
+        )
+
+    delta_html = ""
+    if delta is not None:
+        try:
+            d = float(delta)
+            if d == 0:
+                delta_color = "#8b919d"
+            else:
+                improved = d < 0 if good_when_lower else d > 0
+                delta_color = "#22a06b" if improved else "#d65a5a"
+            delta_text = f"{d:+.0f} vs prior"
+        except Exception:
+            delta_color = "#8b919d"
+            delta_text = str(delta)
+
+        delta_html = (
+            f"<div style='font-size:0.76rem; color:{delta_color}; margin-top:3px;"
+            f" line-height:1.25;'>{delta_text}</div>"
+        )
+
+    st.markdown(
+        "<div style='padding:2px 0 6px 0; min-height:64px;'>"
+        "<div style='font-size:0.72rem; color:#8b919d; margin-bottom:3px;"
+        " letter-spacing:0.01em; line-height:1.2;'>"
+        f"{label}</div>"
+        "<div style='font-size:1.42rem; font-weight:650; line-height:1.12;"
+        " letter-spacing:-0.02em; overflow-wrap:anywhere;'>"
+        f"{value_text}</div>"
+        f"{delta_html}{subtext_html}"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def render_progress_loop(df_history):
     """Front-and-center 'did the fix actually work' banner.
 
@@ -417,22 +461,22 @@ def render_progress_loop(df_history):
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            st.metric("Rounds Logged", len(rows))
+            render_compact_metric("Rounds Logged", len(rows))
 
         with col2:
             scores = pd.to_numeric(df_history["Score"], errors="coerce").dropna()
             if len(scores) >= 2:
                 delta = scores.iloc[-1] - scores.iloc[-2]
-                st.metric(
+                render_compact_metric(
                     "Latest Score",
                     f"{int(scores.iloc[-1])}",
-                    delta=f"{int(delta)}",
-                    delta_color="inverse",
+                    delta=delta,
+                    good_when_lower=True,
                 )
             elif len(scores) == 1:
-                st.metric("Latest Score", f"{int(scores.iloc[-1])}")
+                render_compact_metric("Latest Score", f"{int(scores.iloc[-1])}")
             else:
-                st.metric("Latest Score", "N/A")
+                render_compact_metric("Latest Score", "N/A")
 
         with col3:
             last_fault = latest.get("Primary Macro-Fault", "N/A")
@@ -2959,11 +3003,11 @@ with st.container(border=True):
 
                 m1, m2, m3 = st.columns(3)
                 with m1:
-                    st.metric("Modeled Scoring Opportunity", modeled_metric)
+                    render_compact_metric("Modeled Scoring Opportunity", modeled_metric)
                 with m2:
-                    st.metric("ROI Priority", priority_label or "N/A")
+                    render_compact_metric("ROI Priority", priority_label or "N/A")
                 with m3:
-                    st.metric("AI Confidence", confidence_label)
+                    render_compact_metric("AI Confidence", confidence_label)
 
                 if subtype and subtype != "null":
                     st.caption(f"🗺️ **Course-management subtype:** {subtype}")
@@ -3167,22 +3211,22 @@ with st.container(border=True):
 
         col_a, col_b, col_c = st.columns(3)
         with col_a:
-            st.metric(
+            render_compact_metric(
                 "Grind Mode Split",
                 f"{res_data['grind_balls']} balls",
-                f"{res_data['grind_time']} mins",
+                subtext=f"{res_data['grind_time']} mins",
             )
         with col_b:
-            st.metric(
+            render_compact_metric(
                 "Game Mode Split",
                 f"{res_data['game_balls']} balls",
-                f"{res_data['game_time']} mins",
+                subtext=f"{res_data['game_time']} mins",
             )
         with col_c:
-            st.metric(
+            render_compact_metric(
                 "Target Pace",
                 f"{res_data['sec_per_ball']} sec/ball",
-                "Recommended Tempo",
+                subtext="Recommended tempo",
             )
 
 # -------------------------------------------------------------
