@@ -2016,7 +2016,7 @@ if st.session_state["diag_step"] == 1:
     st.caption(
         "Talk naturally about what happened during your round—your misses,"
         " feelings, mental blow-ups, or frustration. The AI Caddie will pinpoint"
-        " key themes and ask two targeted follow-up questions."
+        " key themes and ask three concise diagnostic follow-up questions."
     )
 
     user_round_story = st.text_area(
@@ -2241,7 +2241,13 @@ if st.session_state["diag_step"] == 1:
                 round_numbers_block = "No round stats were tracked for this diagnosis."
 
             question_prompt = f"""
-            {active_persona['system_instruction']}
+            You are the neutral diagnostic intake layer for Birdie Buddy.
+
+            IMPORTANT TONE RULE FOR THIS STEP:
+            - Do NOT roleplay the selected movie caddie persona here.
+            - Do NOT use fantasy/movie metaphors, catchphrases, theatrical language, or jokes.
+            - Use plain, direct golf language that a recreational golfer can understand immediately.
+            - The persona will return AFTER the diagnostic questions are answered.
 
             The golfer provided this open-ended story about their round:
             "{user_round_story}"
@@ -2254,40 +2260,59 @@ if st.session_state["diag_step"] == 1:
             - Impact Feel: {format_selector_value(impact_feel)}
             - Consistency: {format_selector_value(miss_freq)}
 
-            Round numbers they logged (may be more reliable than what they choose to talk about):
+            Round numbers they logged:
             {round_numbers_block}
 
-            **Blind-Spot Check (do this BEFORE writing questions):** Players narrate whatever is
-            emotionally fresh (e.g. one bad chip), which is not always where they're actually
-            losing the most strokes. Compare the round numbers above to the story:
-            - OB/Lost Balls → direct score leak; probe the cause if the story does not explain it.
-            - 3-Putts → concrete extra-stroke event; probe distance control/first-putt leave.
-            - Failed Up-and-Downs → short-game opportunity; interpret relative to handicap and GIR.
-            - Penalty Strokes → direct score leak; determine whether the cause was execution/mechanics or a poor strategic decision.
-            - Course-management language (hero shot, tucked pin, forced carry, recovery through trees,
-              attacking after trouble, driver near OB, refusing a layup) → probe whether the player
-              chose an unnecessarily high-risk option when a lower-risk target/club was available.
-            - OB/Lost Balls + risky-shot language → strong Course Management / Strategic Decision-Making signal;
-              if the story does not establish whether the loss came from strategy or execution, ask directly.
-            - GIR well below ~30% → possible approach-game leak.
-            - Putts at 35+ → investigate only after checking GIR and 3-putts.
-            - Fairways below ~50% → investigate only if misses create meaningful scoring damage.
-            If any of these stat-implied leaks is NOT addressed anywhere in the story, you MUST
-            spend one of the two follow-up questions probing that specific blind spot directly
-            (e.g. asking what typically causes missed fairways) instead of only following the
-            narrative. If the numbers and the story already agree on the main issue, or no
-            numbers were logged, ask both questions based on the story as normal.
+            Your job is NOT to diagnose the golfer yet. Your job is to identify the THREE highest-value
+            uncertainties that could materially change which Value Chain stage deserves the #1 practice priority.
 
-            Based on the above, craft 2 targeted diagnostic decision-tree follow-up questions in persona voice.
-            Address swing execution, scoring skill, course-management decisions, or mental composure depending on what they described.
-            For EACH question, provide 3 short, concrete multiple-choice options (Option A, Option B, Option C) to clarify their root cause without typing.
+            Use these five stages:
+            1. Off-the-Tee Performance — tee-shot execution/dispersion.
+            2. Approach Precision — iron/approach execution into greens.
+            3. Scoring/Scrambling — chipping, pitching, bunker play, putting.
+            4. Course Management / Strategic Decision-Making — target, club, risk, layup/go,
+               hazard avoidance, pin selection, and recovery-shot choices.
+            5. Mental Infrastructure — composure, commitment, routine, focus, emotional recovery.
+
+            DIAGNOSTIC QUESTION RULES:
+            - Ask exactly 3 questions.
+            - Each question must investigate a DIFFERENT uncertainty; do not ask the same issue twice.
+            - Question 1 must resolve the ambiguity most likely to change the #1 ROI category.
+            - Question 2 must investigate the strongest competing scoring leak supported by the story/stats.
+            - Question 3 must test an important remaining cause or context that would change the recommended fix.
+            - Do NOT ask for information the golfer already stated clearly. Instead, probe what remains unknown.
+            - Prefer cause-discriminating questions over symptom questions. Example: distinguish bad target/club
+              selection from bad execution rather than merely asking whether the shot went into trouble.
+            - If penalties/OB occurred, distinguish strategy from execution before labeling Course Management.
+            - If 3-putts occurred, distinguish pace control, starting line/read, short-putt conversion, and unusually long first-putt distance.
+            - If GIR is poor, distinguish contact, start direction/curve, distance control/club selection, and intentionally conservative targets.
+            - If scrambling is poor, distinguish strike quality, landing-spot selection, lie difficulty, and putting conversion.
+            - If emotional reactions are already explicit in the story, do not waste a question asking whether the golfer was frustrated;
+              ask what the reaction changed in the NEXT decision or execution.
+            - Keep each question under 28 words when possible.
+            - Use 4 concrete, mutually distinct answer choices. The fourth choice should be a useful
+              "It varied / I'm not sure" option when appropriate.
+            - Keep options short and behavior-based. Avoid technical jargon unless the golfer used it.
+            - No leading questions and no implied diagnosis.
+
+            For each question, also provide:
+            - a short `focus` label (2-5 words) so the golfer knows what is being tested;
+            - a one-sentence `why` explanation in plain language describing why this answer matters.
 
             Output strictly raw JSON with no markdown formatting:
             {{
-              "question_1": "string (Question 1 — from the story, or from a stat-implied blind spot if one was found)",
-              "options_q1": ["Option A string", "Option B string", "Option C string"],
-              "question_2": "string (Question 2 addressing secondary mechanic or mental reaction)",
-              "options_q2": ["Option A string", "Option B string", "Option C string"]
+              "focus_q1": "short label",
+              "question_1": "plain-English question",
+              "why_q1": "brief explanation of why this matters",
+              "options_q1": ["Option A", "Option B", "Option C", "It varied / I'm not sure"],
+              "focus_q2": "short label",
+              "question_2": "plain-English question",
+              "why_q2": "brief explanation of why this matters",
+              "options_q2": ["Option A", "Option B", "Option C", "It varied / I'm not sure"],
+              "focus_q3": "short label",
+              "question_3": "plain-English question",
+              "why_q3": "brief explanation of why this matters",
+              "options_q3": ["Option A", "Option B", "Option C", "It varied / I'm not sure"]
             }}
             """
 
@@ -2334,49 +2359,118 @@ elif st.session_state["diag_step"] == 2:
     caddie = st.session_state.get("caddie_name", persona_display_name)
     qs = st.session_state.get("followup_questions", {})
 
-    st.markdown(f"### 🗣️ {caddie} asks based on your story:")
+    st.markdown("### 🔎 Quick Diagnostic Follow-Ups")
+    st.caption(
+        "Answer these in plain golf terms. They are designed to separate strategy, execution, "
+        "scoring skill, and mental causes before the app ranks your highest-ROI opportunity."
+    )
+    st.caption(f"{caddie} will bring the personality back in the final diagnosis.")
 
+    focus_q1 = qs.get("focus_q1", "Primary cause")
     q1_text = qs.get(
         "question_1",
-        "When your shot goes off line or a bad hole occurs, how do you react"
-        " mentally?",
+        "When the costly mistake happened, was the bigger issue the shot choice or the execution?",
+    )
+    why_q1 = qs.get(
+        "why_q1",
+        "This helps separate Course Management from a swing-execution problem.",
     )
     q1_opts = qs.get(
         "options_q1",
         [
-            "I get angry and rush my next shot",
-            "I overthink mechanical swing keys",
-            "I stay calm and stick to routine",
+            "The club/target choice created unnecessary risk",
+            "The choice was reasonable, but I executed it poorly",
+            "Both the choice and execution contributed",
+            "It varied / I'm not sure",
         ],
     )
 
+    focus_q2 = qs.get("focus_q2", "Secondary scoring leak")
     q2_text = qs.get(
         "question_2",
-        "When you try to compensate, what usually happens next?",
+        "What most often caused your extra strokes on the green?",
+    )
+    why_q2 = qs.get(
+        "why_q2",
+        "This distinguishes pace control from read, start-line, or short-putt problems.",
     )
     q2_opts = qs.get(
         "options_q2",
         [
-            "Contact gets heavier / fatter",
-            "Ball goes straight but loses distance",
-            "Shot stays exactly the same",
+            "My first putt finished too far from the hole",
+            "I misread the break or started putts off line",
+            "I missed too many short second putts",
+            "It varied / I'm not sure",
         ],
     )
 
-    st.markdown(f"**1. {q1_text}**")
-    ans1_selected = st.radio(
-        "Q1 Choice:", options=q1_opts, key="ans1_radio", label_visibility="collapsed"
+    focus_q3 = qs.get("focus_q3", "Remaining uncertainty")
+    q3_text = qs.get(
+        "question_3",
+        "On your approach misses, what was the most common pattern?",
+    )
+    why_q3 = qs.get(
+        "why_q3",
+        "This shows whether the approach leak is mainly contact, direction, distance, or decision-making.",
+    )
+    q3_opts = qs.get(
+        "options_q3",
+        [
+            "Poor contact changed the distance",
+            "The ball started or curved off line",
+            "Club or target selection left me in the wrong place",
+            "It varied / I'm not sure",
+        ],
     )
 
-    st.markdown(f"**2. {q2_text}**")
-    ans2_selected = st.radio(
-        "Q2 Choice:", options=q2_opts, key="ans2_radio", label_visibility="collapsed"
+    with st.container(border=True):
+        st.caption(f"QUESTION 1 · {focus_q1}")
+        st.markdown(f"**{q1_text}**")
+        st.caption(f"Why we're asking: {why_q1}")
+        ans1_selected = st.radio(
+            "Q1 Choice:",
+            options=q1_opts,
+            index=None,
+            key="ans1_radio",
+            label_visibility="collapsed",
+        )
+
+    with st.container(border=True):
+        st.caption(f"QUESTION 2 · {focus_q2}")
+        st.markdown(f"**{q2_text}**")
+        st.caption(f"Why we're asking: {why_q2}")
+        ans2_selected = st.radio(
+            "Q2 Choice:",
+            options=q2_opts,
+            index=None,
+            key="ans2_radio",
+            label_visibility="collapsed",
+        )
+
+    with st.container(border=True):
+        st.caption(f"QUESTION 3 · {focus_q3}")
+        st.markdown(f"**{q3_text}**")
+        st.caption(f"Why we're asking: {why_q3}")
+        ans3_selected = st.radio(
+            "Q3 Choice:",
+            options=q3_opts,
+            index=None,
+            key="ans3_radio",
+            label_visibility="collapsed",
+        )
+
+    answers_complete = all(
+        answer is not None for answer in (ans1_selected, ans2_selected, ans3_selected)
     )
+    if not answers_complete:
+        st.caption("Choose one answer for each question to continue.")
 
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
         if st.button(
-            "🔍 Synthesize Highest-ROI Opportunities", type="primary"
+            "🔍 Synthesize Highest-ROI Opportunities",
+            type="primary",
+            disabled=not answers_complete,
         ):
             _rs = st.session_state.get("round_score")
             _fh = st.session_state.get("round_fairways_hit")
@@ -2406,8 +2500,9 @@ elif st.session_state["diag_step"] == 2:
             Divot / Turf Location: {format_selector_value(st.session_state['divot_loc'])}
             Impact Sound & Feel: {format_selector_value(st.session_state['impact_feel'])}
             Miss Frequency: {format_selector_value(st.session_state['miss_freq'])}
-            Decision Tree Q1: {q1_text} -> Selected: {ans1_selected}
-            Decision Tree Q2: {q2_text} -> Selected: {ans2_selected}
+            Diagnostic Follow-Up Q1 ({focus_q1}): {q1_text} -> Selected: {ans1_selected}
+            Diagnostic Follow-Up Q2 ({focus_q2}): {q2_text} -> Selected: {ans2_selected}
+            Diagnostic Follow-Up Q3 ({focus_q3}): {q3_text} -> Selected: {ans3_selected}
             Round Stats Tracked: {st.session_state.get('round_stats_tracked', False)}
             Round Numbers: Score={_fmt_stat(_rs)}, Fairways Hit={_fmt_stat(_fh)} (of ~14),
             GIR={_fmt_stat(_gir)} (of 18), Putts={_fmt_stat(_pt)}, Penalty Strokes={_fmt_stat(_pen)},
@@ -2620,6 +2715,10 @@ elif st.session_state["diag_step"] == 2:
 
     with col_btn2:
         if st.button("↺ Start Over"):
+            # Clear the prior question set and radio selections so a new round
+            # cannot inherit answers generated for the previous story.
+            for key in ("followup_questions", "ans1_radio", "ans2_radio", "ans3_radio"):
+                st.session_state.pop(key, None)
             st.session_state["diag_step"] = 1
             st.rerun()
 
