@@ -29,6 +29,9 @@ HISTORY_COLUMNS = [
     "AI Confidence",
     "Drill Completed?",
     "Fix Effectiveness (1-5)",
+    "Handicap",
+    "ROI Priority",
+    "ROI Score",
 ]
 
 
@@ -73,6 +76,9 @@ def save_session_to_csv(
     problem_area="",
     miss_freq="",
     confidence=None,
+    handicap=None,
+    roi_priority="",
+    roi_score=None,
 ):
     _init_history()
     row = {
@@ -93,6 +99,9 @@ def save_session_to_csv(
         "AI Confidence": confidence if confidence not in (None, "") else "N/A",
         "Drill Completed?": "",
         "Fix Effectiveness (1-5)": "",
+        "Handicap": handicap if handicap not in (None, "") else "N/A",
+        "ROI Priority": roi_priority if roi_priority else "N/A",
+        "ROI Score": roi_score if roi_score not in (None, "") else "N/A",
     }
 
     # 1. Save to memory first - this is what the sidebar reads.
@@ -413,6 +422,71 @@ if not api_key:
 genai.configure(api_key=api_key)
 
 render_progress_loop(df_history)
+
+# -------------------------------------------------------------
+# SCORE-ROI PRIORITY ENGINE
+# -------------------------------------------------------------
+def calculate_score_roi(round_score, fairways_hit, gir, putts, penalty_strokes, handicap=None):
+    """Score-ROI proxy used when shot-level Strokes Gained data is unavailable."""
+    score = 0.0
+    reasons = []
+
+    # Direct stroke tax gets first priority.
+    if penalty_strokes:
+        score += min(45.0, penalty_strokes * 18.0)
+        reasons.append(f"{penalty_strokes} penalty stroke(s) = direct score tax")
+
+    # Approach/GIR is a strong scoring proxy, but GIR alone does not prove a
+    # particular swing fault.
+    if gir:
+        pct = gir / 18.0
+        if pct < 0.20:
+            score += 34.0
+            reasons.append(f"GIR {gir}/18 = severe approach opportunity")
+        elif pct < 0.30:
+            score += 27.0
+            reasons.append(f"GIR {gir}/18 = major approach opportunity")
+        elif pct < 0.40:
+            score += 17.0
+            reasons.append(f"GIR {gir}/18 = meaningful approach opportunity")
+        elif pct < 0.50:
+            score += 8.0
+            reasons.append(f"GIR {gir}/18 = moderate approach opportunity")
+
+    # Putting must be interpreted alongside GIR; high putts are not automatically
+    # a putting fault.
+    if putts:
+        if putts >= 38:
+            score += 20.0
+            reasons.append(f"{putts} putts = large putting/scoring opportunity")
+        elif putts >= 35:
+            score += 13.0
+            reasons.append(f"{putts} putts = meaningful putting opportunity")
+        elif putts >= 33:
+            score += 6.0
+            reasons.append(f"{putts} putts = investigate in GIR context")
+
+    # FIR is deliberately capped because a fairway miss is not inherently a
+    # stroke loss; distance and lie determine the actual scoring consequence.
+    if fairways_hit is not None and fairways_hit > 0:
+        fir_pct = fairways_hit / 14.0
+        if fir_pct < 0.35 and penalty_strokes:
+            score += 12.0
+            reasons.append(f"{fairways_hit}/14 fairways plus penalties = tee-shot risk")
+        elif fir_pct < 0.50:
+            score += 5.0
+            reasons.append(f"{fairways_hit}/14 fairways = investigate tee-shot consequences")
+
+    score = round(min(100.0, score), 1)
+    if score >= 45:
+        tier = "CRITICAL — Direct Score Leak"
+    elif score >= 30:
+        tier = "HIGH — Major Scoring Opportunity"
+    elif score >= 18:
+        tier = "MEDIUM — Worth Targeting"
+    else:
+        tier = "LOW — Do Not Chase Without Shot-Level Evidence"
+    return {"score": score, "tier": tier, "reasons": reasons}
 
 # -------------------------------------------------------------
 # MOVIE PARODY PERSONA DATABASE
@@ -1348,8 +1422,9 @@ if st.session_state["diag_step"] == 1:
         ),
     )
 
-    st.markdown("##### 🔢 Round Numbers (optional, but this is what powers your progress chart)")
-    col_n1, col_n2, col_n3, col_n4, col_n5 = st.columns(5)
+    st.markdown("##### 🔢 Round Numbers (optional, but this powers the score-ROI analysis)")
+    col_n1, col_n2, col_n3 = st.columns(3)
+    col_n4, col_n5, col_n6 = st.columns(3)
     with col_n1:
         round_score = st.number_input(
             "Score", min_value=0, max_value=200, value=0, step=1,
@@ -1362,13 +1437,21 @@ if st.session_state["diag_step"] == 1:
     with col_n3:
         gir = st.number_input(
             "GIR", min_value=0, max_value=18, value=0, step=1,
-            help="Greens hit In Regulation.",
+            help="Greens hit in regulation.",
         )
     with col_n4:
-        putts = st.number_input("Putts", min_value=0, max_value=60, value=0, step=1)
+        putts = st.number_input(
+            "Putts", min_value=0, max_value=60, value=0, step=1,
+            help="Interpret with GIR; high putts do not automatically mean poor putting.",
+        )
     with col_n5:
         penalty_strokes = st.number_input(
             "Penalty Strokes", min_value=0, max_value=20, value=0, step=1
+        )
+    with col_n6:
+        handicap = st.number_input(
+            "Handicap", min_value=0.0, max_value=54.0, value=0.0, step=0.1,
+            help="Optional context for handicap-relative benchmarking.",
         )
 
     with st.expander(
@@ -1462,6 +1545,7 @@ if st.session_state["diag_step"] == 1:
             st.session_state["round_gir"] = gir
             st.session_state["round_putts"] = putts
             st.session_state["round_penalty_strokes"] = penalty_strokes
+            st.session_state["round_handicap"] = handicap
 
             round_numbers_block = f"""
             - Score: {round_score if round_score else 'Not provided'}
@@ -1607,6 +1691,11 @@ elif st.session_state["diag_step"] == 2:
             _pt = st.session_state.get("round_putts")
             _pen = st.session_state.get("round_penalty_strokes")
 
+            roi_data = calculate_score_roi(
+                _rs, _fh, _gir, _pt, _pen,
+                st.session_state.get("round_handicap")
+            )
+
             full_round_input = f"""
             User Story: "{st.session_state.get('user_round_story')}"
             Start Direction: {format_selector_value(st.session_state['start_dir'])}
@@ -1618,7 +1707,10 @@ elif st.session_state["diag_step"] == 2:
             Decision Tree Q1: {q1_text} -> Selected: {ans1_selected}
             Decision Tree Q2: {q2_text} -> Selected: {ans2_selected}
             Round Numbers: Score={_rs if _rs else 'N/A'}, Fairways Hit={_fh if _fh else 'N/A'} (of ~14),
-            GIR={_gir if _gir else 'N/A'} (of 18), Putts={_pt if _pt else 'N/A'}, Penalty Strokes={_pen if _pen else 'N/A'}
+            GIR={_gir if _gir else 'N/A'} (of 18), Putts={_pt if _pt else 'N/A'}, Penalty Strokes={_pen if _pen else 'N/A'},
+            Handicap={st.session_state.get('round_handicap') or 'N/A'}
+            Score-ROI Engine: {roi_data['tier']} | {roi_data['score']}/100
+            Score-ROI Evidence: {'; '.join(roi_data['reasons']) if roi_data['reasons'] else 'No strong numerical leak detected'}
             """
 
             system_prompt = f"""
@@ -1640,20 +1732,33 @@ elif st.session_state["diag_step"] == 2:
             4. **Mental Infrastructure (Support Systems):** routine, composure, decision-making, and
                recovery after a bad shot or hole — the system that supports the other three stages.
 
-            **Stroke Tax & ROI Ranking Rule:** a leak in an earlier stage (Off-the-Tee) outranks a
-            leak in a later stage (Scoring/Scrambling) even if the later stage feels more painful or
-            got more airtime in the story — fixing a mid-game leak while ignoring a worse tee-shot leak
-            is a bad practice-time allocation. Rank stages using BOTH the narrative AND the round
-            numbers below, not narrative alone.
+            **Score-ROI Priority Rule (critical):** NEVER rank a fault merely because it occurs
+            earlier in the golf value chain. The old "tee shots always outrank downstream faults"
+            rule is intentionally removed. Priority must reflect expected strokes saved per unit of
+            practice time, using the actual round evidence first.
+
+            Priority logic:
+            1. **CRITICAL — Direct Score Leak:** actual penalty strokes, repeated OB/lost-ball/water
+               events, or clearly documented mistakes that immediately added strokes.
+            2. **HIGH — Major Scoring Opportunity:** large approach/GIR deficits, repeated costly
+               approach misses, or repeated short-game failures that prevent conversion.
+            3. **MEDIUM — Repeatable Scoring Leakage:** repeated 3-putts/poor distance control,
+               short-game inconsistency, or tee-shot misses that demonstrably create difficult lies
+               or penalties.
+            4. **LOW — Technique Polish:** small FIR differences, isolated contact errors, or
+               mechanical issues without evidence of repeated scoring damage.
+            5. **MENTAL / DECISION-MAKING:** elevate only when the story shows the issue caused
+               repeated scoring damage across multiple holes. Frustration alone is not enough.
+
+            **Putting context rule:** Putts per round must be interpreted with GIR and short-game
+            context. High putts are a flag to investigate, not proof that putting is the highest
+            ROI fault. Three-putt frequency or shot-level putting data is stronger evidence.
 
             **Blind-Spot Directive (critical):** Players tend to talk about whatever is emotionally
-            freshest (e.g. one chunked chip), which is not always their real leak. If the round numbers
-            show a clear leak the story does NOT mention or explain — e.g. Fairways Hit under ~50% of
-            driving holes, GIR under ~30%, Putts at 34+, or 2+ Penalty Strokes — you MUST surface that
-            in `diagnostic_blind_spot` and factor it into the ROI ranking, even overriding the
-            narrative's stated focus if the numbers indicate a bigger leak elsewhere in the chain. If
-            the numbers and the story already agree, or no numbers were logged, set
-            `diagnostic_blind_spot` to null.
+            freshest. If the numerical evidence reveals a materially larger score leak that the story
+            does not mention, surface it as `diagnostic_blind_spot` and let it outrank the narrative.
+            Do NOT manufacture a hidden fault when the available round numbers cannot establish one.
+            Use the supplied Score-ROI Engine as a starting signal, then reconcile it with the story.
 
             **Drill Assignment Directive:**
                - Select `recommended_primary_drill` strictly for the stage/issue that will yield the
@@ -1689,6 +1794,9 @@ elif st.session_state["diag_step"] == 2:
                 "leak_rationale": "string (1-2 sentences explaining why this stage outranks the others, citing the round numbers where available)"
               }},
               "diagnostic_blind_spot": "string or null — a stat-implied leak the player's story did not mention or explain",
+              "roi_priority": "CRITICAL | HIGH | MEDIUM | LOW",
+              "roi_score": 0.0,
+              "roi_evidence": "string — specific round evidence supporting the priority",
               "confidence_score": 0.95,
               "recommended_primary_drill": "string",
               "recommended_secondary_drill": "string or null",
@@ -1758,6 +1866,9 @@ elif st.session_state["diag_step"] == 2:
                     problem_area=st.session_state.get("club_category", ""),
                     miss_freq=st.session_state.get("miss_freq", ""),
                     confidence=diag_data.get("confidence_score", ""),
+                    handicap=st.session_state.get("round_handicap"),
+                    roi_priority=diag_data.get("roi_priority", roi_data.get("tier", "")),
+                    roi_score=diag_data.get("roi_score", roi_data.get("score", "")),
                 )
 
                 st.session_state["diag_step"] = 3
