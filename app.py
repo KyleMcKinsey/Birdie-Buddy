@@ -23,6 +23,7 @@ HISTORY_COLUMNS = [
     "OB/Lost Balls",
     "3-Putts",
     "Failed Up-and-Downs",
+    "Scrambling Opportunities",
     "Problem Area",
     "Primary Macro-Fault",
     "Secondary Fault",
@@ -35,6 +36,7 @@ HISTORY_COLUMNS = [
     "Handicap",
     "ROI Priority",
     "ROI Score",
+    "Estimated Excess Strokes",
 ]
 
 
@@ -79,12 +81,14 @@ def save_session_to_csv(
     ob_lost_balls=None,
     three_putts=None,
     failed_up_downs=None,
+    scrambling_opportunities=None,
     problem_area="",
     miss_freq="",
     confidence=None,
     handicap=None,
     roi_priority="",
     roi_score=None,
+    estimated_excess_strokes="",
 ):
     _init_history()
     row = {
@@ -99,6 +103,7 @@ def save_session_to_csv(
         "OB/Lost Balls": ob_lost_balls if ob_lost_balls not in (None, "") else "N/A",
         "3-Putts": three_putts if three_putts not in (None, "") else "N/A",
         "Failed Up-and-Downs": failed_up_downs if failed_up_downs not in (None, "") else "N/A",
+        "Scrambling Opportunities": scrambling_opportunities if scrambling_opportunities not in (None, "") else "N/A",
         "Problem Area": _blank_if_none(problem_area),
         "Primary Macro-Fault": primary_miss if primary_miss else "N/A",
         "Secondary Fault": secondary_miss if secondary_miss else "N/A",
@@ -111,6 +116,7 @@ def save_session_to_csv(
         "Handicap": handicap if handicap not in (None, "") else "N/A",
         "ROI Priority": roi_priority if roi_priority else "N/A",
         "ROI Score": roi_score if roi_score not in (None, "") else "N/A",
+        "Estimated Excess Strokes": estimated_excess_strokes if estimated_excess_strokes not in (None, "") else "N/A",
     }
 
     # 1. Save to memory first - this is what the sidebar reads.
@@ -435,79 +441,187 @@ render_progress_loop(df_history)
 # -------------------------------------------------------------
 # SCORE-ROI PRIORITY ENGINE
 # -------------------------------------------------------------
+def _interp_handicap_benchmark(handicap, benchmarks):
+    """Linearly interpolate between published Shot Scope handicap benchmarks."""
+    h = max(0.0, min(25.0, float(handicap or 0.0)))
+    keys = sorted(benchmarks)
+    if h <= keys[0]:
+        return float(benchmarks[keys[0]])
+    if h >= keys[-1]:
+        return float(benchmarks[keys[-1]])
+    for lo, hi in zip(keys, keys[1:]):
+        if lo <= h <= hi:
+            frac = (h - lo) / (hi - lo)
+            return float(benchmarks[lo] + frac * (benchmarks[hi] - benchmarks[lo]))
+    return float(benchmarks[keys[-1]])
+
+
+# Published Shot Scope amateur benchmarks. These are peer benchmarks, not
+# literal Strokes Gained values. They are used to make the diagnostic
+# handicap-relative rather than comparing every golfer to scratch.
+HANDICAP_BENCHMARKS = {
+    "fir_pct": {0: 50, 5: 48, 10: 49, 15: 48, 20: 46, 25: 46},
+    "gir_pct": {0: 61, 5: 44, 10: 36, 15: 24, 20: 17, 25: 10},
+    "up_down_pct": {0: 47, 5: 41, 10: 31, 15: 21, 20: 20, 25: 18},
+    "putts_round": {0: 29.4, 5: 30.2, 10: 31.2, 15: 33.1, 20: 33.1, 25: 33.8},
+    "penalty_strokes": {0: 0.56, 5: 0.91, 10: 1.62, 15: 2.45, 20: 3.03, 25: 4.67},
+}
+
+
 def calculate_score_roi(round_score, fairways_hit, gir, putts, penalty_strokes,
                        ob_lost_balls=0, three_putts=0, failed_up_downs=0,
-                       handicap=None):
-    """Estimate practice ROI from round-level evidence.
+                       scrambling_opportunities=0, handicap=None):
+    """Estimate handicap-relative practice ROI from round-level evidence.
 
-    This is a prioritization model, not a literal Strokes Gained calculation.
-    Shot-level SG is still the preferred evidence when available.
+    The excess-strokes figures are transparent model estimates, not literal
+    Strokes Gained measurements. They estimate how many strokes the observed
+    category is above the golfer's handicap benchmark. Shot-level SG remains
+    the preferred evidence when available.
     """
+    hcp = float(handicap or 0.0)
     score = 0.0
     reasons = []
-    hcp = float(handicap or 0)
+    gaps = {}
+    excess = {}
 
-    # Direct score taxes are strongest evidence.
-    if penalty_strokes:
-        score += min(45.0, penalty_strokes * 18.0)
-        reasons.append(f"{penalty_strokes} penalty stroke(s) = direct score tax")
+    # Direct penalty tax: this is the strongest round-level stroke evidence.
+    penalty_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["penalty_strokes"])
+    if penalty_strokes is not None:
+        penalty_gap = max(0.0, float(penalty_strokes) - penalty_bench)
+        gaps["penalty_strokes_vs_handicap"] = round(float(penalty_strokes) - penalty_bench, 2)
+        excess["Penalty / Trouble"] = round(penalty_gap, 2)
+        if penalty_gap > 0:
+            score += min(40.0, penalty_gap * 16.0)
+            reasons.append(f"Penalty strokes {penalty_strokes:.1f} vs {penalty_bench:.1f} handicap benchmark = +{penalty_gap:.1f} excess strokes")
+
+    # OB/lost balls explain trouble, but are not added again as full strokes.
     if ob_lost_balls:
-        score += min(36.0, ob_lost_balls * 20.0)
-        reasons.append(f"{ob_lost_balls} OB/lost ball(s) = direct tee/decision score tax")
-
-    # 3-putts are a concrete extra stroke event and therefore stronger evidence
-    # than total putts alone.
-    if three_putts:
-        score += min(30.0, three_putts * 14.0)
-        reasons.append(f"{three_putts} three-putt(s) = avoidable scoring leakage")
-
-    # Failed up-and-downs: contextualize against handicap rather than treating
-    # every missed scramble as equally actionable.
-    if failed_up_downs:
-        baseline = {0: 9.0, 5: 10.0, 10: 12.0, 15: 13.0, 20: 14.0, 25: 15.0}.get(round(hcp/5)*5, 13.0)
-        if failed_up_downs >= baseline + 3:
-            score += 20.0
-            reasons.append(f"{failed_up_downs} failed up-and-downs = materially high short-game leakage")
-        elif failed_up_downs >= baseline + 1:
-            score += 11.0
-            reasons.append(f"{failed_up_downs} failed up-and-downs = short-game opportunity")
+        if penalty_strokes and ob_lost_balls >= penalty_strokes:
+            reasons.append(f"{ob_lost_balls} OB/lost ball event(s) likely explain penalty leakage; not double-counted")
         else:
-            score += 5.0
-            reasons.append(f"{failed_up_downs} failed up-and-downs = monitor in context")
+            score += min(10.0, ob_lost_balls * 5.0)
+            reasons.append(f"{ob_lost_balls} OB/lost ball event(s) = direct trouble signal")
 
-    # GIR/approach is a strong category-level signal.
-    if gir:
-        pct = gir / 18.0
-        if pct < 0.20:
-            score += 34.0; reasons.append(f"GIR {gir}/18 = severe approach opportunity")
-        elif pct < 0.30:
-            score += 27.0; reasons.append(f"GIR {gir}/18 = major approach opportunity")
-        elif pct < 0.40:
-            score += 17.0; reasons.append(f"GIR {gir}/18 = meaningful approach opportunity")
-        elif pct < 0.50:
-            score += 8.0; reasons.append(f"GIR {gir}/18 = moderate approach opportunity")
+    # Three-putts: each event contains at least one extra putt versus a 2-putt,
+    # so use the event count as a conservative direct-stroke estimate.
+    if three_putts:
+        excess["3-Putting"] = round(float(three_putts), 2)
+        score += min(24.0, three_putts * 10.0)
+        reasons.append(f"{three_putts} three-putt(s) = approximately {three_putts:.1f} avoidable stroke(s), before distance context")
+    else:
+        excess["3-Putting"] = 0.0
 
-    # Total putts are deliberately weak evidence compared with 3-putts.
-    if putts:
-        if putts >= 38:
-            score += 8.0; reasons.append(f"{putts} total putts = investigate, but interpret with GIR")
-        elif putts >= 35:
-            score += 5.0; reasons.append(f"{putts} total putts = investigate in GIR/3-putt context")
+    # GIR: translate excess missed greens into a conservative stroke proxy.
+    if gir is not None:
+        gir_pct = float(gir) / 18.0 * 100.0
+        gir_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["gir_pct"])
+        expected_gir = 18.0 * gir_bench / 100.0
+        excess_missed_greens = max(0.0, expected_gir - float(gir))
+        # 0.35 is deliberately conservative: a missed green is not an
+        # automatic full stroke because short-game skill can recover it.
+        gir_excess_strokes = excess_missed_greens * 0.35
+        gir_gap = gir_pct - gir_bench
+        gaps["gir_pct_vs_handicap"] = round(gir_gap, 1)
+        excess["Approach / GIR"] = round(gir_excess_strokes, 2)
+        if gir_gap < -15:
+            score += 32.0
+            reasons.append(f"GIR {gir_pct:.0f}% vs {gir_bench:.0f}% benchmark = ~{gir_excess_strokes:.1f} estimated excess approach strokes")
+        elif gir_gap < -8:
+            score += 22.0
+            reasons.append(f"GIR {gir_pct:.0f}% vs {gir_bench:.0f}% benchmark = ~{gir_excess_strokes:.1f} estimated excess approach strokes")
+        elif gir_gap < -3:
+            score += 11.0
+            reasons.append(f"GIR {gir_pct:.0f}% vs {gir_bench:.0f}% benchmark = ~{gir_excess_strokes:.1f} estimated excess approach strokes")
+        elif gir_gap >= 0:
+            reasons.append(f"GIR {gir_pct:.0f}% is at/above the {gir_bench:.0f}% handicap benchmark")
+    else:
+        excess["Approach / GIR"] = 0.0
 
-    # FIR is capped: a missed fairway is not automatically a lost stroke.
-    if fairways_hit is not None and fairways_hit > 0:
-        fir_pct = fairways_hit / 14.0
-        if fir_pct < 0.35 and (penalty_strokes or ob_lost_balls):
-            score += 12.0; reasons.append(f"{fairways_hit}/14 fairways plus trouble = tee-shot risk")
-        elif fir_pct < 0.50:
-            score += 4.0; reasons.append(f"{fairways_hit}/14 fairways = investigate consequences, not accuracy alone")
+    # Short game: compare observed save rate to the handicap benchmark, then
+    # estimate excess failed saves. One excess failure is modeled as 0.7 stroke
+    # because a successful up-and-down is not always par-saving from identical lies.
+    if scrambling_opportunities and failed_up_downs is not None:
+        opps = max(1, int(scrambling_opportunities))
+        fails = min(opps, int(failed_up_downs))
+        observed_ud = (opps - fails) / opps * 100.0
+        ud_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["up_down_pct"])
+        expected_fails = opps * (1.0 - ud_bench / 100.0)
+        excess_failures = max(0.0, float(fails) - expected_fails)
+        ud_excess_strokes = excess_failures * 0.70
+        ud_gap = observed_ud - ud_bench
+        gaps["up_down_pct_vs_handicap"] = round(ud_gap, 1)
+        excess["Short Game / Scrambling"] = round(ud_excess_strokes, 2)
+        if ud_gap < -15:
+            score += 24.0
+            reasons.append(f"Up-and-down {observed_ud:.0f}% vs {ud_bench:.0f}% benchmark = ~{ud_excess_strokes:.1f} estimated excess short-game strokes")
+        elif ud_gap < -8:
+            score += 16.0
+            reasons.append(f"Up-and-down {observed_ud:.0f}% vs {ud_bench:.0f}% benchmark = ~{ud_excess_strokes:.1f} estimated excess short-game strokes")
+        elif ud_gap < -3:
+            score += 8.0
+            reasons.append(f"Up-and-down {observed_ud:.0f}% vs {ud_bench:.0f}% benchmark = ~{ud_excess_strokes:.1f} estimated excess short-game strokes")
+        else:
+            reasons.append(f"Up-and-down {observed_ud:.0f}% is near/above the {ud_bench:.0f}% handicap benchmark")
+    else:
+        excess["Short Game / Scrambling"] = 0.0
+        if failed_up_downs:
+            reasons.append("Failed up-and-downs supplied without total opportunities — add opportunities for excess-stroke estimate")
 
+    # Total putts: excess putts are a useful category signal, but are kept
+    # separate from 3-putts so the UI can show why the putting diagnosis exists.
+    if putts is not None:
+        putt_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["putts_round"])
+        putt_gap = max(0.0, float(putts) - putt_bench)
+        gaps["putts_vs_handicap"] = round(float(putts) - putt_bench, 1)
+        excess["Putting / Total"] = round(putt_gap, 2)
+        if putt_gap >= 5:
+            score += 11.0
+            reasons.append(f"{putts} putts vs {putt_bench:.1f} benchmark = +{putt_gap:.1f} excess putts; check 3-putts and approach proximity")
+        elif putt_gap >= 3:
+            score += 6.0
+            reasons.append(f"{putts} putts vs {putt_bench:.1f} benchmark = +{putt_gap:.1f} excess putts")
+        elif putt_gap <= 0:
+            reasons.append(f"{putts} putts are at/below the {putt_bench:.1f} handicap benchmark")
+    else:
+        excess["Putting / Total"] = 0.0
+
+    # FIR remains a weak signal; estimate no strokes from accuracy alone.
+    if fairways_hit is not None:
+        fir_pct = float(fairways_hit) / 14.0 * 100.0
+        fir_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["fir_pct"])
+        fir_gap = fir_pct - fir_bench
+        gaps["fir_pct_vs_handicap"] = round(fir_gap, 1)
+        excess["Driving / FIR"] = 0.0
+        if fir_gap < -15 and (penalty_strokes or ob_lost_balls):
+            score += 8.0
+            reasons.append(f"FIR {fir_pct:.0f}% vs {fir_bench:.0f}% benchmark plus trouble = tee-shot risk; no strokes credited from FIR alone")
+        elif fir_gap < -10:
+            score += 2.0
+            reasons.append(f"FIR {fir_pct:.0f}% is below the {fir_bench:.0f}% benchmark, but accuracy alone is weak ROI evidence")
+
+    total_excess = round(sum(excess.values()), 2)
     score = round(min(100.0, score), 1)
-    if score >= 45: tier = "CRITICAL — Direct Score Leak"
-    elif score >= 30: tier = "HIGH — Major Scoring Opportunity"
-    elif score >= 18: tier = "MEDIUM — Worth Targeting"
-    else: tier = "LOW — Do Not Chase Without More Evidence"
-    return {"score": score, "tier": tier, "reasons": reasons}
+    if score >= 45:
+        tier = "CRITICAL — Direct / Excess Score Leak"
+    elif score >= 30:
+        tier = "HIGH — Major Scoring Opportunity"
+    elif score >= 18:
+        tier = "MEDIUM — Worth Targeting"
+    else:
+        tier = "LOW — Near Handicap Benchmark / Need More Evidence"
+
+    excess_display = " | ".join(
+        f"{k}: {v:.1f}" for k, v in excess.items() if v > 0
+    ) or "No material excess-stroke estimate"
+    return {
+        "score": score,
+        "tier": tier,
+        "reasons": reasons,
+        "gaps": gaps,
+        "excess_strokes": excess,
+        "total_excess_strokes": total_excess,
+        "excess_display": excess_display,
+    }
 
 # -------------------------------------------------------------
 # MOVIE PARODY PERSONA DATABASE
@@ -1476,7 +1590,7 @@ if st.session_state["diag_step"] == 1:
         )
 
     st.markdown("##### 🎯 Scoring Events (high-value hidden-fault signals)")
-    col_e1, col_e2, col_e3 = st.columns(3)
+    col_e1, col_e2, col_e3, col_e4 = st.columns(4)
     with col_e1:
         ob_lost_balls = st.number_input(
             "OB / Lost Balls", min_value=0, max_value=20, value=0, step=1,
@@ -1491,6 +1605,11 @@ if st.session_state["diag_step"] == 1:
         failed_up_downs = st.number_input(
             "Failed Up-and-Downs", min_value=0, max_value=18, value=0, step=1,
             help="Count missed up-and-down opportunities after missing the green.",
+        )
+    with col_e4:
+        scrambling_opportunities = st.number_input(
+            "Scrambling Opportunities", min_value=0, max_value=18, value=0, step=1,
+            help="Number of holes where you missed the green and had a realistic up-and-down opportunity. Needed for handicap-relative short-game benchmarking.",
         )
 
     with st.expander(
@@ -1587,6 +1706,7 @@ if st.session_state["diag_step"] == 1:
             st.session_state["round_ob_lost_balls"] = ob_lost_balls
             st.session_state["round_three_putts"] = three_putts
             st.session_state["round_failed_up_downs"] = failed_up_downs
+            st.session_state["round_scrambling_opportunities"] = scrambling_opportunities
             st.session_state["round_handicap"] = handicap
 
             round_numbers_block = f"""
@@ -1598,6 +1718,7 @@ if st.session_state["diag_step"] == 1:
             - OB / Lost Balls: {ob_lost_balls if ob_lost_balls else 'Not provided'}
             - 3-Putts: {three_putts if three_putts else 'Not provided'}
             - Failed Up-and-Downs: {failed_up_downs if failed_up_downs else 'Not provided'}
+            - Scrambling Opportunities: {scrambling_opportunities if scrambling_opportunities else 'Not provided'}
             """
 
             question_prompt = f"""
@@ -1741,11 +1862,77 @@ elif st.session_state["diag_step"] == 2:
             _ob = st.session_state.get("round_ob_lost_balls")
             _3p = st.session_state.get("round_three_putts")
             _ud = st.session_state.get("round_failed_up_downs")
+            _scramble_opps = st.session_state.get("round_scrambling_opportunities")
 
             roi_data = calculate_score_roi(
-                _rs, _fh, _gir, _pt, _pen, _ob, _3p, _ud,
+                _rs, _fh, _gir, _pt, _pen, _ob, _3p, _ud, _scramble_opps,
                 st.session_state.get("round_handicap")
             )
+
+            # ---------------------------------------------------------
+            # VISIBLE HANDICAP-RELATIVE ROI BREAKDOWN
+            # ---------------------------------------------------------
+            st.markdown("### 📊 Where Your Strokes Are Actually Leaking")
+            st.caption(
+                "Handicap-relative model estimate. These are diagnostic estimates, not measured Strokes Gained."
+            )
+
+            total_excess = roi_data["total_excess_strokes"]
+            priority_col, total_col = st.columns([2, 1])
+            with priority_col:
+                st.markdown(f"**ROI Priority:** {roi_data['tier']}")
+                st.progress(min(1.0, roi_data["score"] / 100.0))
+                st.caption(f"Practice ROI score: {roi_data['score']:.1f} / 100")
+            with total_col:
+                st.metric("Estimated Excess Strokes", f"+{total_excess:.1f}")
+
+            # Show only categories that have usable evidence, while retaining
+            # zero-value categories when the golfer supplied the corresponding stat.
+            category_labels = {
+                "Penalty / Trouble": "Penalty / Trouble",
+                "3-Putting": "3-Putting",
+                "Approach / GIR": "Approach / GIR",
+                "Short Game / Scrambling": "Short Game / Scrambling",
+                "Putting / Total": "Putting / Total",
+                "Driving / FIR": "Driving / FIR",
+            }
+            visible_rows = []
+            for key, label in category_labels.items():
+                value = roi_data["excess_strokes"].get(key, 0.0)
+                if value > 0 or key in {"Driving / FIR"} and _fh is not None:
+                    visible_rows.append({
+                        "Category": label,
+                        "Estimated Excess Strokes": round(float(value), 2),
+                    })
+
+            if visible_rows:
+                roi_df = pd.DataFrame(visible_rows).sort_values(
+                    "Estimated Excess Strokes", ascending=False
+                )
+                st.dataframe(
+                    roi_df,
+                    hide_index=True,
+                    use_container_width=True,
+                    column_config={
+                        "Category": st.column_config.TextColumn("Scoring Category"),
+                        "Estimated Excess Strokes": st.column_config.NumberColumn(
+                            "Est. Excess Strokes", format="+%.2f"
+                        ),
+                    },
+                )
+
+                positive_rows = roi_df[roi_df["Estimated Excess Strokes"] > 0]
+                if not positive_rows.empty:
+                    top = positive_rows.iloc[0]
+                    st.info(
+                        f"**Largest modeled leak:** {top['Category']} at approximately "
+                        f"+{top['Estimated Excess Strokes']:.2f} excess stroke(s) versus your handicap benchmark."
+                    )
+
+            if roi_data["reasons"]:
+                with st.expander("Why the model reached this conclusion", expanded=False):
+                    for reason in roi_data["reasons"]:
+                        st.write(f"• {reason}")
 
             full_round_input = f"""
             User Story: "{st.session_state.get('user_round_story')}"
@@ -1759,10 +1946,11 @@ elif st.session_state["diag_step"] == 2:
             Decision Tree Q2: {q2_text} -> Selected: {ans2_selected}
             Round Numbers: Score={_rs if _rs else 'N/A'}, Fairways Hit={_fh if _fh else 'N/A'} (of ~14),
             GIR={_gir if _gir else 'N/A'} (of 18), Putts={_pt if _pt else 'N/A'}, Penalty Strokes={_pen if _pen else 'N/A'},
-            OB/Lost Balls={_ob if _ob else 'N/A'}, 3-Putts={_3p if _3p else 'N/A'}, Failed Up-and-Downs={_ud if _ud else 'N/A'},
+            OB/Lost Balls={_ob if _ob else 'N/A'}, 3-Putts={_3p if _3p else 'N/A'}, Failed Up-and-Downs={_ud if _ud else 'N/A'}, Scrambling Opportunities={_scramble_opps if _scramble_opps else 'N/A'},
             Handicap={st.session_state.get('round_handicap') or 'N/A'}
             Score-ROI Engine: {roi_data['tier']} | {roi_data['score']}/100
             Score-ROI Evidence: {'; '.join(roi_data['reasons']) if roi_data['reasons'] else 'No strong numerical leak detected'}
+            Estimated Excess Strokes: {roi_data['excess_display']} | Total model estimate: {roi_data['total_excess_strokes']:.1f}
             """
 
             system_prompt = f"""
@@ -1775,9 +1963,8 @@ elif st.session_state["diag_step"] == 2:
             of these four sequential stages:
 
             1. **Off-the-Tee Strategy (Primary Drive):** driver/tee shot accuracy and strategy. If this
-               stage is leaking (e.g. low Fairways Hit), everything downstream is played from trouble,
-               which makes it structurally the highest-ROI stage to fix even if the player didn't
-               mention it.
+               stage is leaking (e.g. low Fairways Hit), probe whether those misses create actual
+               scoring damage. Do not assume tee shots are the highest-ROI fix without score evidence.
             2. **Approach Precision (Mid Game):** iron/approach shot accuracy into greens (GIR).
             3. **Scoring/Scrambling (Short Game/Putting):** chipping, pitching, sand, and putting —
                converting positions already gained into a low score.
@@ -1853,6 +2040,7 @@ elif st.session_state["diag_step"] == 2:
               "diagnostic_blind_spot": "string or null — a stat-implied leak the player's story did not mention or explain",
               "roi_priority": "CRITICAL | HIGH | MEDIUM | LOW",
               "roi_score": 0.0,
+              "estimated_excess_strokes": "string — report the handicap-relative model estimate by category when supported; explicitly label it as an estimate, not measured Strokes Gained",
               "roi_evidence": "string — specific round evidence supporting the priority",
               "confidence_score": 0.95,
               "recommended_primary_drill": "string",
@@ -1923,12 +2111,14 @@ elif st.session_state["diag_step"] == 2:
                     ob_lost_balls=_zero_to_blank(st.session_state.get("round_ob_lost_balls")),
                     three_putts=_zero_to_blank(st.session_state.get("round_three_putts")),
                     failed_up_downs=_zero_to_blank(st.session_state.get("round_failed_up_downs")),
+                    scrambling_opportunities=_zero_to_blank(st.session_state.get("round_scrambling_opportunities")),
                     problem_area=st.session_state.get("club_category", ""),
                     miss_freq=st.session_state.get("miss_freq", ""),
                     confidence=diag_data.get("confidence_score", ""),
                     handicap=st.session_state.get("round_handicap"),
                     roi_priority=diag_data.get("roi_priority", roi_data.get("tier", "")),
                     roi_score=diag_data.get("roi_score", roi_data.get("score", "")),
+                    estimated_excess_strokes=roi_data.get("excess_display", ""),
                 )
 
                 st.session_state["diag_step"] = 3
