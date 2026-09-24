@@ -684,6 +684,110 @@ def render_progress_trends(df_history):
             else:
                 st.caption("No practice-effectiveness feedback logged yet.")
 
+        # Full history log lives with Progress & Trends instead of in the sidebar.
+        with st.expander("👁️ View Color-Coded Practice Log", expanded=False):
+            def highlight_progress_cols(val):
+                if val == "N/A" or val in (None, ""):
+                    return "color: #888888; font-style: italic;"
+                return "background-color: #1e3a8a22; font-weight: bold;"
+
+            highlight_targets = [
+                col for col in [
+                    "Primary Macro-Fault",
+                    "Primary Value Chain Stage",
+                    "Primary Drill",
+                ]
+                if col in df_history.columns
+            ]
+
+            if highlight_targets:
+                styled_history = df_history.style.map(
+                    highlight_progress_cols,
+                    subset=highlight_targets,
+                )
+            else:
+                styled_history = df_history.style
+
+            st.dataframe(
+                styled_history,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Timestamp": st.column_config.TextColumn("Date / Time"),
+                    "Score": st.column_config.TextColumn("Score"),
+                    "Fairways Hit": st.column_config.TextColumn("FIR"),
+                    "GIR": st.column_config.TextColumn("GIR"),
+                    "Putts": st.column_config.TextColumn("Putts"),
+                    "Penalty Strokes": st.column_config.TextColumn("Penalties"),
+                    "OB/Lost Balls": st.column_config.TextColumn("OB / Lost"),
+                    "3-Putts": st.column_config.TextColumn("3-Putts"),
+                    "Failed Up-and-Downs": st.column_config.TextColumn("Failed U&Ds"),
+                    "Scrambling Opportunities": st.column_config.TextColumn("Scramble Opps."),
+                    "Problem Area": st.column_config.TextColumn("Problem Area"),
+                    "Primary Macro-Fault": st.column_config.TextColumn(
+                        "Primary Opportunity"
+                    ),
+                    "Primary Value Chain Stage": st.column_config.TextColumn(
+                        "Value Chain Stage"
+                    ),
+                    "Course Mgmt Subtype": st.column_config.TextColumn(
+                        "Strategy Subtype"
+                    ),
+                    "Secondary Fault": st.column_config.TextColumn(
+                        "Secondary Opportunity"
+                    ),
+                    "Miss Frequency": st.column_config.TextColumn("Miss Frequency"),
+                    "Primary Drill": st.column_config.TextColumn("Primary Drill"),
+                    "ROI Opportunity": st.column_config.TextColumn("ROI Fix"),
+                    "AI Confidence": st.column_config.TextColumn("AI Confidence"),
+                    "Drill Completed?": st.column_config.TextColumn("Practice Completed"),
+                    "Fix Effectiveness (1-5)": st.column_config.TextColumn(
+                        "Effectiveness (1-5)"
+                    ),
+                    "Handicap": st.column_config.TextColumn("Handicap"),
+                    "ROI Priority": st.column_config.TextColumn("ROI Priority"),
+                    "ROI Score": st.column_config.TextColumn("ROI Score"),
+                    "Estimated Excess Strokes": st.column_config.TextColumn(
+                        "Est. Excess Strokes"
+                    ),
+                },
+            )
+
+        st.markdown("#### History Data")
+        st.caption(
+            "Export your full practice history for safekeeping or analysis. "
+            "Clearing history permanently removes the sessions stored in this app."
+        )
+
+        history_csv = df_history.to_csv(index=False).encode("utf-8")
+        history_col1, history_col2 = st.columns([2, 1])
+
+        with history_col1:
+            st.download_button(
+                label="📥 Download History CSV",
+                data=history_csv,
+                file_name="birdie_buddy_practice_history.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="download_history_csv_bottom",
+            )
+
+        with history_col2:
+            if st.button(
+                "🗑️ Clear History",
+                use_container_width=True,
+                key="clear_history_bottom",
+            ):
+                clear_history_csv()
+                st.rerun()
+
+        if st.session_state.get("history_file_warning"):
+            st.caption(
+                "ℹ️ History is currently being kept in this session because the "
+                "local CSV file could not be written. Use Download History CSV "
+                "to keep a permanent copy."
+            )
+
 
 
 def build_export_card(diag, res, active_drills, drill_schematics, caddie):
@@ -778,109 +882,9 @@ with st.sidebar.container(border=True):
     st.header("Configuration")
     api_key = st.text_input("Enter Gemini API Key", type="password")
 
-# --- SPREADSHEET HISTORY TRACKER & EXPORTER ---
-with st.sidebar.container(border=True):
-    st.header("📊 Practice History Spreadsheet")
+# History and trends are intentionally kept in the main page flow.
+# The sidebar is reserved for configuration only.
 
-    df_history = load_history_df()
-
-    if not df_history.empty:
-        st.sidebar.write(f"Logged Practice Rounds: **{len(df_history)}**")
-
-        # Download button to export spreadsheet
-        csv_data = df_history.to_csv(index=False).encode("utf-8")
-        st.sidebar.download_button(
-            label="📥 Export History (CSV)",
-            data=csv_data,
-            file_name="birdie_buddy_practice_history.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
-
-        if st.sidebar.button("🗑️ Clear History", use_container_width=True):
-            clear_history_csv()
-            st.rerun()
-
-        # Color-coded interactive table preview
-        with st.sidebar.expander("👁️ View Color-Coded Log", expanded=False):
-            def highlight_cols(val):
-                if val == "N/A" or not val:
-                    return "color: #888888; font-style: italic;"
-                return "background-color: #1e3a8a22; font-weight: bold;"
-
-            styled_df = df_history.style.map(
-                highlight_cols, subset=["Primary Macro-Fault", "Primary Drill"]
-            )
-
-            st.dataframe(
-                styled_df,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Timestamp": st.column_config.TextColumn("Date/Time"),
-                    "Score": st.column_config.TextColumn("Score 🏌️"),
-                    "Fairways Hit": st.column_config.TextColumn("FIR"),
-                    "GIR": st.column_config.TextColumn("GIR"),
-                    "Putts": st.column_config.TextColumn("Putts"),
-                    "Penalty Strokes": st.column_config.TextColumn("Penalties"),
-                    "Problem Area": st.column_config.TextColumn("Problem Area"),
-                    "Primary Macro-Fault": st.column_config.TextColumn("Primary Opportunity 🎯"),
-                    "Primary Value Chain Stage": st.column_config.TextColumn("Value Chain Stage"),
-                    "Course Mgmt Subtype": st.column_config.TextColumn("Strategy Subtype"),
-                    "Secondary Fault": st.column_config.TextColumn("Secondary Opportunity ⚠️"),
-                    "Miss Frequency": st.column_config.TextColumn("Miss Frequency"),
-                    "Primary Drill": st.column_config.TextColumn("Primary Drill 🛠️"),
-                    "ROI Opportunity": st.column_config.TextColumn("ROI Fix 📈"),
-                    "AI Confidence": st.column_config.TextColumn("Confidence"),
-                    "Drill Completed?": st.column_config.TextColumn("Drill Done?"),
-                    "Fix Effectiveness (1-5)": st.column_config.TextColumn("Fix Worked?"),
-                },
-            )
-
-        # --- PROGRESS TRENDS ---
-        with st.sidebar.expander("📈 Progress Trends", expanded=False):
-            score_series = pd.to_numeric(df_history["Score"], errors="coerce").dropna()
-            if len(score_series) >= 2:
-                st.caption("Score over time (lower is better)")
-                st.line_chart(score_series.reset_index(drop=True))
-            else:
-                st.caption("Log at least 2 scored rounds to see a score trend.")
-
-            stage_series = (
-                df_history["Primary Value Chain Stage"]
-                .replace({"N/A": None, "": None})
-                .dropna()
-                .map(_short_progress_stage)
-            )
-            stage_counts = stage_series.value_counts()
-            if not stage_counts.empty:
-                st.caption("Most frequent Value Chain opportunities")
-                st.bar_chart(stage_counts)
-            else:
-                st.caption("No Value Chain opportunities logged yet.")
-
-            if "Course Mgmt Subtype" in df_history.columns:
-                strategy_counts = (
-                    df_history[df_history["Course Mgmt Subtype"].notna()]
-                    ["Course Mgmt Subtype"]
-                    .replace("N/A", pd.NA)
-                    .dropna()
-                    .value_counts()
-                )
-                if not strategy_counts.empty:
-                    st.caption("Course-management decision patterns")
-                    st.bar_chart(strategy_counts)
-    else:
-        st.sidebar.caption(
-            "No session history recorded yet. Complete a round diagnosis to populate"
-            " your spreadsheet!"
-        )
-
-    if st.session_state.get("history_file_warning"):
-        st.sidebar.caption(
-            "ℹ️ History is being kept in this session only (the CSV file could not be"
-            " written here). Use the Export button to keep a permanent copy."
-        )
 
 if not api_key:
     st.warning("Please paste your Google Gemini API Key in the sidebar to begin.")
