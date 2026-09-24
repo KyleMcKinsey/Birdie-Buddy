@@ -317,7 +317,7 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
         lines.append(f"\nDRILL #{idx+1}: {d_name.upper()}")
         lines.append(f"Target: {balls_per_drill} Balls | {time_per_drill} Mins")
         lines.append(f"Equipment: {schematic['equipment']}")
-        lines.append(f"Setup: {schematic['vivid_description']}")
+        lines.append(f"Setup & Execution: {schematic['vivid_description']}")
         lines.append(f"Mental Analogy: {schematic['analogy']}")
         lines.append(
             f"Pro Tip: {schematic['pro_tip'].replace('🏆 **Pro Tip:** ', '')}"
@@ -683,702 +683,994 @@ PERSONA_DATABASE = {
 DRILL_SCHEMATICS = {
     # --- FULL SWING DRILLS (10) ---
     "Alignment Stick Gate Drill": {
-        "equipment": "2 Alignment Rods, 2 Golf Tees",
+        "equipment": "2 Alignment Rods (or shafts), 2–4 Golf Tees, Mid-Iron or Driver",
         "vivid_description": (
-            "Take practice strokes without a ball, focusing on making a crisp"
-            " 'thump' sound against the grass in front of your lead big toe."
+            "SETUP: Place one alignment rod on the ground parallel to your target line "
+            "(outside the ball, along the toe line). Place the second rod parallel to it "
+            "just outside your feet to form a 'railroad track' for body alignment. Optionally "
+            "angle a third stick or use a tee height as a 'roof' cue for swing plane. "
+            "EXECUTION: Take 8–10 slow rehearsal swings without a ball, keeping the clubhead "
+            "traveling inside the outer rail and under the plane cue. Then hit 10–15 balls "
+            "at 70–80% speed, starting each shot with feet and shoulders square to the rails. "
+            "SUCCESS: Clubhead passes cleanly through the gate; divots (if any) point slightly "
+            "left of target for a right-handed player; start line is stable. "
+            "AVOID: Standing open/closed to the rails, or lifting the club steeply over the plane cue."
         ),
         "analogy": (
-            "Railroad Track & Slanted Roof: Swing inside the tunnel without"
-            " clipping the slanted roof stick on the way down."
+            "Railroad Track & Tunnel: Your body rides the inner rail; the clubhead travels "
+            "inside the outer rail without clipping the 'roof' on the way down."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Keep 60% of your weight grounded in your lead heel"
-            " through impact to clear hips."
+            "🏆 **Pro Tip:** Keep ~60% of your weight in the lead heel through impact so the "
+            "hips clear and the club can stay on the rail through the ball."
         ),
     },
     "Pause at Top Drill": {
-        "equipment": "1 Alignment Rod",
+        "equipment": "1 Alignment Rod (optional, for foot line), Mid-Iron (7-iron recommended)",
         "vivid_description": (
-            "Take a full backswing and pause for a complete 2-second count at"
-            " the top before starting your downswing. Feel your lower body"
-            " initiate the downswing transition."
+            "SETUP: Address the ball with a normal mid-iron setup. Optionally lay an alignment "
+            "rod along your toe line so you can check that the pause does not cause a sway. "
+            "EXECUTION: Make a full, unhurried backswing and freeze at the top for a full "
+            "two-second count ('one-one-thousand, two-one-thousand'). From the freeze, start "
+            "the downswing with the lower body—lead hip turning toward the target—before the "
+            "arms and club move. Hit 12–15 balls at 60–75% effort. "
+            "SUCCESS: You feel sequential order (hips → torso → arms → club) and contact stays "
+            "centered. "
+            "AVOID: Starting the downswing with the hands from the pause, or shortening the "
+            "backswing so the pause becomes a quick hitch."
         ),
         "analogy": (
-            "Coiled Archer's Bow: Holding the pause stabilizes your aim before"
-            " smoothly releasing the arrow."
+            "Coiled Archer's Bow: The pause locks aim and load; the lower body releases the "
+            "arrow smoothly instead of throwing the arms first."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Count 'One-One-Thousand' silently at the top before"
-            " starting down with your hips."
+            "🏆 **Pro Tip:** Count the pause silently. If you lose balance during the hold, "
+            "shorten the backswing slightly until the freeze is stable."
         ),
     },
     "Tee Gate Drill": {
-        "equipment": "4 Standard Golf Tees",
+        "equipment": "4 Standard Golf Tees, Mid-Iron or Driver, Flat Mat or Turf",
         "vivid_description": (
-            "Plant two tees just outside the toe and heel of your clubhead at"
-            " address, creating a narrow gate that forces center-face contact"
-            " on every swing."
+            "SETUP: At address, plant two tees in the ground (or mat) just outside the toe and "
+            "heel of the clubhead, forming a gate only slightly wider than the clubhead. Place "
+            "two more tees 4–6 inches ahead of the ball along the same width to extend the gate "
+            "through the impact zone. "
+            "EXECUTION: Make half to three-quarter swings, focusing on passing the clubhead "
+            "through both pairs of tees without knocking them over. Start with slow swings, "
+            "then add ball strikes once you can clear the gate 5 times in a row. "
+            "SUCCESS: Center-face strikes; tees remain standing; ball flight starts on the "
+            "intended line more often. "
+            "AVOID: Swinging hard before you can clear the gate, or setting the tees so wide "
+            "that the gate gives no feedback."
         ),
         "analogy": (
-            "Narrow Runway: Swing clean through the gate without clipping the"
-            " side guardrails."
+            "Narrow Runway: The clubhead must roll cleanly between the guardrails; any path "
+            "or face error clips a tee immediately."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Soften wrist grip pressure to 4/10 to let the"
-            " clubhead release naturally through the gate."
+            "🏆 **Pro Tip:** Soften grip pressure to about 4/10 so the clubhead can release "
+            "through the gate instead of being steered."
         ),
     },
     "Towel Under Armpits Drill": {
-        "equipment": "1 Microfiber Golf Towel",
+        "equipment": "1 Microfiber Golf Towel (or small gym towel), Short or Mid-Iron",
         "vivid_description": (
-            "Tuck a single golf towel across your chest under both armpits. Take"
-            " smooth half-swings without dropping the towel to maintain"
-            " body-arm connectivity."
+            "SETUP: Fold the towel once and tuck it across your chest under both armpits so "
+            "it stays in place when your arms hang in a normal address posture. Use a short "
+            "or mid-iron and a normal stance width. "
+            "EXECUTION: Make smooth waist-to-waist or chest-high swings without letting the "
+            "towel drop. The goal is connected arm–torso motion: if the arms separate from "
+            "the body, the towel falls. Hit 10–15 balls, then remove the towel and hit 5 more "
+            "trying to recreate the same connected feel. "
+            "SUCCESS: Towel stays put through impact; contact is more consistent; finish is "
+            "balanced. "
+            "AVOID: Over-squeezing the arms into the torso (creates tension) or using a full "
+            "aggressive driver swing before the pattern is established."
         ),
         "analogy": (
-            "Solid Core Cylinder: Your arms and torso turn as one unified"
-            " engine rather than swinging independently."
+            "Solid Core Cylinder: Arms and torso turn as one engine rather than the arms "
+            "swinging independently away from the body."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Rotate your sternum through the ball rather than"
-            " pulling with your arms."
+            "🏆 **Pro Tip:** Rotate the sternum through the ball; do not try to 'hit' with "
+            "the hands while pinning the towel."
         ),
     },
     "Coin Strike Low-Point Drill": {
-        "equipment": "1 Coin or Ball Marker",
+        "equipment": "1 Coin or Ball Marker, Mid-Iron (7- or 8-iron), Turf or Practice Mat",
         "vivid_description": (
-            "Place a coin 2 inches ahead of your golf ball. Focus entirely on"
-            " clipping the coin off the turf to shift your swing low-point"
-            " forward."
+            "SETUP: Place a coin or ball marker about 2 inches ahead of the ball (toward the "
+            "target) on the same target line. Ball position is standard for the club. "
+            "EXECUTION: Focus entirely on brushing the coin after the ball—your low point "
+            "must be forward of the ball. Take several rehearsals without a ball first, "
+            "trying only to nick the coin. Then hit 12–15 shots at controlled tempo. "
+            "SUCCESS: Coin is flicked or scraped forward; divot (on turf) starts at or just "
+            "after the ball; ball flight is more penetrating. "
+            "AVOID: Scooping up at the ball (coin untouched) or digging so deep that you "
+            "chunk well behind the ball."
         ),
         "analogy": (
-            "Compressing vs. Scooping: Drive the clubhead through the turf"
-            " forward instead of scooping up."
+            "Compress vs Scoop: Drive the club through the turf after the ball instead of "
+            "lifting the ball with the hands."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Ensure your chest buttons are directly over or"
-            " slightly ahead of the coin at impact."
+            "🏆 **Pro Tip:** At impact, chest buttons should be over or slightly ahead of "
+            "the coin—not hanging back over the trail foot."
         ),
     },
     "Split-Hands Release Drill": {
-        "equipment": "Mid-Iron (7-Iron)",
+        "equipment": "Mid-Iron (7-iron), No special props required",
         "vivid_description": (
-            "Separate your trail hand 3 inches down the grip like holding a"
-            " hockey stick. Take half-swings to feel the lead forearm roll over"
-            " naturally."
+            "SETUP: Grip the club with the lead hand in its normal position. Place the trail "
+            "hand 2–3 inches down the shaft (like a hockey stick grip) so the hands are "
+            "separated. Use a slightly narrower stance for balance. "
+            "EXECUTION: Make half-swings to waist height, feeling the lead forearm rotate "
+            "and the clubface square/close through impact. The split grip exaggerates the "
+            "release so you cannot leave the face open as easily. Hit 10–12 balls, then "
+            "return to a normal grip and hit 5 matching the same release feel. "
+            "SUCCESS: Ball starts closer to the intended line; face feels less 'stuck open.' "
+            "AVOID: Full aggressive swings with the split grip (control first), or collapsing "
+            "the lead wrist into a scoop."
         ),
         "analogy": (
-            "Hockey Slap Shot: Forces proper wrist crossover to stop leaving"
-            " the face open."
+            "Hockey Slap-Shot Release: The separated hands force a natural forearm roll and "
+            "toe-through release instead of a blocked open face."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Feel the toe of the club point straight to the"
-            " sky on the extension follow-through."
+            "🏆 **Pro Tip:** On the follow-through, feel the toe of the club pointing roughly "
+            "skyward as the arms extend toward the target."
         ),
     },
     "Feet-Together Balance Drill": {
-        "equipment": "Any Short/Mid-Iron",
+        "equipment": "Any Short or Mid-Iron, Flat Stance Surface",
         "vivid_description": (
-            "Stand with your feet touching heel-to-toe. Make smooth 75% tempo"
-            " swings while maintaining total balance without swaying or"
-            " tipping."
+            "SETUP: Stand with feet touching (heels and toes close together). Use a short "
+            "or mid-iron and a ball teed very low or on turf. Keep posture athletic—slight "
+            "knee flex, hinge from the hips. "
+            "EXECUTION: Make smooth 60–75% swings, prioritizing balance over distance. Hold "
+            "the finish for two seconds without stepping or hopping. If you tip or spin out, "
+            "shorten the swing until you can finish still. Hit 12–15 balls, then widen to a "
+            "normal stance and recreate the centered feel. "
+            "SUCCESS: Quiet lower body, centered contact, finish held without a recovery step. "
+            "AVOID: Trying to hit hard; lateral sway; lifting the head early to 'see' the shot."
         ),
         "analogy": (
-            "Deep Rooted Tree: Rotates around a fixed central axis without"
-            " lateral sliding."
+            "Deep-Rooted Tree: Rotate around a fixed central axis instead of sliding side to side."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Keep your weight centered over the mid-foot"
-            " throughout the backswing and finish."
+            "🏆 **Pro Tip:** Keep pressure centered over the mid-foot from address through "
+            "the finish—avoid rolling to the toes or the outside of either foot."
         ),
     },
     "Wall-Head Posture Drill": {
-        "equipment": "Wall or Alignment Rod behind hips",
+        "equipment": "Wall, Soft Pad, or Alignment Rod propped as a rear reference; Mid-Iron",
         "vivid_description": (
-            "Set up with your forehead gently touching a wall or soft pad."
-            " Practice slow swings maintaining head contact to eliminate early"
-            " extension."
+            "SETUP: Stand so the back of your head (or a soft pad on the wall) lightly "
+            "touches a wall, or place an alignment rod vertically behind your trail hip/glute "
+            "as a contact cue. Address a mid-iron with normal posture. "
+            "EXECUTION: Make slow half to three-quarter swings while maintaining light head "
+            "or hip contact with the reference. The goal is to prevent early extension "
+            "(hips thrusting toward the ball, head rising). Hit 10–12 controlled balls, then "
+            "step away from the wall and hit 5 shots matching the same posture feel. "
+            "SUCCESS: Head height stays more stable; hips rotate rather than thrust; contact "
+            "is cleaner. "
+            "AVOID: Pressing hard into the wall (creates tension) or making full driver swings "
+            "before the pattern is stable."
         ),
         "analogy": (
-            "Fixed Pivot Pin: Prevents your hips from thrusting forward toward"
-            " the ball."
+            "Fixed Pivot Pin: The rear reference keeps your axis from lunging toward the ball "
+            "on the downswing."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Keep your trail hip pressed back during the initial"
-            " downswing transition."
+            "🏆 **Pro Tip:** On the first move down, feel the trail hip stay back against the "
+            "reference while the lead hip clears toward the target."
         ),
     },
     "Impact Bag Compression Drill": {
-        "equipment": "Impact Bag or Heavy Towel Bundle",
+        "equipment": "Impact Bag, or a tightly rolled heavy towel / duffel; Mid-Iron",
         "vivid_description": (
-            "Swing half-speed into an impact bag, stopping at impact to feel"
-            " shaft lean forward and hands leading the clubhead."
+            "SETUP: Place the impact bag (or towel bundle) where the ball would be, at a "
+            "height that matches your iron address. Take a normal mid-iron setup with hands "
+            "slightly ahead of the bag face. "
+            "EXECUTION: Make half-speed swings into the bag and stop at impact. Hold for one "
+            "full second, checking: hands ahead of the clubhead, lead wrist flat, shaft "
+            "leaning toward the target, weight favoring the lead side. Reset and repeat "
+            "10–15 times. Optionally finish a few swings through the bag at slightly higher "
+            "speed once the impact position feels solid. "
+            "SUCCESS: Consistent forward shaft lean and 'compressed' feel without flipping. "
+            "AVOID: Full-speed thrashing into the bag; hanging back on the trail foot; cupping "
+            "the lead wrist at the stop."
         ),
         "analogy": (
-            "Driving a Nail: Delivers maximum energy transfer with hands ahead"
-            " of the clubhead."
+            "Driving a Nail: Maximum energy transfers when the hands lead and the clubhead "
+            "arrives last—like striking a nail flush with the hammer head trailing the grip."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Firm up your lead wrist at impact so it forms a"
-            " flat line with your forearm."
+            "🏆 **Pro Tip:** Firm the lead wrist so it forms a relatively flat line with the "
+            "forearm at the impact freeze—do not scoop under the bag."
         ),
     },
     "Two-Step Pump Lag Drill": {
-        "equipment": "Mid-Iron (6-Iron or 7-Iron)",
+        "equipment": "Mid-Iron (6- or 7-iron), Optional Alignment Rod for foot line",
         "vivid_description": (
-            "Take a backswing, pump the downswing halfway down twice holding"
-            " wrist angle, then sweep through on the third stroke."
+            "SETUP: Normal mid-iron address. Optional: alignment rod along the toe line to "
+            "monitor sway. "
+            "EXECUTION: Take a full backswing. From the top, pump the club halfway down twice "
+            "while holding the wrist angle (lag), then on the third motion sweep through to "
+            "a full finish. The pumps train patience in the transition. Do 8–10 pump reps "
+            "without a ball, then hit 10 balls using one pump and a smooth third-through swing. "
+            "SUCCESS: You feel the club 'lagging' behind the hands longer; contact is less "
+            "cast or early-released. "
+            "AVOID: Casting the wrists on the pumps; rushing the third swing into a hit-from-"
+            "the-top move."
         ),
         "analogy": (
-            "Whip Crack: Preserves wrist angle until the absolute last"
-            " millisecond before impact."
+            "Whip Crack: Preserve the wrist angle until the last moment so energy releases "
+            "at the ball, not at the top of the swing."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Let your hips lead the pull down while hands stay"
-            " soft and passive."
+            "🏆 **Pro Tip:** Let the hips lead the pull-down while the hands stay relatively "
+            "passive—arms follow the body, they do not throw the club from the top."
         ),
     },
     # --- SHORT GAME DRILLS (15) ---
     "Towel Behind Ball Drill": {
-        "equipment": "1 Microfiber Golf Towel",
+        "equipment": "1 Microfiber Golf Towel, Pitching Wedge or Sand Wedge, Flat Lie",
         "vivid_description": (
-            "Lay a folded towel flat on the grass 4 inches behind the ball. Chip"
-            " over the towel without clipping fabric on the downswing."
+            "SETUP: Fold a towel flat and place it on the grass (or mat) about 4 inches "
+            "behind the ball, covering the area where a fat shot would strike first. Ball "
+            "is in a standard chip position—slightly back of center, weight favoring lead "
+            "foot. "
+            "EXECUTION: Chip with a quiet lower body, focusing on missing the towel entirely "
+            "and contacting ball then turf. If you hit the towel, the strike was heavy. Hit "
+            "15–20 chips to a 10–20 yard landing zone. "
+            "SUCCESS: Towel stays clean; ball-first contact; predictable carry. "
+            "AVOID: Trying to help the ball up with the hands (often causes the fat strike "
+            "the towel is designed to expose)."
         ),
         "analogy": (
-            "Steep Landing Descent: Force the wedge sole to enter the turf"
-            " right at the ball rather than dragging behind."
+            "Steep Landing Descent: The wedge sole must enter at the ball, not drag through "
+            "the danger zone behind it."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Lean 70% of your body weight onto your lead foot"
-            " and keep it locked throughout."
+            "🏆 **Pro Tip:** Set ~70% of your weight on the lead foot at address and keep it "
+            "there through the stroke—no rocking back onto the trail foot."
         ),
     },
     "Lead Foot Weight Anchor Drill": {
-        "equipment": "Wedge (56° or 60°)",
+        "equipment": "Wedge (56° or 60° preferred), Flat Practice Lie",
         "vivid_description": (
-            "Lift your trail heel off the ground so only your lead foot bears"
-            " weight. Make soft chipping strokes while balanced entirely on the"
-            " front leg."
+            "SETUP: Address a short chip with a narrow stance. Lift the trail heel (or "
+            "entire trail foot onto the toe) so almost all pressure is on the lead foot. "
+            "Hands slightly ahead of the ball. "
+            "EXECUTION: Make soft chipping strokes while balanced on the lead leg. The "
+            "forced forward center makes it hard to hit behind the ball. Hit 12–15 balls, "
+            "then return both feet flat and recreate the same forward pressure. "
+            "SUCCESS: Crisp ball-first contact; low point stays ahead of the ball. "
+            "AVOID: Leaning the upper body backward to 'lift' the ball; excessive wrist "
+            "flip to manufacture loft."
         ),
         "analogy": (
-            "Heavy Anchor: Keeps your swing center firmly ahead of the ball to"
-            " guarantee downward turf contact."
+            "Heavy Anchor: The swing center stays planted ahead of the ball so the club "
+            "must strike down and through."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Do not lean backward to elevate the ball; let the"
-            " wedge loft perform the lifting."
+            "🏆 **Pro Tip:** Let the loft of the wedge elevate the ball—do not try to scoop "
+            "it into the air with the hands."
         ),
     },
     "Brush Turf Chipping Drill": {
-        "equipment": "Pitching Wedge",
+        "equipment": "Pitching Wedge or Gap Wedge, Bare Turf or Practice Mat",
         "vivid_description": (
-            "Take practice strokes without a ball, focusing on making a crisp"
-            " 'thump' sound against the grass in front of your lead big toe."
+            "SETUP: No ball at first. Take your normal chip setup—weight left, hands ahead, "
+            "narrow stance. "
+            "EXECUTION: Make continuous or single practice strokes focusing only on a crisp "
+            "'thump' or brush of the grass just in front of the lead big toe (low-point "
+            "target). Listen for a clean brush, not a deep dig. After 10 successful brushes, "
+            "add a ball and try to recreate the same sound and low point for 15 chips. "
+            "SUCCESS: Consistent brush location; shallow divot or paint-brush mark; solid "
+            "contact when the ball is introduced. "
+            "AVOID: Stopping the chest at impact; flipping the wrists to manufacture height."
         ),
         "analogy": (
-            "Broom Sweep: Sweep grass roots smoothly rather than digging deep"
-            " trenches."
+            "Broom Sweep: Sweep the grass roots smoothly rather than digging a trench with "
+            "the leading edge."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Keep your chest moving toward the target through"
-            " impact to avoid stopping early."
+            "🏆 **Pro Tip:** Keep the chest rotating toward the target through impact so the "
+            "low point does not stall behind the ball."
         ),
     },
     "Coin Lead-Point Pitch Drill": {
-        "equipment": "1 Quarter or Ball Marker",
+        "equipment": "1 Quarter or Ball Marker, Sand or Lob Wedge, Soft Turf",
         "vivid_description": (
-            "Place a coin flat under your golf ball. Strike the shot aiming to"
-            " slide the wedge bounce cleanly beneath the coin and skip it"
-            " forward."
+            "SETUP: Place a coin flat under or just behind the ball so the ball sits on or "
+            "immediately ahead of the coin. Open the face slightly if the lie allows, and "
+            "set weight favoring the lead side. "
+            "EXECUTION: Pitch with the intent to slide the bounce of the wedge under the "
+            "coin and skip the coin forward—using the sole, not the leading edge. Hit 12–15 "
+            "pitches of 15–30 yards. "
+            "SUCCESS: Coin skids forward; ball launches with the club's loft; fewer skulls "
+            "and chunks. "
+            "AVOID: Digging the leading edge into the ground behind the coin; decelerating "
+            "into the strike."
         ),
         "analogy": (
-            "Credit Card Slide: Slide the rounded bottom of the club flat along"
-            " the dirt surface."
+            "Credit-Card Slide: The rounded sole glides along the surface like sliding a "
+            "card under an object—not like chopping with an axe."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Keep trail wrist bent back softly through impact"
-            " rather than flattening early."
+            "🏆 **Pro Tip:** Keep the trail wrist softly bent (extended) through impact "
+            "rather than flipping it flat early."
         ),
     },
     "Ruler in Glove Wrist Anchor Drill": {
-        "equipment": "1 Plastic Ruler, Golf Glove",
+        "equipment": "1 Thin Plastic Ruler (or similar flat stick), Lead-Hand Golf Glove, Wedge",
         "vivid_description": (
-            "Tuck a 6-inch plastic ruler into the back of your lead wrist"
-            " glove. Make chips without letting the ruler poke into the back of"
-            " your hand."
+            "SETUP: Tuck a 6-inch plastic ruler under the back of the lead wrist (inside "
+            "or against the glove) so it lies along the forearm–wrist line. Address a chip "
+            "with normal setup. "
+            "EXECUTION: Chip without letting the ruler poke painfully into the back of the "
+            "hand—that poke means the lead wrist cupped or flipped. Make 15 controlled chips. "
+            "Remove the ruler and hit 5 more matching the flat-wrist feel. "
+            "SUCCESS: Lead wrist stays quieter; contact is more consistent; less scooping. "
+            "AVOID: Gripping so tight that the arms freeze; using long pitch swings before "
+            "the wrist pattern is stable on short chips."
         ),
         "analogy": (
-            "Rigid Wrist Shield: Locks the lead wrist in a flat, stable"
-            " structure to eliminate scooping."
+            "Rigid Wrist Shield: The ruler trains a flat, stable lead-wrist structure so "
+            "the hands cannot scoop under the ball."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Drive the motion entirely with torso rotation"
-            " instead of flipping hands."
+            "🏆 **Pro Tip:** Drive the motion with torso rotation and a quiet lower body—"
+            "not with independent hand action."
         ),
     },
     "Hinge-and-Hold Chipping Drill": {
-        "equipment": "52° or 56° Wedge",
+        "equipment": "52° or 56° Wedge, Flat Lie, Optional Alignment Stick for Target Line",
         "vivid_description": (
-            "Hinge your wrists quickly on the takeaway, then hold that wrist"
-            " angle firm through impact and finish with hands ahead of"
-            " clubhead."
+            "SETUP: Standard chip setup—weight left, ball slightly back, hands ahead. "
+            "Pick a specific landing spot 8–15 yards away. "
+            "EXECUTION: Hinge the wrists early on the takeaway to set a firm wrist angle, "
+            "then hold that angle through impact and into a short finish with the hands "
+            "still ahead of the clubhead (no release flip). Hit 15–20 chips varying only "
+            "swing length, not the hinge-and-hold pattern. "
+            "SUCCESS: Predictable trajectory; hands finish ahead of the clubhead; minimal "
+            "wrist breakdown. "
+            "AVOID: Re-hinging or flipping at the ball; decelerating into impact."
         ),
         "analogy": (
-            "Vault Door Lock: Hinge back, then lock the angles in steel"
-            " through impact."
+            "Vault-Door Lock: Hinge to set the angle, then lock that structure in steel "
+            "through the strike."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Finish with the butt end of the grip pointing at"
-            " your lead hip."
+            "🏆 **Pro Tip:** At the finish, the butt end of the grip should point roughly "
+            "at the lead hip—evidence the hands stayed ahead."
         ),
     },
     "Clock System Wedge Drill": {
-        "equipment": "Wedge Set (50°, 54°, 58°)",
+        "equipment": "Wedge set (e.g. 50°, 54°, 58°), Notebook or Phone for Distances, Target Flags",
         "vivid_description": (
-            "Practice swing lengths mapped to clock hands: 7:30 (waist-high),"
-            " 9:00 (chest-high), and 10:30 (three-quarter). Record carry"
-            " distances."
+            "SETUP: On a range or short-game area with clear landing targets, designate "
+            "swing lengths as clock positions: 7:30 (lead arm about waist-high), 9:00 "
+            "(lead arm about chest-high), and 10:30 (three-quarter). Use one wedge at a "
+            "time. "
+            "EXECUTION: Hit 5–8 balls at each clock length with the same tempo. Record "
+            "average carry for each club/length pair. Do not change speed—only length. "
+            "Build a personal distance chart. "
+            "SUCCESS: Tight distance clusters for each length; repeatable tempo. "
+            "AVOID: Swinging harder on longer clocks; mixing clubs randomly without logging "
+            "results."
         ),
         "analogy": (
-            "Precision Dial: Control distance with arm swing length rather than"
-            " changing swing speed."
+            "Precision Dial: Distance is controlled by arm-swing length on a fixed tempo, "
+            "not by random acceleration."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Keep downswing tempo uniform regardless of"
-            " backswing length."
+            "🏆 **Pro Tip:** Keep downswing tempo the same for every clock position—length "
+            "changes distance; speed changes should stay minimal."
         ),
     },
     "Landing Zone Target Towel Drill": {
-        "equipment": "Small Target Towel",
+        "equipment": "Small Target Towel or Towel-Sized Cloth, Wedge, Rangefinder Optional",
         "vivid_description": (
-            "Lay a small towel 15-20 yards out on the green. Focus 100% on"
-            " landing your pitch shots directly onto the towel surface."
+            "SETUP: Place a small towel on the green or fringe 15–20 yards away as the "
+            "only landing target. Ignore the flag pin for this drill—your job is the towel. "
+            "Choose one wedge and one intended trajectory. "
+            "EXECUTION: Hit 15–20 pitches focusing 100% on landing the ball on the towel. "
+            "Walk to the towel periodically to see dispersion. Adjust setup or length based "
+            "on whether you are short/long or left/right of the towel. "
+            "SUCCESS: Increasing percentage of towel landings; tighter dispersion over the "
+            "session. "
+            "AVOID: Aiming at the flag while 'hoping' the towel works; changing clubs every "
+            "shot without a plan."
         ),
         "analogy": (
-            "Bullseye Landing Pad: Ignore the flag pin; land the ball"
-            " exclusively on your designated spot."
+            "Bullseye Landing Pad: The towel is the only scoreboard—flag-hunting comes after "
+            "you can hit a spot."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Walk up to the green beforehand to pick your"
-            " exact landing spot based on green slope."
+            "🏆 **Pro Tip:** Before the first ball, walk to the green and pick the exact "
+            "towel spot based on slope and how much release you want after landing."
         ),
     },
     "Trail-Hand Only Pitch Drill": {
-        "equipment": "Sand Wedge",
+        "equipment": "Sand Wedge or Lob Wedge, Soft Turf or Mat",
         "vivid_description": (
-            "Remove your lead hand and pitch balls using only your trail hand."
-            " Feel the clubhead weight drop smoothly through impact."
+            "SETUP: Remove the lead hand from the club. Grip lightly with the trail hand "
+            "only. Use a narrow stance and a short pitch setup. "
+            "EXECUTION: Pitch balls 10–25 yards using only the trail hand, feeling the "
+            "clubhead weight and a soft underhand release. The trail hand often reveals "
+            "whether you are scooping or sliding the bounce. Hit 10–12 balls, then add the "
+            "lead hand back and match the same soft release. "
+            "SUCCESS: Better awareness of clubhead mass; softer landings; less grip tension "
+            "in two-handed pitches afterward. "
+            "AVOID: Full aggressive swings one-handed; gripping so tight the wrist locks."
         ),
         "analogy": (
-            "Underhand Ball Toss: Replicate the natural motion of tossing a"
-            " tennis ball underhand to a target."
+            "Underhand Toss: Replicate the natural motion of lobbing a soft ball underhand "
+            "to a partner—smooth acceleration, soft hands."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Allow the clubhead bounce to slap the turf softly"
-            " without grabbing."
+            "🏆 **Pro Tip:** Let the bounce of the wedge slap the turf softly; do not dig "
+            "with the leading edge."
         ),
     },
     "Line in the Sand Drill": {
-        "equipment": "Sand Wedge, Practice Bunker",
+        "equipment": "Sand Wedge, Practice Bunker, Club or Stick to Draw a Line",
         "vivid_description": (
-            "Draw a line in the bunker sand perpendicular to target line with"
-            " no ball. Practice swinging to make divots that start precisely"
-            " on the drawn line."
+            "SETUP: In a practice bunker, draw a straight line in the sand perpendicular "
+            "to the target line. No ball for the first set. Stand as you would for a "
+            "standard greenside bunker shot (open stance/face as preferred). "
+            "EXECUTION: Swing to enter the sand on the line and splash a consistent patch "
+            "forward. After 8–10 line-only swings, place a ball just ahead of the line and "
+            "repeat, entering on the line (typically 1–2 inches behind the ball). "
+            "SUCCESS: Divots/splash marks start on the line; ball exits consistently. "
+            "AVOID: Decelerating in the sand; aiming the low point at the ball instead of "
+            "behind it."
         ),
         "analogy": (
-            "Erasing the Line: Train low-point control so the wedge enters sand"
-            " exactly 2 inches behind the ball."
+            "Erasing the Line: Train the club to enter the sand on a precise mark so the "
+            "cushion under the ball is predictable."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Accelerate fully through sand; never slow down near"
-            " impact."
+            "🏆 **Pro Tip:** Accelerate fully through the sand—bunker shots die when you "
+            "quit on the club through impact."
         ),
     },
     "Dollar Bill Sand Extraction Drill": {
-        "equipment": "Sand Wedge, Paper Bill or Target Line",
+        "equipment": "Sand Wedge, Practice Bunker, Dollar Bill or Bill-Sized Card/Target",
         "vivid_description": (
-            "Place a ball on top of a dollar bill in the bunker. Aim to splash"
-            " out the entire dollar-bill-sized patch of sand carrying the ball"
-            " out."
+            "SETUP: Place a dollar bill (or a bill-sized card) in the bunker sand and set "
+            "the ball on top of it. Open the face, set an open stance if that is your "
+            "method, and lower your center slightly. "
+            "EXECUTION: Splash the entire bill-sized patch of sand out onto the fringe, "
+            "carrying the ball with the sand cushion. The club should not 'hit' the ball "
+            "directly. Hit 10–12 shots, resetting the bill each time if needed. "
+            "SUCCESS: Ball exits on a soft arc; sand patch is consistent; fewer thin skulls "
+            "across the green. "
+            "AVOID: Closing the face at address; trying to lift the ball with the hands "
+            "instead of the sand."
         ),
         "analogy": (
-            "Sand Cushion Pillow: The club never touches the ball; it lifts"
-            " the cushion of sand beneath it."
+            "Sand Cushion Pillow: The club lifts a pillow of sand; the ball rides the "
+            "pillow—clubface never needs to strike the ball clean."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Open the clubface fully before establishing your"
-            " grip."
+            "🏆 **Pro Tip:** Open the clubface fully before you take your grip so the face "
+            "stays open when you close your hands."
         ),
     },
     "Open-Face Sand Splash Drill": {
-        "equipment": "Lob Wedge (60°)",
+        "equipment": "Lob Wedge (58°–60°), Practice Bunker",
         "vivid_description": (
-            "Lay the clubface completely flat to the sky in setup, lower your"
-            " posture, and splash sand aggressively onto the green fringe."
+            "SETUP: Lay the clubface open so the face points more skyward. Grip after "
+            "opening the face. Widen the stance slightly and lower your posture (more knee "
+            "flex) to keep the swing shallow. Ball slightly forward of center. "
+            "EXECUTION: Splash sand aggressively toward the green fringe with a full "
+            "acceleration through the sand. Focus on the face staying open and the sole "
+            "gliding. Hit 12–15 greenside bunker shots. "
+            "SUCCESS: Higher, softer landings; sole glides rather than digs. "
+            "AVOID: Standing too tall (steep dig); flipping the face closed through impact."
         ),
         "analogy": (
-            "Pancake Flip: Slide the flat back of the wedge under sand like"
-            " turning a pancake on a skillet."
+            "Pancake Flip: Slide the open face under the sand like turning a pancake—wide, "
+            "shallow, and committed."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Lower your stance height by flexing knees wider to"
-            " keep swing shallow."
+            "🏆 **Pro Tip:** Lower your stance by flexing the knees and adding a bit more "
+            "hip hinge so the swing stays shallow through the sand."
         ),
     },
     "Continuous Motion Pendulum Chipping Drill": {
-        "equipment": "Pitching Wedge",
+        "equipment": "Pitching Wedge or Gap Wedge, Open Turf Strip",
         "vivid_description": (
-            "Swing the wedge back and forth continuously over grass without"
-            " stopping, clipping turf on every forward pass in rhythmic"
-            " sequence."
+            "SETUP: Normal chip setup. No need for a single 'hit' focus—this is a rhythm "
+            "drill. "
+            "EXECUTION: Swing the wedge back and through continuously over the grass for "
+            "20–30 seconds, brushing turf on every forward pass without stopping at the "
+            "bottom. Then place a ball and take one uninterrupted pendulum stroke into it, "
+            "matching the same rhythm. Alternate 5 continuous cycles with 5 ball strikes. "
+            "SUCCESS: Less jabbing and flinching; smoother tempo on real chips. "
+            "AVOID: Pausing at the top or at impact; adding a sudden hit impulse when the "
+            "ball appears."
         ),
         "analogy": (
-            "Grandfather Pendulum: Unbroken rhythm eradicates flinching and"
-            " jerky wrist twitching."
+            "Grandfather-Clock Pendulum: Unbroken rhythm removes the freeze and twitch that "
+            "cause thin and fat chips."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Focus on smooth breathing: exhale softly through"
-            " the impact motion."
+            "🏆 **Pro Tip:** Exhale softly through the forward stroke—breathing out reduces "
+            "the tendency to tense and jab."
         ),
     },
     "Accelerating Through Impact Gate Drill": {
-        "equipment": "2 Golf Tees, Wedge",
+        "equipment": "2 Golf Tees, Wedge, Flat Lie",
         "vivid_description": (
-            "Place a tee 6 inches behind the ball and another 12 inches ahead."
-            " Start backswing from front tee, step back, and accelerate"
-            " through both."
+            "SETUP: Plant one tee about 6 inches behind the ball and another about 12 "
+            "inches ahead of the ball on the target line (or just outside the path). These "
+            "mark a 'corridor' of acceleration. "
+            "EXECUTION: Start the backswing from a short position and accelerate the "
+            "clubhead through both tees so the forward tee is the focus—not the ball. Hit "
+            "12–15 chips/pitches with a backswing shorter than the follow-through. "
+            "SUCCESS: Fewer decelerated fat/thin strikes; more solid compression on short "
+            "shots. "
+            "AVOID: Long backswings with a soft hit at the ball; quitting on the follow-through."
         ),
         "analogy": (
-            "Rocket Launch: Build speed toward target finish line rather than"
-            " hitting AT the ball."
+            "Rocket Launch: Speed builds toward a finish line past the ball—not a stop at "
+            "the ball."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Ensure backswing is shorter than follow-through"
-            " length."
+            "🏆 **Pro Tip:** Make the backswing shorter than the follow-through on purpose; "
+            "that bias promotes acceleration."
         ),
     },
     "Target-Focused Eyes-Up Chipping Drill": {
-        "equipment": "56° Wedge",
+        "equipment": "56° Wedge (or preferred chip club), Clear Target Flag or Spot",
         "vivid_description": (
-            "Look directly at your target flag instead of looking down at the"
-            " ball during the short chip stroke."
+            "SETUP: Choose a close chip (5–15 yards). Address the ball normally, then lift "
+            "your eyes to the target and keep them there. "
+            "EXECUTION: Stroke the chip while looking at the target instead of the ball—"
+            "like a basketball free throw. Start with very short chips. Hit 10–15 balls. "
+            "Then hit 5 looking at the ball but keeping the same external focus mentally. "
+            "SUCCESS: Less steering and freezing over the ball; often improved contact from "
+            "reduced tension. "
+            "AVOID: Starting with long pitches; turning it into a trick-shot contest before "
+            "the feel is natural."
         ),
         "analogy": (
-            "Free Throw Shooting: Basketball players look at the rim while"
-            " shooting, relying on natural instinct."
+            "Free-Throw Shooting: Look at the rim (target) and trust the stroke—staring at "
+            "the ball often invites micromanagement."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Eliminates steering by freeing hand-eye"
-            " coordination instincts."
+            "🏆 **Pro Tip:** This drill is about freeing hand–eye coordination; if contact "
+            "suffers at first, shorten the shot until solid strikes return."
         ),
     },
     # --- PUTTING DRILLS (15) ---
     "Putting Tee Gate Drill": {
-        "equipment": "2 Standard Golf Tees, Putter",
+        "equipment": "2 Standard Golf Tees, Putter, Flat Section of Green or Mat",
         "vivid_description": (
-            "Set two tees in green turf 3 feet ahead of putter, spaced just wide"
-            " enough for a golf ball to pass through cleanly."
+            "SETUP: From about 3–6 feet, set two tees just wider than a golf ball, 2–3 feet "
+            "in front of the ball on the start line, forming a gate the ball must pass "
+            "through. "
+            "EXECUTION: Roll 15–20 putts through the center of the gate. If the ball clips "
+            "a tee, the start line or face angle was off. Adjust setup until most putts "
+            "pass cleanly. "
+            "SUCCESS: High percentage of center-gate rolls; improved short-putt make rate. "
+            "AVOID: Setting the gate too wide (no feedback) or too far away before start "
+            "line is stable."
         ),
         "analogy": (
-            "Soccer Goal: Roll ball through center posts without touching"
-            " either tee wall."
+            "Soccer Goal: The ball must pass between the posts; any face or path error "
+            "shows up immediately."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Focus on keeping lead wrist flat to prevent face"
-            " from flaring open."
+            "🏆 **Pro Tip:** Keep the lead wrist relatively quiet and flat through impact "
+            "so the face does not flare open."
         ),
     },
     "Chalk Line Straight Target Drill": {
-        "equipment": "Chalk Line Tool (10 Foot Line)",
+        "equipment": "Chalk Line Tool (or string line), Putter, Flat Practice Green",
         "vivid_description": (
-            "Snap a straight chalk line on a flat practice green. Roll putts"
-            " staying perfectly aligned along the line from start to finish."
+            "SETUP: Snap a straight chalk line 6–10 feet long on a flat portion of the "
+            "green. Place the ball on the line. Square the putter face perpendicular to "
+            "the line at address. "
+            "EXECUTION: Roll putts that stay on the chalk the entire way. Watch where the "
+            "ball leaves the line—that reveals face or path error. Hit 15–20 putts. "
+            "SUCCESS: Ball tracks the line longer; face control improves. "
+            "AVOID: Practicing only on severe slopes until straight-line control is solid."
         ),
         "analogy": (
-            "Laser Beam Alignment: Visual alignment feedback highlights instant"
-            " directional deviations."
+            "Laser Beam: The chalk is instant visual feedback—any curve off the line is a "
+            "face or path miss you can see in the first few feet."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Align putter face line 90° perpendicular to chalk"
-            " line at address."
+            "🏆 **Pro Tip:** At address, align the putter's face line (or sight line) 90° "
+            "to the chalk before you look at the hole."
         ),
     },
     "Mirror Alignment Face Drill": {
-        "equipment": "Putting Alignment Mirror",
+        "equipment": "Putting Alignment Mirror (or a small mirror with a line), Putter",
         "vivid_description": (
-            "Place putter on reflective mirror tool. Ensure eye line sits"
-            " directly over ball line and shoulders run parallel to putter"
-            " face."
+            "SETUP: Place the mirror on the green so the guideline points at your target. "
+            "Set the putter on the mirror. Check that eyes are over or just inside the "
+            "ball line and that shoulders look parallel to the guideline. "
+            "EXECUTION: Make 10–15 practice strokes on the mirror focusing only on square "
+            "face and quiet head. Then roll 10 putts from the mirror setup to a short "
+            "target. "
+            "SUCCESS: More consistent setup; fewer pulls/pushes from poor alignment. "
+            "AVOID: Obsessing over perfect eye position for long lag putts—this drill is "
+            "primarily a setup and face-awareness tool."
         ),
         "analogy": (
-            "Reflective Blueprint: Checks square shoulder and face positioning"
-            " before stroke starts."
+            "Reflective Blueprint: The mirror shows whether shoulders, eyes, and face match "
+            "the plan before the stroke starts."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Lead eye should hover directly over the"
-            " center-back of the golf ball."
+            "🏆 **Pro Tip:** For most players, the lead eye should sit roughly over the "
+            "back of the ball—confirm what your mirror shows and repeat it."
         ),
     },
     "Trail-Hand Push Putting Drill": {
-        "equipment": "Putter",
+        "equipment": "Putter, Flat 4–8 Foot Putts",
         "vivid_description": (
-            "Putt 5-footers using only your dominant trail hand. Extend smooth"
-            " stroke along target line without snapping wrists shut."
+            "SETUP: Grip the putter with the trail hand only. Use a comfortable stance. "
+            "Pick 4–6 foot putts on a relatively straight line. "
+            "EXECUTION: Stroke putts with only the trail hand, emphasizing a smooth push "
+            "down the line without a wristy snap. Hit 12–15 putts, then return both hands "
+            "and match the same smooth trail-hand feel. "
+            "SUCCESS: Better sense of face control; less lead-hand over-dominance for some "
+            "players. "
+            "AVOID: Large lag strokes one-handed; flipping the trail wrist shut through impact."
         ),
         "analogy": (
-            "Bowling Roll: Smooth single-arm rolling action down lane center"
-            " without hooking wrist."
+            "Bowling Roll: A smooth single-arm roll down the lane—no sudden hook of the wrist."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Keep shoulder line square to prevent pulling"
-            " across target line."
+            "🏆 **Pro Tip:** Keep the shoulders quiet and square so the trail arm does not "
+            "pull across the line."
         ),
     },
     "Metal Yardstick Roll Drill": {
-        "equipment": "36-inch Flat Metal Yardstick",
+        "equipment": "36-inch Flat Metal Yardstick (or similar straight metal edge), Putter, Carpet or Flat Green",
         "vivid_description": (
-            "Place ball on one end of metal yardstick on carpet/green. Stroke"
-            " putts so ball stays on metal track across full length."
+            "SETUP: Place the yardstick on a flat surface. Rest the ball on one end so it "
+            "can roll along the metal edge. "
+            "EXECUTION: Stroke putts so the ball stays on the yardstick for the full length. "
+            "Any open/closed face or off-center hit dumps the ball off the edge quickly. "
+            "Do 10–15 attempts. "
+            "SUCCESS: Increasing number of full-length rolls; improved center-face contact. "
+            "AVOID: Hitting hard; using a warped stick; practicing on a side-slope that "
+            "makes the drill unfair."
         ),
         "analogy": (
-            "Tightrope Walk: Closed or open face options tumble ball off edge"
-            " instantly within 6 inches."
+            "Tightrope: The ball must balance on a narrow path—face and strike errors show "
+            "up within inches."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Striking exact center-face is required to"
-            " complete full 36-inch roll."
+            "🏆 **Pro Tip:** True center-face contact is required to complete the full "
+            "36-inch roll—treat off-edge dumps as strike feedback, not just aim feedback."
         ),
     },
     "Parallel Rod Putting Channel Drill": {
-        "equipment": "2 Alignment Rods",
+        "equipment": "2 Alignment Rods (or shafts), Putter, Flat Green",
         "vivid_description": (
-            "Set two rods parallel on green slightly wider than putter head"
-            " width, creating a physical swing channel."
+            "SETUP: Lay two rods parallel on the green slightly wider than the putter head, "
+            "creating a channel aimed at the target. Place the ball in the middle of the "
+            "channel. "
+            "EXECUTION: Stroke putts without the putter head colliding with either rod. "
+            "The channel trains a square path. Hit 15–20 short-to-medium putts. "
+            "SUCCESS: Clean passes through the channel; improved path consistency. "
+            "AVOID: Setting rods so tight that every stroke is a collision, or so wide that "
+            "nothing is learned."
         ),
         "analogy": (
-            "Bob Sled Track: Prevents path from coming inside or pulling across"
-            " to left field."
+            "Bobsled Track: The putter is forced to run a stable path; cuts across or "
+            "loops inside hit the walls."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Let shoulders rock smoothly without hip rotation"
-            " inside channel."
+            "🏆 **Pro Tip:** Rock the shoulders as a unit; minimize independent hand and "
+            "hip motion inside the channel."
         ),
     },
     "Ladder Distance Lag Drill": {
-        "equipment": "4 Golf Tees / Target Markers",
+        "equipment": "4 Golf Tees or Markers, Putter, Stretch of Green 40+ Feet if Possible",
         "vivid_description": (
-            "Set tees at 10, 20, 30, and 40 feet. Roll putts into each zone"
-            " sequentially without leaving any short."
+            "SETUP: Place tees or markers at 10, 20, 30, and 40 feet (adjust to available "
+            "space). You will lag to each zone in order. "
+            "EXECUTION: Roll three putts to the 10-foot zone, then 20, then 30, then 40, "
+            "trying to stop inside a 3-foot circle of each marker (or leave inside a putter-"
+            "length). Never leave a lag short of the first tee on long attempts. "
+            "SUCCESS: Improving leave distances; better feel for backswing length vs speed. "
+            "AVOID: Only practicing makeable short putts; racing through without judging "
+            "the leave."
         ),
         "analogy": (
-            "Climbing Rungs: Build instinctive muscular memory for backswing"
-            " length vs roll distance."
+            "Climbing Rungs: Each distance is a rung—build a ladder of feel rather than "
+            "one random speed."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Hold finish stance until ball completely stops"
-            " rolling to gauge touch."
+            "🏆 **Pro Tip:** Hold your finish until the ball stops so your eyes and hands "
+            "can calibrate distance together."
         ),
     },
     "Fringe-to-Fringe Feel Drill": {
-        "equipment": "Putter",
+        "equipment": "Putter, Green with Visible Fringe Boundaries",
         "vivid_description": (
-            "Putt across full green width targeting green fringe boundary."
-            " Stop ball within 6 inches of green edge."
+            "SETUP: From one fringe, putt across the green toward the opposite fringe. "
+            "Goal: stop the ball within about 6 inches of the far fringe without going "
+            "into the rough. "
+            "EXECUTION: Hit 10–15 lags of varying green width. Focus on a smooth distance "
+            "stroke and a clear visual of the landing/roll-out. "
+            "SUCCESS: More leaves near the fringe; fewer long comeback putts in practice "
+            "and on course. "
+            "AVOID: Jabbing; picking a vague 'somewhere over there' target instead of the "
+            "fringe edge."
         ),
         "analogy": (
-            "Docking Ship: Gentle deceleration into border without crashing"
-            " into rough grass."
+            "Docking a Ship: Ease into the boundary—firm enough to arrive, soft enough not "
+            "to crash into the rough."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Focus on visual distance sweep before placing"
-            " putter head down."
+            "🏆 **Pro Tip:** Take a long look at the full distance before you step in; the "
+            "visual survey is part of the stroke."
         ),
     },
     "Eyes-Closed Distance Perception Drill": {
-        "equipment": "Putter",
+        "equipment": "Putter, 15–25 Foot Flat or Mildly Breaking Putts",
         "vivid_description": (
-            "Look at hole target 20 feet away, close your eyes, stroke putt,"
-            " and call out 'short', 'long', or 'good' before opening eyes."
+            "SETUP: Pick a 15–25 foot putt. Look at the hole, then address the ball. "
+            "EXECUTION: Close your eyes, stroke the putt, and immediately call 'short,' "
+            "'long,' or 'good' before opening your eyes. Compare your call to the result. "
+            "Do 10–12 repetitions. "
+            "SUCCESS: Calls match results more often; distance feel improves without visual "
+            "steering mid-stroke. "
+            "AVOID: Peeking early; using this on severe doubles until basic feel is decent."
         ),
         "analogy": (
-            "Internal Sensing: Heightens sensory feedback loop from hands and"
-            " sweet-spot feel."
+            "Internal Sensing: With eyes closed, the hands and ears report speed truthfully—"
+            "no mid-stroke visual corrections."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Calibrates internal brain map with actual ball"
-            " roll performance."
+            "🏆 **Pro Tip:** The point is calibration—honest calls matter more than making "
+            "the putt on any single rep."
         ),
     },
     "Rubber Band Putter Sweet-Spot Drill": {
-        "equipment": "2 Small Rubber Bands, Putter",
+        "equipment": "2 Small Rubber Bands (or impact tape), Putter, Short Putts",
         "vivid_description": (
-            "Wrap rubber bands around heel and toe of putter face, leaving only"
-            " center sweet spot exposed."
+            "SETUP: Wrap rubber bands around the heel and toe of the putter face, leaving "
+            "only the center sweet spot exposed. (Impact stickers work if bands are "
+            "unavailable.) "
+            "EXECUTION: Stroke 15–20 short putts. Off-center hits feel dead or bounce oddly "
+            "off the bands; center hits roll pure. Adjust setup until center contact is "
+            "common. "
+            "SUCCESS: Higher rate of pure center strikes; more consistent roll distance. "
+            "AVOID: Only long putts (feedback is clearer short); ignoring a repeated heel "
+            "or toe pattern."
         ),
         "analogy": (
-            "Sweet Spot Pinpoint: Off-center strikes bounce dead off rubber"
-            " bands immediately."
+            "Sweet-Spot Pinpoint: Heel and toe are 'dead zones'—only the center lane gives "
+            "true speed and direction."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Center contact produces consistent ball speed and"
-            " roll distance."
+            "🏆 **Pro Tip:** Center contact stabilizes both direction and distance; chase "
+            "the pure feel before worrying about hole-outs."
         ),
     },
     "Two-Tee Putter Gate Drill": {
-        "equipment": "2 Golf Tees",
+        "equipment": "2 Golf Tees, Putter, Flat Green",
         "vivid_description": (
-            "Set tees in turf just wide enough for putter head toe and heel to"
-            " swing through at address spot."
+            "SETUP: Plant two tees just outside the toe and heel of the putter head at the "
+            "address position, forming a gate the head must swing through. "
+            "EXECUTION: Make strokes that pass through the gate without hitting either tee. "
+            "Start with rehearsals, then add a ball for 15 putts from 3–8 feet. "
+            "SUCCESS: Clean gate passes; centered strikes; quieter face rotation. "
+            "AVOID: A gate so narrow it is impossible, or so wide it never gets touched."
         ),
         "analogy": (
-            "Precision Archway: Ensures centered impact without toe or heel"
-            " hitting tees."
+            "Precision Archway: The putter head must thread the opening—path and centeredness "
+            "are forced into a small window."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Keep stroke steady and low to ground through"
-            " center gate."
+            "🏆 **Pro Tip:** Keep the stroke low to the ground through the gate; lifting "
+            "the head often causes heel/toe clips."
         ),
     },
     "Coin Balance Putter Back Drill": {
-        "equipment": "1 Coin or Dime",
+        "equipment": "1 Coin (dime or penny), Putter with a Relatively Flat Crown",
         "vivid_description": (
-            "Balance a coin on flat top surface of putter head during stroke."
-            " Complete putt without coin sliding off."
+            "SETUP: Balance a coin on the flat top of the putter head at address. Use short "
+            "putts on a flat surface. "
+            "EXECUTION: Stroke the putt without letting the coin fall. Jerky acceleration "
+            "or wrist snaps dump the coin. Do 10–15 successful balanced strokes (coin may "
+            "fall—reset and continue). "
+            "SUCCESS: Smoother tempo; fewer stabby short putts. "
+            "AVOID: Only measuring success by makes; the coin is a tempo trainer first."
         ),
         "analogy": (
-            "Balanced Tray: Demands smooth acceleration without jerky wrist"
-            " acceleration."
+            "Balanced Tray: Carry a full glass across the room—smooth starts and stops keep "
+            "it from spilling."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Maintains smooth acceleration profile from"
-            " backswing transition."
+            "🏆 **Pro Tip:** Smooth the transition from backswing to forward stroke; that "
+            "is where most coins fall."
         ),
     },
     "Push-Putting No-Backswing Drill": {
-        "equipment": "Putter",
+        "equipment": "Putter, 3–5 Foot Straight Putts",
         "vivid_description": (
-            "Place putter directly against back of ball with zero backswing."
-            " Push ball forward smoothly into hole from 4 feet."
+            "SETUP: Rest the putter face against the back of the ball with zero backswing "
+            "planned. Use a standard putting posture. "
+            "EXECUTION: Simply push the ball toward the hole with a smooth forward stroke. "
+            "This removes the jab and trains forward acceleration. Hit 12–15 putts, then "
+            "allow a tiny backswing and keep the same forward-only intent. "
+            "SUCCESS: Less deceleration on short putts; cleaner roll. "
+            "AVOID: Using this exclusively on long lags; jabbing the push instead of "
+            "sliding it."
         ),
         "analogy": (
-            "Shuffleboard Slide: Eliminates jab twitch by forcing pure forward"
-            " pushing force."
+            "Shuffleboard Slide: Pure forward force—no wind-up needed for short, true rolls."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Feel lead wrist stay solid as putter moves down"
-            " line."
+            "🏆 **Pro Tip:** Feel the lead wrist stay stable as the putter moves down the "
+            "line; the push should not become a flip."
         ),
     },
     "Short Back Long Through Stroke Drill": {
-        "equipment": "Putter, 2 Markers",
+        "equipment": "Putter, 2 Tees or Markers for Stroke Length, 4–10 Foot Putts",
         "vivid_description": (
-            "Limit backswing to 3 inches while extending follow-through to 12"
-            " inches past ball target position."
+            "SETUP: Place a marker limiting the backswing to about 3 inches behind the "
+            "ball and another marking a 9–12 inch follow-through target. "
+            "EXECUTION: Stroke putts with a short backswing and a longer, accelerating "
+            "follow-through. Hit 15 putts focusing on continuous speed through impact. "
+            "SUCCESS: Fewer left-short or face-off short putts caused by deceleration. "
+            "AVOID: Making the backswing long again out of habit; quitting at the ball."
         ),
         "analogy": (
-            "Pendulum Acceleration: Accelerates continuously through impact"
-            " zone to eliminate deceleration."
+            "Pendulum Acceleration: Energy builds through the low point and into a longer "
+            "finish—never stalls at the ball."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Deceleration is the #1 cause of directional misses"
-            " on short putts."
+            "🏆 **Pro Tip:** Deceleration is a primary cause of missed short putts; bias "
+            "your stroke so the through-swing is obviously longer than the backswing."
         ),
     },
     "Coin Balance Motion Stroke Drill": {
-        "equipment": "1 Quarter",
+        "equipment": "1 Quarter or Coin, Putter, Flat Green",
         "vivid_description": (
-            "Place quarter on grass 1 inch behind ball. Focus on sweeping"
-            " putter sole smoothly over coin without touching."
+            "SETUP: Place a coin on the green about 1 inch behind the ball. Address "
+            "normally. "
+            "EXECUTION: Stroke so the putter sole sweeps over the coin without touching "
+            "it—promoting a level, low-to-the-ground arc. Hit 12–15 putts. If you click "
+            "the coin, the putter is diving or scooping. "
+            "SUCCESS: Clean misses of the coin; smoother roll and truer topspin. "
+            "AVOID: Lifting up abruptly to miss the coin (creates thin, hopping putts)."
         ),
         "analogy": (
-            "Gliding Hovercraft: Promotes level, smooth putter sweep through"
-            " impact."
+            "Gliding Hovercraft: The putter skims just above the surface—stable height, "
+            "no dig, no scoop."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Keeps putter low to turf for pure top-spin roll."
+            "🏆 **Pro Tip:** A low, level sole through impact encourages pure roll instead "
+            "of a hop-and-skid start."
         ),
     },
     # --- MENTAL GAME & MINDSET DRILLS (5) ---
     "1-2-3 Box Breathing Reset Drill": {
-        "equipment": "None (Breathwork)",
+        "equipment": "None (breathwork only); Use before any shot or after a bad hole",
         "vivid_description": (
-            "Inhale for 4 seconds, hold for 4 seconds, and exhale for 4"
-            " seconds before stepping into your pre-shot setup. Settle heart"
-            " rate and lower heart beat."
+            "SETUP: Stand behind the ball or to the side of the teeing area where you can "
+            "breathe without rushing. Feet planted, shoulders soft, eyes soft-focused. "
+            "EXECUTION: Inhale through the nose for 4 seconds, hold for 4 seconds, exhale "
+            "through the mouth or nose for 4 seconds (box pattern). Complete 3 full cycles "
+            "before stepping into your pre-shot routine. Use after bogeys, penalties, or "
+            "any spike of tension. Practice 5 minutes at home so the pattern is automatic "
+            "on the course. "
+            "SUCCESS: Noticeably slower heart rate and clearer decision-making before the "
+            "next shot. "
+            "AVOID: Skipping the hold phase; using shallow chest breathing instead of deeper "
+            "belly-assisted breaths."
         ),
         "analogy": (
-            "System Reboot Button: Clears mental noise and anxiety before"
-            " entering the target execution area."
+            "System Reboot: A deliberate breath cycle clears noise before you enter the "
+            "execution zone."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Exhale fully through your nose right before placing"
-            " your clubface behind the ball."
+            "🏆 **Pro Tip:** Finish with a full exhale just before you set the club behind "
+            "the ball—the body settles as the routine starts."
         ),
     },
     "Post-Shot Acceptance Hold Drill": {
-        "equipment": "Golf Club, 3-Second Count",
+        "equipment": "Golf Club; 3-Second Count After Every Practice or On-Course Swing",
         "vivid_description": (
-            "Hold your balanced finish pose for 3 full seconds post-impact"
-            " regardless of where the ball flies. Observe result with zero"
-            " emotional outburst."
+            "SETUP: Commit before the shot that you will hold the finish regardless of "
+            "result. "
+            "EXECUTION: After impact, freeze a balanced finish for a full 3-second count. "
+            "Observe ball flight as neutral data—no club slam, no verbal outburst. After "
+            "the hold, take one deep exhale or a brief smile to release residual tension, "
+            "then walk. Practice on the range for an entire bucket so the habit transfers "
+            "to the course. "
+            "SUCCESS: Shorter emotional recovery time; fewer spiral holes after a miss. "
+            "AVOID: Holding a finish only on good shots; the drill matters most on poor ones."
         ),
         "analogy": (
-            "Neutral Journalist: Document the ball flight as unbiased data"
-            " rather than judging yourself."
+            "Neutral Journalist: Report what the ball did; do not put yourself on trial in "
+            "the first three seconds."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Smile or take a deep exhale as soon as your"
-            " 3-second hold finishes to release tension."
+            "🏆 **Pro Tip:** Pair the end of the 3-second hold with a physical release cue "
+            "(exhale or soft smile) so tension does not carry to the next shot."
         ),
     },
     "Positive Box Pre-Shot Routine Drill": {
-        "equipment": "1 Alignment Rod or Line on Ground",
+        "equipment": "1 Alignment Rod, Towel Line, or Imaginary Line on the Ground",
         "vivid_description": (
-            "Step behind the line into the 'Think Box' to calculate wind,"
-            " yardage, and shot shape. Step across the line into the 'Play Box'"
-            " with 100% commitment and zero swing thoughts."
+            "SETUP: Place a rod or draw a line on the ground a few steps behind the ball. "
+            "Behind the line is the Think Box; across the line toward the ball is the Play "
+            "Box. "
+            "EXECUTION: In the Think Box, choose target, shot shape, club, and intermediate "
+            "aim—decide fully. When ready, step across the line into the Play Box with a "
+            "final look and zero new swing thoughts. If doubt appears in the Play Box, step "
+            "back behind the line and restart. Rehearse this on the range for 15–20 balls "
+            "before using it on the course. "
+            "SUCCESS: Clearer decisions; fewer freeze-ups over the ball; easier commitment. "
+            "AVOID: Doing technical swing analysis inside the Play Box; crossing the line "
+            "before the decision is actually made."
         ),
         "analogy": (
-            "Crossing into the Boxing Ring: Make all decisions outside the"
-            " ring; inside the ring is pure execution."
+            "Boxing Ring: All strategy happens outside the ropes; inside the ring is pure "
+            "execution."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** If a doubt enters your mind inside the Play Box,"
-            " back off and step back behind the line."
+            "🏆 **Pro Tip:** Doubt in the Play Box is a signal to walk back—not a signal to "
+            "force a hesitant swing."
         ),
     },
     "Target Visual Anchoring Drill": {
-        "equipment": "Target Flag / Specific Micro-Target",
+        "equipment": "Target Flag or Specific Micro-Target (leaf, branch tip, discolored turf)",
         "vivid_description": (
-            "Pick a micro-target (e.g., a specific leaf on a tree behind the"
-            " flag pin) rather than a general area. Lock eyes onto it for 3"
-            " seconds before looking down to swing."
+            "SETUP: From behind the ball, pick a micro-target smaller than the flag—e.g. a "
+            "single leaf, a fence post edge, or a distinct blade of grass on the fairway "
+            "line. "
+            "EXECUTION: Stare at that micro-target for a full 3 seconds. Carry the image "
+            "to address, take one last look, then execute. On the range, alternate 10 shots "
+            "with a vague 'fairway' aim and 10 with a micro-target; compare dispersion. "
+            "SUCCESS: Tighter start lines; stronger commitment to a specific aim point. "
+            "AVOID: Aiming at huge general areas; changing the micro-target after you have "
+            "already addressed the ball."
         ),
         "analogy": (
-            "Sniper Crosshairs: Aim at a thread, hit a button; aim at a house,"
-            " miss the neighborhood."
+            "Sniper Crosshairs: Aim small, miss small—aim at a house and you can miss the "
+            "whole neighborhood."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Keep the vivid image of that micro-target in your"
-            " mind's eye during backswing."
+            "🏆 **Pro Tip:** Keep a vivid mental snapshot of the micro-target during the "
+            "backswing so aim does not drift to a vague area mid-stroke."
         ),
     },
     "Mantra & Thought Neutralizer Drill": {
-        "equipment": "Personal 2-Word Cue",
+        "equipment": "Personal 2-Word Cue (examples: 'Smooth… Turn', 'Low… Slow', 'Trust… Finish')",
         "vivid_description": (
-            "Repeat a rhythmic two-word cadence (e.g., 'Smooth... Turn...')"
-            " quietly during backswing and downswing to crowd out negative"
-            " thoughts."
+            "SETUP: Choose one two-word mantra before the session. Words should be process "
+            "cues, not outcome cues ('make it' is a poor mantra). "
+            "EXECUTION: During the backswing say word 1 silently; at the start of the "
+            "downswing or through impact say word 2. The rhythm crowds out last-second "
+            "doubt and technical overload. Use on 15–20 range shots, then on the course for "
+            "full swings or putts that usually trigger overthinking. "
+            "SUCCESS: Quieter mind over the ball; fewer freeze or quick-hit reactions. "
+            "AVOID: Long multi-word speeches; changing mantras every hole; pairing the "
+            "mantra with a mechanical checklist of five other swing thoughts."
         ),
         "analogy": (
-            "Noise-Canceling Headphones: Block out intrusive internal doubt and"
-            " fear of failure."
+            "Noise-Canceling Headphones: A simple rhythm occupies the channel that usually "
+            "fills with fear and last-second fixes."
         ),
         "pro_tip": (
-            "🏆 **Pro Tip:** Sync your rhythm so word 1 is backswing start and"
-            " word 2 is impact release."
+            "🏆 **Pro Tip:** Sync word 1 to the start of the backswing and word 2 to the "
+            "release or impact so the cue becomes rhythmic, not chatty."
         ),
     },
 }
@@ -2486,7 +2778,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
         equip_items = re.split(r",\s*(?![^()]*\))", schematic["equipment"])
         render_indented_ul(equip_items)
 
-        st.markdown("**📖 Setup Description Mechanics**")
+        st.markdown("**📖 Setup & Execution**")
         render_indented_html(schematic["vivid_description"])
 
         st.markdown("**🧠 Mental Analogy**")
@@ -2520,7 +2812,7 @@ if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state
             "Pre-shot Routine Line",
         ])
 
-        st.markdown("**📖 Setup Description Mechanics**")
+        st.markdown("**📖 Setup & Execution**")
         render_indented_html(
             "Simulate real course conditions. Alternate target flags and clubs for"
             " every single ball. Step away from the mat and execute your complete"
