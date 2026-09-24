@@ -174,16 +174,172 @@ def render_indented_html(content: str, margin_left: int = 24):
     )
 
 
-def render_instruction_steps(content: str, margin_left: int = 24):
-    """Render SETUP / EXECUTION / SUCCESS / AVOID as clearly separated blocks."""
+def _drill_category(drill_name: str) -> str:
+    """Return a coaching category used to add drill-specific instruction depth."""
+    full_swing = {
+        "Alignment Stick Gate Drill", "Pause at Top Drill", "Tee Gate Drill",
+        "Towel Under Armpits Drill", "Coin Strike Low-Point Drill",
+        "Split-Hands Release Drill", "Feet-Together Balance Drill",
+        "Wall-Head Posture Drill", "Impact Bag Compression Drill",
+        "Two-Step Pump Lag Drill",
+    }
+    bunker = {
+        "Line in the Sand Drill", "Dollar Bill Sand Extraction Drill",
+        "Open-Face Sand Splash Drill",
+    }
+    short_game = {
+        "Towel Behind Ball Drill", "Lead Foot Weight Anchor Drill",
+        "Brush Turf Chipping Drill", "Coin Lead-Point Pitch Drill",
+        "Ruler in Glove Wrist Anchor Drill", "Hinge-and-Hold Chipping Drill",
+        "Clock System Wedge Drill", "Landing Zone Target Towel Drill",
+        "Trail-Hand Only Pitch Drill", "Continuous Motion Pendulum Chipping Drill",
+        "Accelerating Through Impact Gate Drill", "Target-Focused Eyes-Up Chipping Drill",
+    }
+    putting = {
+        "Putting Tee Gate Drill", "Chalk Line Straight Target Drill",
+        "Mirror Alignment Face Drill", "Trail-Hand Push Putting Drill",
+        "Metal Yardstick Roll Drill", "Parallel Rod Putting Channel Drill",
+        "Ladder Distance Lag Drill", "Fringe-to-Fringe Feel Drill",
+        "Eyes-Closed Distance Perception Drill", "Rubber Band Putter Sweet-Spot Drill",
+        "Two-Tee Putter Gate Drill", "Coin Balance Putter Back Drill",
+        "Push-Putting No-Backswing Drill", "Short Back Long Through Stroke Drill",
+        "Coin Balance Motion Stroke Drill",
+    }
+    mental = {
+        "1-2-3 Box Breathing Reset Drill", "Post-Shot Acceptance Hold Drill",
+        "Positive Box Pre-Shot Routine Drill", "Target Visual Anchoring Drill",
+        "Mantra & Thought Neutralizer Drill",
+    }
+    if drill_name in full_swing:
+        return "full_swing"
+    if drill_name in bunker:
+        return "bunker"
+    if drill_name in short_game:
+        return "short_game"
+    if drill_name in putting:
+        return "putting"
+    if drill_name in mental:
+        return "mental"
+    return "general"
+
+
+DRILL_PURPOSES = {
+    "Alignment Stick Gate Drill": "Build a repeatable target line, body alignment, and club delivery so setup errors do not masquerade as swing faults.",
+    "Pause at Top Drill": "Improve transition sequence and tempo by separating the completed backswing from the start of the downswing.",
+    "Tee Gate Drill": "Train center-face contact and a more predictable clubhead path through the impact zone.",
+    "Towel Under Armpits Drill": "Improve arm-and-torso connection so the swing is driven by coordinated rotation instead of independent arm action.",
+    "Coin Strike Low-Point Drill": "Move the low point of the iron swing forward so contact occurs ball-first, then turf.",
+    "Split-Hands Release Drill": "Teach the clubface to release and square through impact without a late hand flip or blocked face.",
+    "Feet-Together Balance Drill": "Improve balance, centered rotation, and contact by removing the ability to rely on excessive lateral motion.",
+    "Wall-Head Posture Drill": "Reduce early extension and loss of posture by giving the body a physical reference during the downswing.",
+    "Impact Bag Compression Drill": "Rehearse a stable impact position with forward pressure, shaft lean, and a supported lead wrist.",
+    "Two-Step Pump Lag Drill": "Improve transition patience and sequencing while reducing an early cast from the top.",
+    "Towel Behind Ball Drill": "Train a forward low point on chips so the club contacts the ball before the ground behind it.",
+    "Lead Foot Weight Anchor Drill": "Stabilize the low point in chipping by keeping pressure forward throughout the motion.",
+    "Brush Turf Chipping Drill": "Develop consistent turf interaction and a predictable bottom of the chipping arc.",
+    "Coin Lead-Point Pitch Drill": "Teach the wedge to use its bounce and slide through the turf instead of digging with the leading edge.",
+    "Ruler in Glove Wrist Anchor Drill": "Reduce excessive lead-wrist breakdown and scooping through short-game impact.",
+    "Hinge-and-Hold Chipping Drill": "Build a simple, predictable chip motion with a stable wrist structure through impact.",
+    "Clock System Wedge Drill": "Create repeatable carry distances by pairing specific swing lengths with each wedge.",
+    "Landing Zone Target Towel Drill": "Shift short-game focus from the flag to the exact landing point that controls rollout.",
+    "Trail-Hand Only Pitch Drill": "Improve awareness of clubhead weight, soft acceleration, and proper use of wedge bounce.",
+    "Line in the Sand Drill": "Make bunker entry point predictable so the club enters the sand in the same place on every shot.",
+    "Dollar Bill Sand Extraction Drill": "Control both sand-entry and sand-exit points to create a consistent splash pattern around the ball.",
+    "Open-Face Sand Splash Drill": "Build confidence using an open clubface and the bounce to produce a high, soft bunker shot.",
+    "Continuous Motion Pendulum Chipping Drill": "Remove stop-start hand action and develop a smooth, uninterrupted chipping rhythm.",
+    "Accelerating Through Impact Gate Drill": "Train positive acceleration through the strike so chips are not decelerated or stabbed at impact.",
+    "Target-Focused Eyes-Up Chipping Drill": "Improve external focus and distance feel by shifting attention from mechanics to the landing target.",
+    "Putting Tee Gate Drill": "Train centered putter-face contact and consistent delivery through a narrow impact gate.",
+    "Chalk Line Straight Target Drill": "Improve start-line control by giving the eyes and putter a precise straight-line reference.",
+    "Mirror Alignment Face Drill": "Calibrate eye position, shoulder alignment, and putter-face aim at address.",
+    "Trail-Hand Push Putting Drill": "Develop a smoother release and better pace awareness by simplifying the stroke to the trail hand.",
+    "Metal Yardstick Roll Drill": "Test and train precise start direction by keeping the ball rolling along a very narrow straight path.",
+    "Parallel Rod Putting Channel Drill": "Improve putter-path consistency while keeping setup and stroke direction organized around the target line.",
+    "Ladder Distance Lag Drill": "Build long-putt speed control by learning to stop balls at progressively different distances.",
+    "Fringe-to-Fringe Feel Drill": "Develop adaptable pace control without becoming overly dependent on a single target distance.",
+    "Eyes-Closed Distance Perception Drill": "Strengthen internal speed awareness by predicting distance before seeing the result.",
+    "Rubber Band Putter Sweet-Spot Drill": "Make off-center contact obvious and train the center of the putter face.",
+    "Two-Tee Putter Gate Drill": "Build a repeatable impact path and face delivery through a constrained gate.",
+    "Coin Balance Putter Back Drill": "Smooth the transition and reduce jerky acceleration by requiring a stable putter during the stroke.",
+    "Push-Putting No-Backswing Drill": "Teach the sensation of accelerating the putter through the ball rather than hitting with a long, hesitant backswing.",
+    "Short Back Long Through Stroke Drill": "Reduce deceleration by creating a committed through-stroke that is longer than the backswing.",
+    "Coin Balance Motion Stroke Drill": "Keep the putter moving level through impact instead of lifting, digging, or changing height abruptly.",
+    "1-2-3 Box Breathing Reset Drill": "Lower physical arousal and create a repeatable reset routine after frustration, pressure, or a bad hole.",
+    "Post-Shot Acceptance Hold Drill": "Shorten emotional recovery time by turning the immediate post-shot reaction into neutral observation.",
+    "Positive Box Pre-Shot Routine Drill": "Separate decision-making from execution so the golfer commits fully before stepping over the ball.",
+    "Target Visual Anchoring Drill": "Improve commitment and start-line intention by locking attention onto a specific external target.",
+    "Mantra & Thought Neutralizer Drill": "Reduce last-second mechanical thoughts by replacing them with one simple rhythmic process cue.",
+}
+
+
+CATEGORY_INSTRUCTION_ADDONS = {
+    "full_swing": {
+        "SETUP": "Before the first ball, choose one clear target and make 2–3 slow rehearsals so the training aid is positioned correctly. Start with a mid-iron unless the drill specifically calls for another club. Use a comfortable, athletic setup and verify that the aid changes the intended movement—not your normal ball position just to make the drill easier.",
+        "EXECUTION": "Treat each ball as a separate rep. Begin at roughly 50–60% speed, then build toward 70–80% only after the movement is repeatable. Step away briefly between reps, rehearse the feel once, then hit the next ball. Work in small blocks of 3–5 balls rather than raking balls continuously.",
+        "SUCCESS": "Score the movement before judging the ball flight. A good rep should satisfy the physical checkpoint of the drill and produce centered or improving contact. As a practical benchmark, look for about 7 of 10 reps meeting the drill goal before adding speed or changing clubs.",
+        "AVOID": "Do not manipulate the hands or change your normal setup simply to avoid touching the training aid. If you miss the constraint three reps in a row, reduce speed, shorten the swing, and rebuild the motion rather than forcing a full-speed correction.",
+    },
+    "short_game": {
+        "SETUP": "Choose a specific landing spot and a realistic finish zone before beginning. Start from one predictable lie so you can learn the motion, then vary the lie only after contact becomes stable. Place several balls nearby, but reset your stance and target picture before every rep instead of hitting them rapid-fire.",
+        "EXECUTION": "Make 1–2 rehearsals beside the ball, then reproduce the same motion with the ball present. Keep the first set at a controlled pace and hold the finish long enough to check balance, face orientation, and where the club brushed the turf. Once the strike is stable, vary carry distance or landing spot without changing the core technique.",
+        "SUCCESS": "Judge both contact and outcome. A successful rep should produce the intended strike first, then land near the chosen spot with predictable rollout. Try to achieve the drill checkpoint on roughly 7 of 10 balls before making the lie, target, or trajectory more difficult.",
+        "AVOID": "Do not judge the drill only by whether the ball finishes close to the hole—a mishit can occasionally finish well. If contact deteriorates, return to a shorter motion and the original lie rather than adding hand action or extra speed to rescue the shot.",
+    },
+    "bunker": {
+        "SETUP": "Use a practice bunker with enough room to swing safely and rake the area before starting so each lie is comparable. Pick a landing zone on the green, draw or identify the intended sand-entry point, and establish your normal bunker setup before placing the ball into the exercise.",
+        "EXECUTION": "Begin with several no-ball rehearsals so you can see exactly where the club enters and exits the sand. Then add balls while keeping the same entry intention and committed acceleration. Re-rake the hitting area every few shots so changing sand conditions do not hide the pattern you are trying to learn.",
+        "SUCCESS": "The first success measure is a repeatable splash pattern, not proximity to the hole. When the club enters the sand in the intended location and the ball exits on a predictable trajectory for most reps, begin scoring how often the ball finishes inside a chosen circle around the target.",
+        "AVOID": "Do not slow the club because you are afraid of hitting the ball too far. Also avoid changing several variables at once—face angle, stance, entry point, and speed. If the ball repeatedly stays in the bunker, return to no-ball splash rehearsals before continuing.",
+    },
+    "putting": {
+        "SETUP": "Use a relatively flat section of green first unless the drill is specifically about break. Pick one precise start line, clean the putter face, and use the same ball model for the set. Make sure gates, rods, coins, or other aids are square to the intended line before judging the stroke.",
+        "EXECUTION": "Use a full pre-putt routine even on short training putts: read, aim, settle, and stroke. Hit in blocks of 5 rather than continuously. After each putt, identify whether the miss came from start direction, strike location, or speed before making an adjustment.",
+        "SUCCESS": "Track a measurable outcome such as gate clears, putts starting on line, center-face strikes, or balls finishing inside a distance window. Aim for at least 8 of 10 successful reps on a basic version before narrowing the gate, increasing distance, or adding break.",
+        "AVOID": "Do not steer the putter just to pass the training aid. If the motion becomes tense, widen the constraint or shorten the putt. Avoid changing both aim and stroke at the same time; confirm the setup first, then evaluate the movement.",
+    },
+    "mental": {
+        "SETUP": "Define exactly when the routine begins and ends before practicing it. Use the same physical cue each time—such as stepping behind the ball, crossing a line, taking a breath, or fixing your eyes on the target—so the mental skill becomes tied to an observable behavior rather than a vague intention.",
+        "EXECUTION": "Practice the routine deliberately before adding pressure. Complete several dry repetitions, then use it before actual shots. Score whether you completed the routine exactly as intended, regardless of where the ball finished. The goal is to make the behavior automatic enough to survive frustration and score pressure.",
+        "SUCCESS": "A successful rep means you followed the process and returned attention to the present shot. Look for shorter recovery time, fewer last-second changes, clearer decisions, and more committed swings. Track completion percentage rather than judging the routine only by score.",
+        "AVOID": "Do not turn the mental drill into another technical checklist. Keep the cue short and repeatable. If you catch yourself adding extra thoughts, restart the routine from its first step rather than forcing the shot while uncertain.",
+    },
+    "general": {
+        "SETUP": "Prepare the equipment and target before the first rep, then make a few slow rehearsals so you understand exactly what the drill is asking you to change.",
+        "EXECUTION": "Start at low speed, complete one deliberate rep at a time, and reset between attempts. Build speed or difficulty only after the movement is repeatable.",
+        "SUCCESS": "Use the stated drill checkpoint as the score. Look for a consistent pattern across several reps rather than one perfect result.",
+        "AVOID": "If the drill becomes confusing or contact worsens repeatedly, simplify the task and rebuild it instead of adding more compensations.",
+    },
+}
+
+
+CATEGORY_PROGRESSION = {
+    "full_swing": "Progression: 3 slow rehearsals → 8–12 controlled shots at 60–75% → 5 normal-routine transfer shots with the training aid removed or ignored. Only increase speed when the movement survives the previous stage.",
+    "short_game": "Progression: establish contact from one lie → hit 10–15 balls to one landing zone → finish with 5 random targets or lies so the skill transfers to the course.",
+    "bunker": "Progression: 5 no-ball splash rehearsals → 8–12 balls from one lie → 5 different landing targets or bunker lies while keeping the same entry-point concept.",
+    "putting": "Progression: calibrate the aid on a straight putt → complete 10 scored reps → increase distance or add break → finish with a short pressure set where a miss resets the count.",
+    "mental": "Progression: 5 dry repetitions → 10 range shots using the routine → 5 simulated on-course shots with a consequence or score attached. Judge process completion first, result second.",
+    "general": "Progression: rehearse slowly → complete a scored block of controlled reps → finish with several normal shots without relying on the training aid.",
+}
+
+
+def render_instruction_steps(content: str, drill_name: str = "", margin_left: int = 24):
+    """Render detailed SETUP / EXECUTION / SUCCESS / AVOID coaching blocks."""
     pattern = r"(SETUP|EXECUTION|SUCCESS|AVOID):\s*"
     matches = list(re.finditer(pattern, content, flags=re.IGNORECASE))
 
-    # Fall back to the normal paragraph renderer when a drill does not use
-    # structured instruction labels.
     if not matches:
         render_indented_html(content, margin_left=margin_left)
         return
+
+    category = _drill_category(drill_name)
+    addons = CATEGORY_INSTRUCTION_ADDONS.get(category, CATEGORY_INSTRUCTION_ADDONS["general"])
+    icons = {"SETUP": "1️⃣", "EXECUTION": "2️⃣", "SUCCESS": "3️⃣", "AVOID": "⚠️"}
+    titles = {
+        "SETUP": "SETUP — Build the drill correctly",
+        "EXECUTION": "EXECUTION — Run each rep deliberately",
+        "SUCCESS": "SUCCESS — Know what a good rep looks like",
+        "AVOID": "AVOID — Common ways the drill gets cheated",
+    }
 
     blocks = []
     for idx, match in enumerate(matches):
@@ -191,28 +347,41 @@ def render_instruction_steps(content: str, margin_left: int = 24):
         start = match.end()
         end = matches[idx + 1].start() if idx + 1 < len(matches) else len(content)
         body = content[start:end].strip()
+        extra = addons.get(label, "")
         blocks.append(
-            f"<div style='margin-bottom: 14px;'>"
-            f"<strong>{label}:</strong><br>"
-            f"<span style='line-height: 1.65;'>{body}</span>"
-            f"</div>"
+            "<div style='margin-bottom:18px; padding-bottom:16px; "
+            "border-bottom:1px solid rgba(128,128,128,0.20);'>"
+            f"<div style='font-weight:700; margin-bottom:6px;'>{icons[label]} {titles[label]}</div>"
+            f"<div style='line-height:1.68;'>{body}</div>"
+            f"<div style='line-height:1.62; margin-top:8px; color:#aeb4bf;'>"
+            f"<strong>Coach detail:</strong> {extra}</div>"
+            "</div>"
         )
 
     st.markdown(
-        f"<div style='margin-left: {margin_left}px; margin-top: 6px;"
-        f" margin-bottom: 10px;'>{''.join(blocks)}</div>",
+        f"<div style='margin-left:{margin_left}px; margin-top:6px; margin-bottom:10px;'>"
+        f"{''.join(blocks)}</div>",
         unsafe_allow_html=True,
     )
 
 
-def format_instruction_steps_for_export(content: str) -> str:
-    """Add line breaks between structured drill instruction sections in exports."""
-    return re.sub(
-        r"\s+(?=(?:SETUP|EXECUTION|SUCCESS|AVOID):)",
-        "\n",
-        content.strip(),
-        flags=re.IGNORECASE,
-    )
+def format_instruction_steps_for_export(content: str, drill_name: str = "") -> str:
+    """Expand the structured drill instructions in the plain-text export."""
+    pattern = r"(SETUP|EXECUTION|SUCCESS|AVOID):\s*"
+    matches = list(re.finditer(pattern, content, flags=re.IGNORECASE))
+    if not matches:
+        return content.strip()
+
+    category = _drill_category(drill_name)
+    addons = CATEGORY_INSTRUCTION_ADDONS.get(category, CATEGORY_INSTRUCTION_ADDONS["general"])
+    out = []
+    for idx, match in enumerate(matches):
+        label = match.group(1).upper()
+        start = match.end()
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(content)
+        body = content[start:end].strip()
+        out.append(f"{label}: {body}\n  Coach detail: {addons.get(label, '')}")
+    return "\n\n".join(out)
 
 
 def render_indented_ul(items: list, margin_left: int = 24):
@@ -3198,12 +3367,27 @@ with st.container(border=True):
                     f" `@~{res['sec_per_ball']}s/ball`"
                 )
 
+                st.markdown("**🎯 What This Drill Trains**")
+                render_indented_html(
+                    DRILL_PURPOSES.get(
+                        d_name,
+                        "Build the movement pattern targeted by this drill and make it repeatable under a normal pre-shot routine.",
+                    )
+                )
+
                 st.markdown("**🛠️ Range Equipment Needed**")
                 equip_items = re.split(r",\s*(?![^()]*\))", schematic["equipment"])
                 render_indented_ul(equip_items)
 
-                st.markdown("**📖 Setup & Execution**")
-                render_instruction_steps(schematic["vivid_description"])
+                st.markdown("**📖 Step-by-Step Coaching Guide**")
+                render_instruction_steps(schematic["vivid_description"], d_name)
+
+                st.markdown("**📈 How to Progress the Drill**")
+                render_indented_html(
+                    CATEGORY_PROGRESSION.get(
+                        _drill_category(d_name), CATEGORY_PROGRESSION["general"]
+                    )
+                )
 
                 st.markdown("**🧠 Mental Analogy**")
                 render_indented_html(schematic["analogy"])
@@ -3234,11 +3418,25 @@ with st.container(border=True):
                     "Pre-shot Routine Line",
                 ])
 
-                st.markdown("**📖 Setup & Execution**")
+                st.markdown("**🎯 What This Drill Trains**")
                 render_indented_html(
-                    "Simulate real course conditions. Alternate target flags and clubs for"
-                    " every single ball. Step away from the mat and execute your complete"
-                    " pre-shot routine before every swing."
+                    "Transfer the technical and mental work from the session into realistic one-ball, one-decision course behavior."
+                )
+
+                st.markdown("**📖 Step-by-Step Coaching Guide**")
+                pressure_text = (
+                    "SETUP: Pick 3–5 different range targets that represent different on-course shots. "
+                    "Assign a club, target, and imaginary hole situation before each ball; do not hit the same club twice in a row unless the simulated hole calls for it. "
+                    "EXECUTION: Step completely away from the ball between reps. Go through your normal yardage/target decision, rehearsal, alignment, and pre-shot routine, then hit one ball only. "
+                    "After the shot, score the decision and execution before choosing the next scenario. "
+                    "SUCCESS: You commit to a clear target and club before every shot, complete the same routine each time, and produce a playable result without reverting to rapid-fire range habits. "
+                    "AVOID: Hitting mulligans, repeating the same club immediately after a poor shot, or changing the target after address. The point is to live with one decision and one result, just like on the course."
+                )
+                render_instruction_steps(pressure_text, "Target Course Pressure Simulation")
+
+                st.markdown("**📈 How to Progress the Drill**")
+                render_indented_html(
+                    "Start with 5 unscored simulated holes, then create a 9-shot or 18-shot game where each ball earns a simple result (good decision/playable shot, neutral, or penalty-level miss). Add consequences only after the routine stays consistent."
                 )
 
                 st.markdown("**🧠 Mental Analogy**")
