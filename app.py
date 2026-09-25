@@ -1851,6 +1851,331 @@ def render_caddie_voice_player(
             )
 
 
+
+def _generate_persona_drill_briefing(
+    drill_name,
+    persona_key,
+    diagnosis,
+    purpose,
+    setup_text,
+    kpi,
+    balls_per_drill=None,
+    time_per_drill=None,
+    previous_text="",
+    take_number=1,
+):
+    """Create a short, hands-free persona briefing for one prescribed drill."""
+    persona = PERSONA_DATABASE.get(persona_key, {})
+    persona_instruction = persona.get("system_instruction", "")
+    caddie_name = persona_key.split(" (")[0]
+
+    prompt = f"""
+    {persona_instruction}
+
+    You are giving the golfer a SHORT hands-free range briefing for an ALREADY
+    PRESCRIBED Birdie Buddy drill. The golf diagnosis and drill choice are locked.
+    Do not change them or invent a new mechanical diagnosis.
+
+    Selected caddie: {caddie_name}
+    Alternate take number: {take_number}
+
+    LOCKED COACHING FACTS:
+    - Primary opportunity: {diagnosis.get('primary_miss', 'N/A')}
+    - Primary stage: {diagnosis.get('primary_miss_stage', 'N/A')}
+    - Mechanical evidence level: {diagnosis.get('mechanical_evidence_level', 'N/A')}
+    - Decision quality: {diagnosis.get('decision_quality', 'N/A')}
+    - Drill: {drill_name}
+    - What it trains: {purpose}
+    - Drill instructions: {setup_text}
+    - Objective test: {kpi.get('test', '')}
+    - Success definition: {kpi.get('success', '')}
+    - Pass target: {kpi.get('target', '')}/10
+    - Assigned volume: {balls_per_drill if balls_per_drill is not None else 'N/A'} balls
+    - Assigned time: {time_per_drill if time_per_drill is not None else 'N/A'} minutes
+
+    PREVIOUS BRIEFING TO AVOID REPEATING TOO CLOSELY:
+    {previous_text or 'No previous briefing.'}
+
+    Write ONE concise 25-40 second spoken briefing in the selected fictional caddie persona.
+    It must work equally well as visible text and spoken audio.
+
+    INCLUDE ONLY:
+    1. What this drill is trying to improve.
+    2. The most important setup instruction.
+    3. ONE key swing/decision/feel cue from the supplied drill instructions.
+    4. What counts as a successful rep.
+    5. The {kpi.get('target', '')}/10 pass target.
+
+    RULES:
+    - Keep it roughly 65-100 words.
+    - Be encouraging and useful at the range, not report-like.
+    - Do not read every section of the card aloud.
+    - Preserve uncertainty if the diagnosis says the mechanical cause is only a hypothesis.
+    - Do not invent stats, causes, or new drills.
+    - Do not imitate, name, or reference a real actor/performer.
+    - No markdown, headings, bullet points, or JSON.
+    - Produce a genuinely fresh alternate take when take_number is greater than 1.
+
+    Return only the briefing text.
+    """
+
+    flash_models = [
+        m.name
+        for m in genai.list_models()
+        if "generateContent" in m.supported_generation_methods
+        and "flash" in m.name.lower()
+    ]
+    flash_models.sort(reverse=True)
+    last_error = None
+    for model_name in flash_models:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(
+                prompt,
+                generation_config={"temperature": 0.95, "top_p": 0.92},
+            )
+            if response and response.text:
+                text = response.text.replace("```", "").strip().strip('"')
+                if text:
+                    return text
+        except Exception as exc:
+            last_error = exc
+            continue
+    raise RuntimeError(
+        f"No Gemini Flash model could create the drill briefing. {last_error or ''}".strip()
+    )
+
+
+def render_drill_voice_briefing(
+    drill_name,
+    persona_key,
+    diagnosis,
+    purpose,
+    setup_text,
+    kpi,
+    balls_per_drill=None,
+    time_per_drill=None,
+):
+    """Generate and play a concise persona coaching briefing for one drill."""
+    caddie_name = persona_key.split(" (")[0]
+    context_blob = json.dumps(
+        {
+            "persona": persona_key,
+            "drill": drill_name,
+            "primary": diagnosis.get("primary_miss"),
+            "stage": diagnosis.get("primary_miss_stage"),
+            "balls": balls_per_drill,
+            "time": time_per_drill,
+            "test": kpi.get("test"),
+            "target": kpi.get("target"),
+        },
+        sort_keys=True,
+        ensure_ascii=False,
+    )
+    digest = hashlib.sha256(context_blob.encode("utf-8")).hexdigest()[:16]
+    text_key = f"drill_voice_text_{digest}"
+    audio_key = f"drill_voice_audio_{digest}"
+    take_key = f"drill_voice_take_{digest}"
+
+    existing_text = str(st.session_state.get(text_key, "") or "").strip()
+    button_label = (
+        "🔄 New Caddie Drill Briefing"
+        if existing_text
+        else "🎧 Coach Me Through This Drill"
+    )
+
+    if st.button(
+        button_label,
+        key=f"drill_voice_button_{digest}",
+        use_container_width=True,
+    ):
+        try:
+            take_number = int(st.session_state.get(take_key, 0)) + 1
+            with st.spinner("Preparing your caddie briefing..."):
+                briefing = _generate_persona_drill_briefing(
+                    drill_name=drill_name,
+                    persona_key=persona_key,
+                    diagnosis=diagnosis,
+                    purpose=purpose,
+                    setup_text=setup_text,
+                    kpi=kpi,
+                    balls_per_drill=balls_per_drill,
+                    time_per_drill=time_per_drill,
+                    previous_text=existing_text,
+                    take_number=take_number,
+                )
+                audio_bytes, _, _ = generate_gemini_tts_audio(briefing, persona_key)
+            st.session_state[text_key] = briefing
+            st.session_state[audio_key] = audio_bytes
+            st.session_state[take_key] = take_number
+            st.rerun()
+        except Exception as exc:
+            st.error(f"Drill briefing could not be generated: {exc}")
+
+    briefing = str(st.session_state.get(text_key, "") or "").strip()
+    audio_bytes = st.session_state.get(audio_key)
+    if briefing:
+        st.info(f'**{caddie_name}:** “{briefing}”')
+    if audio_bytes:
+        _render_seekable_audio_player(
+            audio_bytes,
+            uid=f"drill-{digest}",
+            caddie_name=caddie_name,
+        )
+
+
+def _generate_persona_practice_debrief(
+    persona_key,
+    diagnosis,
+    practice_row,
+    kpi,
+    previous_text="",
+    take_number=1,
+):
+    """Create a short evidence-aware post-practice persona debrief."""
+    persona = PERSONA_DATABASE.get(persona_key, {})
+    persona_instruction = persona.get("system_instruction", "")
+    caddie_name = persona_key.split(" (")[0]
+
+    completion = str(practice_row.get("Drill Completed?", "") or "").strip()
+    effectiveness = practice_row.get("Fix Effectiveness (1-5)", "")
+    baseline = practice_row.get("Baseline KPI (10)", "")
+    post = practice_row.get("Post KPI (10)", "")
+    gain = practice_row.get("Objective Gain", "")
+    drill = practice_row.get("Primary Drill", diagnosis.get("recommended_primary_drill", "N/A"))
+
+    prompt = f"""
+    {persona_instruction}
+
+    You are giving a SHORT post-practice debrief for an ALREADY COMPLETED Birdie Buddy
+    practice session. Use the selected fictional caddie persona, but keep the coaching
+    interpretation evidence-based.
+
+    Selected caddie: {caddie_name}
+    Alternate take number: {take_number}
+
+    LOCKED SESSION FACTS:
+    - Primary opportunity: {diagnosis.get('primary_miss', 'N/A')}
+    - Primary stage: {diagnosis.get('primary_miss_stage', 'N/A')}
+    - Drill: {drill}
+    - Completion: {completion or 'Not logged'}
+    - Subjective effectiveness: {effectiveness if effectiveness not in (None, '') else 'Not logged'} / 5
+    - Objective test: {kpi.get('name', '')}
+    - Pre-test: {baseline if baseline not in (None, '', 'N/A') else 'Not completed'} / 10
+    - Post-test: {post if post not in (None, '', 'N/A') else 'Not completed'} / 10
+    - Objective change: {gain if gain not in (None, '', 'N/A') else 'Not available'}
+
+    PREVIOUS DEBRIEF TO AVOID REPEATING TOO CLOSELY:
+    {previous_text or 'No previous debrief.'}
+
+    Write ONE 20-35 second debrief that works equally well as visible text and spoken audio.
+
+    COACHING INTERPRETATION RULES:
+    - If the golfer did not fully complete the practice, do NOT call the drill ineffective.
+    - If an objective pre/post test exists and improved by 2 or more out of 10, explain that the
+      skill showed measurable improvement and the next logical step is more transfer/random/pressure work.
+    - If the golfer fully completed the work and the objective test did not improve, say the result is useful
+      evidence that Birdie Buddy may need to change the intervention or reassess the cause next time.
+    - If subjective effectiveness is 1-2/5 after meaningful completion, acknowledge that the intervention did not
+      feel useful and should not simply be repeated unchanged.
+    - If no objective test was logged, explicitly avoid pretending there was measured improvement; interpret only
+      completion and subjective effectiveness.
+    - Do not promise that one session permanently fixed the golfer.
+    - Do not alter the underlying diagnosis or invent new stats.
+    - End with ONE clear implication for the next practice session.
+    - Keep persona flavor original; do not imitate, name, or reference a real actor/performer.
+    - No markdown, headings, bullets, or JSON.
+    - Produce a genuinely fresh alternate take when take_number is greater than 1.
+
+    Return only the debrief text.
+    """
+
+    flash_models = [
+        m.name
+        for m in genai.list_models()
+        if "generateContent" in m.supported_generation_methods
+        and "flash" in m.name.lower()
+    ]
+    flash_models.sort(reverse=True)
+    last_error = None
+    for model_name in flash_models:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(
+                prompt,
+                generation_config={"temperature": 0.95, "top_p": 0.92},
+            )
+            if response and response.text:
+                text = response.text.replace("```", "").strip().strip('"')
+                if text:
+                    return text
+        except Exception as exc:
+            last_error = exc
+            continue
+    raise RuntimeError(
+        f"No Gemini Flash model could create the practice debrief. {last_error or ''}".strip()
+    )
+
+
+def render_practice_voice_debrief(persona_key, diagnosis, practice_row, kpi):
+    """Render an optional persona debrief after practice feedback has been saved."""
+    caddie_name = persona_key.split(" (")[0]
+    snapshot = {
+        "persona": persona_key,
+        "primary": diagnosis.get("primary_miss"),
+        "drill": practice_row.get("Primary Drill"),
+        "completion": practice_row.get("Drill Completed?"),
+        "effectiveness": practice_row.get("Fix Effectiveness (1-5)"),
+        "pre": practice_row.get("Baseline KPI (10)"),
+        "post": practice_row.get("Post KPI (10)"),
+        "gain": practice_row.get("Objective Gain"),
+    }
+    digest = hashlib.sha256(
+        json.dumps(snapshot, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    ).hexdigest()[:16]
+    text_key = f"practice_debrief_text_{digest}"
+    audio_key = f"practice_debrief_audio_{digest}"
+    take_key = f"practice_debrief_take_{digest}"
+
+    existing_text = str(st.session_state.get(text_key, "") or "").strip()
+    label = "🔄 New Caddie Debrief" if existing_text else "🎧 Hear Caddie Debrief"
+
+    if st.button(
+        label,
+        key=f"practice_debrief_button_{digest}",
+        use_container_width=True,
+    ):
+        try:
+            take_number = int(st.session_state.get(take_key, 0)) + 1
+            with st.spinner("Preparing your practice debrief..."):
+                debrief = _generate_persona_practice_debrief(
+                    persona_key=persona_key,
+                    diagnosis=diagnosis,
+                    practice_row=practice_row,
+                    kpi=kpi,
+                    previous_text=existing_text,
+                    take_number=take_number,
+                )
+                audio_bytes, _, _ = generate_gemini_tts_audio(debrief, persona_key)
+            st.session_state[text_key] = debrief
+            st.session_state[audio_key] = audio_bytes
+            st.session_state[take_key] = take_number
+            st.rerun()
+        except Exception as exc:
+            st.error(f"Practice debrief could not be generated: {exc}")
+
+    debrief = str(st.session_state.get(text_key, "") or "").strip()
+    audio_bytes = st.session_state.get(audio_key)
+    if debrief:
+        st.success(f'**{caddie_name}:** “{debrief}”')
+    if audio_bytes:
+        _render_seekable_audio_player(
+            audio_bytes,
+            uid=f"debrief-{digest}",
+            caddie_name=caddie_name,
+        )
+
+
 # -------------------------------------------------------------
 # SCORE-ROI PRIORITY ENGINE
 # -------------------------------------------------------------
@@ -5112,16 +5437,26 @@ if (
                         f" `@~{res['sec_per_ball']}s/ball`"
                     )
 
-                    st.markdown("**🎯 What This Drill Trains**")
-                    render_indented_html(
-                        DRILL_PURPOSES.get(
-                            d_name,
-                            "Build the movement pattern targeted by this drill and make it repeatable under a normal pre-shot routine.",
-                        )
+                    kpi = get_drill_kpi(d_name)
+                    drill_purpose = DRILL_PURPOSES.get(
+                        d_name,
+                        "Build the movement pattern targeted by this drill and make it repeatable under a normal pre-shot routine.",
+                    )
+                    render_drill_voice_briefing(
+                        drill_name=d_name,
+                        persona_key=st.session_state.get("caddie_persona_key", selected_persona_key),
+                        diagnosis=diag,
+                        purpose=drill_purpose,
+                        setup_text=schematic["vivid_description"],
+                        kpi=kpi,
+                        balls_per_drill=balls_per_drill,
+                        time_per_drill=time_per_drill,
                     )
 
+                    st.markdown("**🎯 What This Drill Trains**")
+                    render_indented_html(drill_purpose)
+
                     st.markdown("**📏 Objective Pre/Post Test**")
-                    kpi = get_drill_kpi(d_name)
                     st.markdown(f"**{kpi['name']}**")
                     render_scannable_rows([
                         ("Test", kpi["test"]),
@@ -5164,6 +5499,29 @@ if (
                     st.caption(
                         f"⚡ `{gm_balls} Balls` | `{gm_time} Mins` |"
                         f" `@~{res['sec_per_ball']}s/ball`"
+                    )
+
+                    pressure_kpi = {
+                        "name": "Decision + routine transfer",
+                        "test": "Score 10 one-ball scenarios.",
+                        "success": "Make a clear club/target decision, complete the full routine, commit to the swing, and produce a playable outcome.",
+                        "target": 7,
+                    }
+                    pressure_setup = (
+                        "Pick 3-5 different range targets that represent different on-course shots. "
+                        "Assign a club, target, and imaginary hole situation before each ball. "
+                        "Step completely away between reps, complete the full routine, and hit one ball only. "
+                        "No mulligans after a miss."
+                    )
+                    render_drill_voice_briefing(
+                        drill_name="Target Course Pressure Simulation",
+                        persona_key=st.session_state.get("caddie_persona_key", selected_persona_key),
+                        diagnosis=diag,
+                        purpose="Transfer the session's technical, strategic, and mental work into realistic one-ball, one-decision course behavior.",
+                        setup_text=pressure_setup,
+                        kpi=pressure_kpi,
+                        balls_per_drill=gm_balls,
+                        time_per_drill=gm_time,
                     )
 
                     st.markdown("**📏 Objective Transfer Test**")
@@ -5406,6 +5764,13 @@ if (
                                 pass
                             st.success("Practice logged")
                             render_scannable_rows(saved_rows, margin_left=18, compact=True)
+                            if str(saved_completion).strip() != "Not yet":
+                                render_practice_voice_debrief(
+                                    st.session_state.get("caddie_persona_key", selected_persona_key),
+                                    diag,
+                                    _current_log,
+                                    primary_kpi,
+                                )
                         else:
                             st.info(f"Practice status logged: **{saved_completion}**")
                 else:
