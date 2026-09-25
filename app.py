@@ -1481,11 +1481,10 @@ def _format_audio_time(seconds):
     return f"{seconds // 60}:{seconds % 60:02d}"
 
 
-def _render_seekable_audio_player(audio_bytes, uid, voice_label, delivery_label):
+def _render_seekable_audio_player(audio_bytes, uid, caddie_name):
     """Render a large, explicit audio player with a visible scrub/seek bar."""
     encoded = base64.b64encode(audio_bytes).decode("ascii")
-    safe_voice = str(voice_label).replace("<", "&lt;").replace(">", "&gt;")
-    safe_delivery = str(delivery_label).replace("<", "&lt;").replace(">", "&gt;")
+    safe_caddie = str(caddie_name).replace("<", "&lt;").replace(">", "&gt;")
 
     html = f"""
     <style>
@@ -1495,7 +1494,6 @@ def _render_seekable_audio_player(audio_bytes, uid, voice_label, delivery_label)
         background:#111827; color:#f3f4f6;
       }}
       .bb-audio-title {{ font-size:15px; font-weight:700; margin-bottom:3px; }}
-      .bb-audio-meta {{ font-size:12px; color:#aeb6c3; margin-bottom:10px; }}
       audio {{ width:100%; height:42px; margin-bottom:8px; }}
       .bb-seek-row {{ display:grid; grid-template-columns:50px 1fr 50px; gap:8px; align-items:center; }}
       .bb-time {{ font-size:12px; color:#cbd5e1; text-align:center; font-variant-numeric:tabular-nums; }}
@@ -1509,14 +1507,13 @@ def _render_seekable_audio_player(audio_bytes, uid, voice_label, delivery_label)
       .bb-hint {{ font-size:11px; color:#94a3b8; margin-top:8px; text-align:center; }}
       @media (prefers-color-scheme: light) {{
         .bb-audio-card {{ background:#f8fafc; color:#111827; border-color:#d0d5dd; }}
-        .bb-audio-meta,.bb-hint,.bb-time {{ color:#667085; }}
+        .bb-hint,.bb-time {{ color:#667085; }}
         .bb-buttons button {{ background:#fff; color:#111827; border-color:#cbd5e1; }}
         .bb-buttons button:hover {{ background:#f1f5f9; }}
       }}
     </style>
     <div class="bb-audio-card">
-      <div class="bb-audio-title">🎧 Caddie Voice Playback</div>
-      <div class="bb-audio-meta">Studio voice: {safe_voice} • {safe_delivery}</div>
+      <div class="bb-audio-title">🎧 {safe_caddie}</div>
       <audio id="audio-{uid}" controls preload="metadata">
         <source src="data:audio/wav;base64,{encoded}" type="audio/wav">
       </audio>
@@ -1585,7 +1582,7 @@ def render_caddie_voice_player(text, persona_key, label="Generate Caddie Audio")
     persona = PERSONA_DATABASE.get(persona_key, {})
     profile = persona.get("voice_profile", {})
     voice_name = profile.get("tts_voice", "Kore")
-    delivery = profile.get("delivery", "Natural caddie delivery")
+    caddie_name = persona_key.split(" (")[0]
 
     digest = hashlib.sha256(
         f"{persona_key}|{spoken_text}".encode("utf-8")
@@ -1621,16 +1618,10 @@ def render_caddie_voice_player(text, persona_key, label="Generate Caddie Audio")
         audio_bytes = st.session_state.get(state_key)
         if audio_bytes:
             meta = st.session_state.get(meta_key, {})
-            used_voice = meta.get("voice", voice_name)
             _render_seekable_audio_player(
                 audio_bytes,
                 uid=digest,
-                voice_label=used_voice,
-                delivery_label=delivery,
-            )
-        else:
-            st.caption(
-                "Generate the clip to unlock full playback controls, including a visible seek bar and ±10-second skipping."
+                caddie_name=caddie_name,
             )
 
 
@@ -2280,25 +2271,49 @@ PERSONA_DATABASE = {
         """,
     },
     "Captain Hack Sparrow (Pirate of the Fairway)": {
-        "description": (
-            "Eccentric, unpredictable pirate caddie stumbling through hazards"
-            " with rum-fueled optimism and chaotic strategies."
-        ),
+        "description": "Captain Hack Sparrow",
         "voice_profile": {
-            "lang": "en-GB", "rate": 0.92, "pitch": 0.94, "volume": 1.0,
-            "delivery": "Eccentric, theatrical, uneven pirate-style delivery",
+            "lang": "en-GB", "rate": 0.88, "pitch": 0.93, "volume": 1.0,
+            "delivery": "Tipsy, swaggering pirate delivery",
             "tts_voice": "Algenib",
             "tts_style": (
-                "Gravelly, theatrical pirate-adventure delivery: playful, eccentric, slightly unpredictable "
-                "rhythm, expressive emphasis, mischievous humor, and dramatic pauses while remaining clear. "
-                "Do not imitate or reference any real actor or performer."
+                "Perform as an original, rum-soaked eccentric pirate caddie. Use a gravelly voice, loose "
+                "swaggering cadence, slightly tipsy rhythm, elastic pacing, dramatic pauses, sudden quiet "
+                "muttered asides, amused little self-corrections, and bursts of misplaced confidence. Let "
+                "some phrases wander before landing on the golf point, as though the speaker is balancing "
+                "on a rolling ship deck. Occasionally stretch a word or briefly lose the thread, then recover "
+                "with pirate bravado. Keep the speech intelligible: suggest mild drunkenness rather than heavy "
+                "slurring. Use original pirate mannerisms and do not imitate, name, or reference any real actor "
+                "or specific recorded performance."
             ),
         },
         "system_instruction": """
-        You are 'Captain Hack Sparrow,' an eccentric, wildly unpredictable pirate AI golf caddie.
-        Tone: Slurred charm, chaotic, theatrical, witty, rum-obsessed, highly eccentric.
-        Sample Catchphrases: 'Why is the fairway always gone?', 'Take what you can, give nothing back—except that ball in the hazard.', 'This shot is either brilliant or mad. Utterly mad.'
-        Analyze shot errors and mental blow-ups using nautical pirate metaphors.
+        You are 'Captain Hack Sparrow,' an original, rum-soaked, eccentric pirate AI golf caddie.
+
+        PERSONALITY & DELIVERY:
+        - Sound pleasantly tipsy, overconfident, theatrical, and slightly unsteady—but still smart about golf.
+        - Ramble briefly, interrupt yourself, mutter conspiratorial asides, and occasionally correct your own
+          train of thought before arriving at the coaching point.
+        - Use pirate vocabulary naturally: aye, mate, rum, ship, deck, compass, treasure, cannon, storm,
+          mutiny, reef, harbor, plank, and cursed hazards.
+        - Treat bunkers like beaches you never intended to visit, water hazards like hostile seas, OB stakes
+          like forbidden coastlines, and risky recovery shots like questionable acts of piracy.
+        - Be amused by disaster rather than angry about it. Sound as though every terrible golf decision is
+          either a grand adventure or a suspicious navigation error.
+        - Use playful uncertainty and swagger: confidently announce a thought, reconsider it halfway through,
+          then land on a useful coaching conclusion.
+        - Keep all coaching advice accurate and understandable beneath the chaos.
+        - Never imitate, name, or reference a real actor or a specific film performance.
+
+        ORIGINAL MANNERISM EXAMPLES:
+        - "Aye... that was a perfectly sensible club, which is precisely why I'm suspicious of it."
+        - "The green was over there, mate. Your ball, however, appears to have joined another crew."
+        - "We could attack that pin... or—and hear me out—we could keep the golf ball."
+        - "Two penalty strokes? That's not a scorecard, that's a ransom note."
+        - "Steady now. Pick the harbor, trust the compass, and stop negotiating with the trees."
+
+        Analyze the golfer's scoring leaks using nautical pirate metaphors, but keep the diagnosis, priorities,
+        and practice prescription technically sound.
         """,
     },
 }
