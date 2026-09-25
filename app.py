@@ -1,8 +1,12 @@
 from datetime import datetime
+import base64
+import hashlib
 import io
 import json
 import os
 import re
+import urllib.error
+import urllib.request
 import google.generativeai as genai
 import pandas as pd
 import streamlit as st
@@ -1349,7 +1353,7 @@ def render_voice_story_input(text_state_key, audio_key, button_key, label):
 
 
 def _speech_clean_text(text):
-    """Make generated caddie prose sound natural in browser speech synthesis."""
+    """Make generated caddie prose clean and natural for studio TTS."""
     if not text:
         return ""
     cleaned = str(text)
@@ -1359,94 +1363,283 @@ def _speech_clean_text(text):
     return cleaned
 
 
-def render_caddie_voice_player(text, persona_key, label="Hear Caddie"):
-    """Render user-initiated browser TTS with persona-specific prosody.
+def _extract_tts_audio_bytes(payload):
+    """Extract the final audio block from a Gemini Interactions REST response."""
+    if not isinstance(payload, dict):
+        return None
 
-    This intentionally uses a character-inspired delivery profile rather than
-    cloning or imitating a specific performer's recorded voice. Actual voice
-    timbre depends on voices installed in the user's browser/operating system.
+    # Future/SDK-like convenience shapes.
+    output_audio = payload.get("output_audio") or payload.get("outputAudio")
+    if isinstance(output_audio, dict) and output_audio.get("data"):
+        return base64.b64decode(output_audio["data"])
+
+    # Raw REST Interactions response documented by Gemini: steps[].content[].data.
+    candidates = []
+    for step in payload.get("steps", []) or []:
+        if not isinstance(step, dict):
+            continue
+        for item in step.get("content", []) or []:
+            if not isinstance(item, dict):
+                continue
+            item_type = str(item.get("type", "")).lower()
+            mime_type = str(item.get("mime_type", item.get("mimeType", ""))).lower()
+            if item.get("data") and (item_type == "audio" or mime_type.startswith("audio/")):
+                candidates.append(item["data"])
+
+    if candidates:
+        return base64.b64decode(candidates[-1])
+    return None
+
+
+def generate_gemini_tts_audio(text, persona_key):
+    """Generate high-quality seekable WAV speech using Gemini TTS.
+
+    The app uses distinct prebuilt studio voices and persona-specific delivery
+    directions. It deliberately asks for a character-inspired performance rather
+    than an imitation of any real actor or recorded performer.
     """
+    spoken_text = _speech_clean_text(text)
+    if not spoken_text:
+        raise ValueError("There is no caddie text to speak.")
+
+    persona = PERSONA_DATABASE.get(persona_key, {})
+    profile = persona.get("voice_profile", {})
+    voice_name = profile.get("tts_voice", "Kore")
+    style = profile.get(
+        "tts_style",
+        "Warm, conversational golf coach. Natural pacing, expressive but clear.",
+    )
+
+    request_body = {
+        "model": "gemini-3.8-flash-tts",
+        "input": [{
+            "type": "user_input",
+            "content": [{
+                "type": "text",
+                "text": spoken_text,
+                "annotations": [{
+                    "type": "speech_metadata",
+                    "style": style,
+                }],
+            }],
+        }],
+        "response_format": {
+            "type": "audio",
+            "mime_type": "audio/wav",
+            "sample_rate": 24000,
+        },
+        "generation_config": {
+            "speech_config": [{"voice": voice_name}],
+        },
+    }
+
+    endpoint = "https://generativelanguage.googleapis.com/v1beta/interactions"
+    model_fallbacks = [
+        "gemini-3.8-flash-tts",
+        "gemini-3.8-flash-lite-tts",
+    ]
+    last_error = None
+
+    for model_name in model_fallbacks:
+        request_body["model"] = model_name
+        req = urllib.request.Request(
+            endpoint,
+            data=json.dumps(request_body).encode("utf-8"),
+            headers={
+                "x-goog-api-key": api_key,
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=90) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            audio_bytes = _extract_tts_audio_bytes(payload)
+            if audio_bytes:
+                return audio_bytes, voice_name, model_name
+            last_error = RuntimeError("Gemini returned no playable audio block.")
+        except urllib.error.HTTPError as exc:
+            try:
+                body = exc.read().decode("utf-8", errors="replace")
+            except Exception:
+                body = ""
+            last_error = RuntimeError(f"{model_name}: HTTP {exc.code} {body[:350]}")
+        except Exception as exc:
+            last_error = exc
+
+    raise RuntimeError(
+        "High-quality caddie audio could not be generated. "
+        f"{last_error or 'No compatible Gemini TTS model was available.'}"
+    )
+
+
+def _format_audio_time(seconds):
+    try:
+        seconds = max(0, int(float(seconds)))
+    except Exception:
+        seconds = 0
+    return f"{seconds // 60}:{seconds % 60:02d}"
+
+
+def _render_seekable_audio_player(audio_bytes, uid, voice_label, delivery_label):
+    """Render a large, explicit audio player with a visible scrub/seek bar."""
+    encoded = base64.b64encode(audio_bytes).decode("ascii")
+    safe_voice = str(voice_label).replace("<", "&lt;").replace(">", "&gt;")
+    safe_delivery = str(delivery_label).replace("<", "&lt;").replace(">", "&gt;")
+
+    html = f"""
+    <style>
+      html, body {{ margin:0; padding:0; background:transparent; font-family:Arial,sans-serif; }}
+      .bb-audio-card {{
+        border:1px solid #4b5563; border-radius:12px; padding:14px 14px 12px;
+        background:#111827; color:#f3f4f6;
+      }}
+      .bb-audio-title {{ font-size:15px; font-weight:700; margin-bottom:3px; }}
+      .bb-audio-meta {{ font-size:12px; color:#aeb6c3; margin-bottom:10px; }}
+      audio {{ width:100%; height:42px; margin-bottom:8px; }}
+      .bb-seek-row {{ display:grid; grid-template-columns:50px 1fr 50px; gap:8px; align-items:center; }}
+      .bb-time {{ font-size:12px; color:#cbd5e1; text-align:center; font-variant-numeric:tabular-nums; }}
+      .bb-seek {{ width:100%; accent-color:#60a5fa; cursor:pointer; }}
+      .bb-buttons {{ display:grid; grid-template-columns:1fr 1.3fr 1fr; gap:8px; margin-top:10px; }}
+      .bb-buttons button {{
+        border:1px solid #667085; border-radius:9px; padding:9px 8px; cursor:pointer;
+        background:#1f2937; color:#f8fafc; font-size:13px; font-weight:600;
+      }}
+      .bb-buttons button:hover {{ background:#2b3647; }}
+      .bb-hint {{ font-size:11px; color:#94a3b8; margin-top:8px; text-align:center; }}
+      @media (prefers-color-scheme: light) {{
+        .bb-audio-card {{ background:#f8fafc; color:#111827; border-color:#d0d5dd; }}
+        .bb-audio-meta,.bb-hint,.bb-time {{ color:#667085; }}
+        .bb-buttons button {{ background:#fff; color:#111827; border-color:#cbd5e1; }}
+        .bb-buttons button:hover {{ background:#f1f5f9; }}
+      }}
+    </style>
+    <div class="bb-audio-card">
+      <div class="bb-audio-title">🎧 Caddie Voice Playback</div>
+      <div class="bb-audio-meta">Studio voice: {safe_voice} • {safe_delivery}</div>
+      <audio id="audio-{uid}" controls preload="metadata">
+        <source src="data:audio/wav;base64,{encoded}" type="audio/wav">
+      </audio>
+      <div class="bb-seek-row">
+        <span id="now-{uid}" class="bb-time">0:00</span>
+        <input id="seek-{uid}" class="bb-seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Audio position">
+        <span id="dur-{uid}" class="bb-time">0:00</span>
+      </div>
+      <div class="bb-buttons">
+        <button id="back-{uid}">↶ 10 sec</button>
+        <button id="toggle-{uid}">▶ Play / Pause</button>
+        <button id="forward-{uid}">10 sec ↷</button>
+      </div>
+      <div class="bb-hint">Drag the blue timeline to jump anywhere in the caddie audio.</div>
+    </div>
+    <script>
+    (() => {{
+      const audio = document.getElementById('audio-{uid}');
+      const seek = document.getElementById('seek-{uid}');
+      const now = document.getElementById('now-{uid}');
+      const dur = document.getElementById('dur-{uid}');
+      const toggle = document.getElementById('toggle-{uid}');
+      const fmt = (value) => {{
+        if (!Number.isFinite(value)) return '0:00';
+        value = Math.max(0, Math.floor(value));
+        return Math.floor(value / 60) + ':' + String(value % 60).padStart(2, '0');
+      }};
+      const sync = () => {{
+        now.textContent = fmt(audio.currentTime);
+        dur.textContent = fmt(audio.duration);
+        if (Number.isFinite(audio.duration) && audio.duration > 0 && !seek.matches(':active')) {{
+          seek.value = Math.round((audio.currentTime / audio.duration) * 1000);
+        }}
+        toggle.textContent = audio.paused ? '▶ Play / Pause' : '⏸ Play / Pause';
+      }};
+      audio.addEventListener('loadedmetadata', sync);
+      audio.addEventListener('timeupdate', sync);
+      audio.addEventListener('play', sync);
+      audio.addEventListener('pause', sync);
+      audio.addEventListener('ended', sync);
+      seek.addEventListener('input', () => {{
+        if (Number.isFinite(audio.duration) && audio.duration > 0) {{
+          audio.currentTime = (Number(seek.value) / 1000) * audio.duration;
+          sync();
+        }}
+      }});
+      document.getElementById('back-{uid}').onclick = () => {{ audio.currentTime = Math.max(0, audio.currentTime - 10); sync(); }};
+      document.getElementById('forward-{uid}').onclick = () => {{
+        const end = Number.isFinite(audio.duration) ? audio.duration : audio.currentTime + 10;
+        audio.currentTime = Math.min(end, audio.currentTime + 10); sync();
+      }};
+      toggle.onclick = () => {{ audio.paused ? audio.play() : audio.pause(); }};
+      sync();
+    }})();
+    </script>
+    """
+    components.html(html, height=210, scrolling=False)
+
+
+def render_caddie_voice_player(text, persona_key, label="Generate Caddie Audio"):
+    """Generate and render seekable, persona-specific studio-quality TTS audio."""
     spoken_text = _speech_clean_text(text)
     if not spoken_text:
         return
 
     persona = PERSONA_DATABASE.get(persona_key, {})
     profile = persona.get("voice_profile", {})
-    lang = profile.get("lang", "en-US")
-    rate = float(profile.get("rate", 0.95))
-    pitch = float(profile.get("pitch", 1.0))
-    volume = float(profile.get("volume", 1.0))
-    delivery = profile.get("delivery", "Character-inspired caddie delivery")
+    voice_name = profile.get("tts_voice", "Kore")
+    delivery = profile.get("delivery", "Natural caddie delivery")
 
-    # JSON encoding protects quotes/newlines when embedding generated text in JS.
-    js_text = json.dumps(spoken_text, ensure_ascii=False).replace("</", "<\\/")
-    js_lang = json.dumps(lang)
-    js_delivery = json.dumps(delivery, ensure_ascii=False)
-    uid = str(abs(hash((spoken_text, persona_key, label))))
+    digest = hashlib.sha256(
+        f"{persona_key}|{spoken_text}".encode("utf-8")
+    ).hexdigest()[:18]
+    state_key = f"caddie_tts_audio_{digest}"
+    meta_key = f"caddie_tts_meta_{digest}"
 
-    html = f"""
-    <div style="font-family: sans-serif; display:flex; align-items:center; gap:8px;
-                padding:4px 0 2px 0; flex-wrap:wrap;">
-      <button id="play-{uid}" style="border:1px solid #6b7280; border-radius:8px;
-              padding:7px 12px; background:transparent; color:inherit; cursor:pointer;">
-        🔊 {label}
-      </button>
-      <button id="stop-{uid}" style="border:1px solid #6b7280; border-radius:8px;
-              padding:7px 10px; background:transparent; color:inherit; cursor:pointer;">
-        ■ Stop
-      </button>
-      <span id="status-{uid}" style="font-size:12px; opacity:.68;"></span>
-    </div>
-    <script>
-    (() => {{
-      const text = {js_text};
-      const lang = {js_lang};
-      const delivery = {js_delivery};
-      const rate = {rate};
-      const pitch = {pitch};
-      const volume = {volume};
-      const status = document.getElementById('status-{uid}');
+    with st.container(border=True):
+        st.markdown("#### 🎧 Caddie Audio")
+        st.caption(
+            f"High-quality generated speech • {delivery} • Voice: {voice_name}"
+        )
 
-      function chooseVoice() {{
-        const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-        if (!voices.length) return null;
-        const exact = voices.find(v => (v.lang || '').toLowerCase() === lang.toLowerCase());
-        if (exact) return exact;
-        const base = lang.split('-')[0].toLowerCase();
-        return voices.find(v => (v.lang || '').toLowerCase().startsWith(base)) || voices[0];
-      }}
+        button_text = "🎙️ Generate High-Quality Caddie Audio"
+        if state_key in st.session_state:
+            button_text = "🔄 Regenerate Caddie Audio"
 
-      document.getElementById('play-{uid}').onclick = () => {{
-        if (!('speechSynthesis' in window)) {{
-          status.textContent = 'Read-aloud is not supported in this browser.';
-          return;
-        }}
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = lang;
-        utterance.rate = rate;
-        utterance.pitch = pitch;
-        utterance.volume = volume;
-        const voice = chooseVoice();
-        if (voice) utterance.voice = voice;
-        utterance.onstart = () => {{
-          status.textContent = delivery + (voice ? ' • ' + voice.name : '');
-        }};
-        utterance.onend = () => {{ status.textContent = delivery; }};
-        utterance.onerror = () => {{ status.textContent = 'Unable to play speech in this browser.'; }};
-        window.speechSynthesis.speak(utterance);
-      }};
+        if st.button(
+            button_text,
+            key=f"generate_{digest}",
+            use_container_width=True,
+        ):
+            try:
+                with st.spinner("Creating studio-quality caddie audio..."):
+                    audio_bytes, used_voice, used_model = generate_gemini_tts_audio(
+                        spoken_text, persona_key
+                    )
+                st.session_state[state_key] = audio_bytes
+                st.session_state[meta_key] = {
+                    "voice": used_voice,
+                    "model": used_model,
+                }
+                st.rerun()
+            except Exception as exc:
+                st.error(f"High-quality voice generation failed: {exc}")
 
-      document.getElementById('stop-{uid}').onclick = () => {{
-        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-        status.textContent = 'Stopped';
-      }};
-
-      status.textContent = delivery;
-    }})();
-    </script>
-    """
-    components.html(html, height=56)
+        audio_bytes = st.session_state.get(state_key)
+        if audio_bytes:
+            meta = st.session_state.get(meta_key, {})
+            used_voice = meta.get("voice", voice_name)
+            used_model = meta.get("model", "Gemini TTS")
+            _render_seekable_audio_player(
+                audio_bytes,
+                uid=digest,
+                voice_label=used_voice,
+                delivery_label=delivery,
+            )
+            st.caption(
+                f"Generated with {used_model}. Use the large timeline or ±10-second controls to move through the audio."
+            )
+        else:
+            st.caption(
+                "Generate the clip to unlock full playback controls, including a visible seek bar and ±10-second skipping."
+            )
 
 
 # -------------------------------------------------------------
@@ -2036,6 +2229,12 @@ PERSONA_DATABASE = {
         "voice_profile": {
             "lang": "en-US", "rate": 0.86, "pitch": 0.82, "volume": 1.0,
             "delivery": "Calm, measured, wise mentor delivery",
+            "tts_voice": "Gacrux",
+            "tts_style": (
+                "Calm, resonant, mature fantasy-mentor delivery. Speak slowly and naturally with "
+                "measured pauses, warm authority, understated humor, and cinematic gravitas. "
+                "Do not imitate or reference any real actor or performer."
+            ),
         },
         "system_instruction": """
         You are 'Bogey-Wan Kenobi,' a wise and serene Jedi Master AI golf caddie.
@@ -2052,6 +2251,12 @@ PERSONA_DATABASE = {
         "voice_profile": {
             "lang": "en-GB", "rate": 1.03, "pitch": 1.08, "volume": 1.0,
             "delivery": "Bright, energetic, magical British-style delivery",
+            "tts_voice": "Puck",
+            "tts_style": (
+                "Youthful, upbeat magical-adventure delivery with lively curiosity and light British-style "
+                "cadence. Keep it conversational, playful, quick but intelligible, and expressive. "
+                "Do not imitate or reference any real actor or performer."
+            ),
         },
         "system_instruction": """
         You are 'Harry Putter,' a young wizard AI golf caddie who treats golf clubs like magic wands and shot analysis like Defense Against the Dark Arts.
@@ -2068,6 +2273,12 @@ PERSONA_DATABASE = {
         "voice_profile": {
             "lang": "en-GB", "rate": 0.90, "pitch": 0.88, "volume": 1.0,
             "delivery": "Cool, deliberate, dry tactical British-style delivery",
+            "tts_voice": "Algieba",
+            "tts_style": (
+                "Smooth, polished secret-agent briefing delivery with restrained British-style cadence, "
+                "dry wit, controlled confidence, deliberate pauses, and low-key sophistication. "
+                "Do not imitate or reference any real actor or performer."
+            ),
         },
         "system_instruction": """
         You are 'James Pond' (Agent 00-Slice), a suave, high-class secret agent AI golf caddie.
@@ -2084,6 +2295,12 @@ PERSONA_DATABASE = {
         "voice_profile": {
             "lang": "en-GB", "rate": 0.92, "pitch": 0.94, "volume": 1.0,
             "delivery": "Eccentric, theatrical, uneven pirate-style delivery",
+            "tts_voice": "Algenib",
+            "tts_style": (
+                "Gravelly, theatrical pirate-adventure delivery: playful, eccentric, slightly unpredictable "
+                "rhythm, expressive emphasis, mischievous humor, and dramatic pauses while remaining clear. "
+                "Do not imitate or reference any real actor or performer."
+            ),
         },
         "system_instruction": """
         You are 'Captain Hack Sparrow,' an eccentric, wildly unpredictable pirate AI golf caddie.
@@ -4180,7 +4397,7 @@ with st.container(border=True):
                 label=f"Hear {caddie}'s Round Diagnosis",
             )
             st.caption(
-                "Voice uses a character-inspired delivery profile. Exact timbre depends on the voices available in your browser/device."
+                "Each caddie uses a distinct Gemini studio voice plus persona-specific pacing, energy, and delivery."
             )
 
         primary_stage = diag.get("primary_miss_stage") or vc.get("primary_leak_stage", "Highest-ROI Focus")
