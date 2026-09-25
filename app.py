@@ -1811,9 +1811,14 @@ def _regenerate_persona_copy(diag, persona_key, previous_narrative="", take_numb
     )
 
 def render_caddie_voice_player(
-    text, persona_key, label="Generate Caddie Audio", diagnosis=None, refresh_persona_copy=False
+    text, persona_key, label="Caddie Audio", diagnosis=None, refresh_persona_copy=False
 ):
-    """Generate seekable TTS; optionally refresh persona copy without re-diagnosing the round."""
+    """Render seekable TTS.
+
+    Normal newly unlocked sections generate their audio automatically once and
+    cache it in session state. Manual interaction is reserved for intentional
+    persona changes or requesting a fresh take.
+    """
     spoken_text = _speech_clean_text(text)
     if not spoken_text:
         return
@@ -1835,14 +1840,45 @@ def render_caddie_voice_player(
         stored_persona_key = st.session_state.get("caddie_persona_key")
         persona_changed = bool(stored_persona_key and stored_persona_key != persona_key)
 
+        # Normal section unlock: create the matching audio automatically once.
+        # If the user has intentionally changed personas on an already-diagnosed
+        # round, do not silently rewrite the narrative; let them request that new
+        # persona version with the explicit control below.
+        if not has_audio and not (
+            persona_changed and diagnosis is not None and refresh_persona_copy
+        ):
+            try:
+                with st.spinner("Preparing caddie audio..."):
+                    audio_bytes, used_voice, used_model = generate_gemini_tts_audio(
+                        spoken_text, persona_key
+                    )
+                st.session_state[state_key] = audio_bytes
+                st.session_state[meta_key] = {
+                    "voice": used_voice,
+                    "model": used_model,
+                }
+                has_audio = True
+            except Exception as exc:
+                st.warning(f"Caddie audio is temporarily unavailable: {exc}")
+
+        audio_bytes = st.session_state.get(state_key)
+        if audio_bytes:
+            _render_seekable_audio_player(
+                audio_bytes,
+                uid=digest,
+                caddie_name=caddie_name,
+            )
+
+        # Intentional controls only: fresh take or switch the already-analyzed
+        # round into a newly selected caddie persona.
         if has_audio:
             button_text = "🔄 Regenerate Caddie Response"
         elif persona_changed and diagnosis is not None and refresh_persona_copy:
             button_text = f"🎭 Generate {caddie_name} Version"
         else:
-            button_text = "🎙️ Generate Caddie Audio"
+            button_text = None
 
-        if st.button(
+        if button_text and st.button(
             button_text,
             key=f"generate_{digest}",
             use_container_width=True,
@@ -1878,7 +1914,7 @@ def render_caddie_voice_player(
                         fresh_copy.get("expanded_caddie_intro", "")
                     )
 
-                with st.spinner("Creating caddie audio..."):
+                with st.spinner("Creating a fresh caddie take..."):
                     audio_bytes, used_voice, used_model = generate_gemini_tts_audio(
                         text_for_audio, persona_key
                     )
@@ -1896,15 +1932,6 @@ def render_caddie_voice_player(
                 st.rerun()
             except Exception as exc:
                 st.error(f"Voice generation failed: {exc}")
-
-        audio_bytes = st.session_state.get(state_key)
-        if audio_bytes:
-            meta = st.session_state.get(meta_key, {})
-            _render_seekable_audio_player(
-                audio_bytes,
-                uid=digest,
-                caddie_name=caddie_name,
-            )
 
 
 
@@ -2040,21 +2067,15 @@ def render_drill_voice_briefing(
     take_key = f"drill_voice_take_{digest}"
 
     existing_text = str(st.session_state.get(text_key, "") or "").strip()
-    button_label = (
-        "🔄 New Caddie Drill Briefing"
-        if existing_text
-        else "🎧 Coach Me Through This Drill"
-    )
+    existing_audio = st.session_state.get(audio_key)
 
-    if st.button(
-        button_label,
-        key=f"drill_voice_button_{digest}",
-        use_container_width=True,
-    ):
+    # First render of an unlocked drill card: prepare the section-specific
+    # briefing and matching audio automatically.
+    if not existing_text or not existing_audio:
         try:
-            take_number = int(st.session_state.get(take_key, 0)) + 1
-            with st.spinner("Preparing your caddie briefing..."):
-                briefing = _generate_persona_drill_briefing(
+            take_number = max(1, int(st.session_state.get(take_key, 0)) or 1)
+            with st.spinner("Preparing caddie drill briefing..."):
+                briefing = existing_text or _generate_persona_drill_briefing(
                     drill_name=drill_name,
                     persona_key=persona_key,
                     diagnosis=diagnosis,
@@ -2063,19 +2084,25 @@ def render_drill_voice_briefing(
                     kpi=kpi,
                     balls_per_drill=balls_per_drill,
                     time_per_drill=time_per_drill,
-                    previous_text=existing_text,
+                    previous_text="",
                     take_number=take_number,
                 )
-                audio_bytes, _, _ = generate_gemini_tts_audio(briefing, persona_key)
+                audio_bytes = existing_audio
+                if not audio_bytes:
+                    audio_bytes, _, _ = generate_gemini_tts_audio(
+                        briefing, persona_key
+                    )
             st.session_state[text_key] = briefing
             st.session_state[audio_key] = audio_bytes
             st.session_state[take_key] = take_number
-            st.rerun()
+            existing_text = briefing
+            existing_audio = audio_bytes
         except Exception as exc:
-            st.error(f"Drill briefing could not be generated: {exc}")
+            st.warning(f"Drill briefing audio is temporarily unavailable: {exc}")
 
     briefing = str(st.session_state.get(text_key, "") or "").strip()
     audio_bytes = st.session_state.get(audio_key)
+
     if briefing:
         st.info(f'**{caddie_name}:** “{briefing}”')
     if audio_bytes:
@@ -2084,6 +2111,37 @@ def render_drill_voice_briefing(
             uid=f"drill-{digest}",
             caddie_name=caddie_name,
         )
+
+    # Optional fresh take only; initial generation no longer requires a click.
+    if briefing and st.button(
+        "🔄 New Caddie Drill Briefing",
+        key=f"drill_voice_button_{digest}",
+        use_container_width=True,
+    ):
+        try:
+            take_number = int(st.session_state.get(take_key, 1)) + 1
+            with st.spinner("Creating a fresh drill briefing..."):
+                fresh_briefing = _generate_persona_drill_briefing(
+                    drill_name=drill_name,
+                    persona_key=persona_key,
+                    diagnosis=diagnosis,
+                    purpose=purpose,
+                    setup_text=setup_text,
+                    kpi=kpi,
+                    balls_per_drill=balls_per_drill,
+                    time_per_drill=time_per_drill,
+                    previous_text=briefing,
+                    take_number=take_number,
+                )
+                fresh_audio, _, _ = generate_gemini_tts_audio(
+                    fresh_briefing, persona_key
+                )
+            st.session_state[text_key] = fresh_briefing
+            st.session_state[audio_key] = fresh_audio
+            st.session_state[take_key] = take_number
+            st.rerun()
+        except Exception as exc:
+            st.error(f"Drill briefing could not be regenerated: {exc}")
 
 
 def _generate_persona_practice_debrief(
@@ -2207,34 +2265,38 @@ def render_practice_voice_debrief(persona_key, diagnosis, practice_row, kpi):
     take_key = f"practice_debrief_take_{digest}"
 
     existing_text = str(st.session_state.get(text_key, "") or "").strip()
-    label = "🔄 New Caddie Debrief" if existing_text else "🎧 Hear Caddie Debrief"
+    existing_audio = st.session_state.get(audio_key)
 
-    if st.button(
-        label,
-        key=f"practice_debrief_button_{digest}",
-        use_container_width=True,
-    ):
+    # The debrief section only appears after practice feedback is saved, so
+    # prepare its matching persona text/audio immediately when it unlocks.
+    if not existing_text or not existing_audio:
         try:
-            take_number = int(st.session_state.get(take_key, 0)) + 1
-            with st.spinner("Preparing your practice debrief..."):
-                debrief = _generate_persona_practice_debrief(
+            take_number = max(1, int(st.session_state.get(take_key, 0)) or 1)
+            with st.spinner("Preparing caddie practice debrief..."):
+                debrief = existing_text or _generate_persona_practice_debrief(
                     persona_key=persona_key,
                     diagnosis=diagnosis,
                     practice_row=practice_row,
                     kpi=kpi,
-                    previous_text=existing_text,
+                    previous_text="",
                     take_number=take_number,
                 )
-                audio_bytes, _, _ = generate_gemini_tts_audio(debrief, persona_key)
+                audio_bytes = existing_audio
+                if not audio_bytes:
+                    audio_bytes, _, _ = generate_gemini_tts_audio(
+                        debrief, persona_key
+                    )
             st.session_state[text_key] = debrief
             st.session_state[audio_key] = audio_bytes
             st.session_state[take_key] = take_number
-            st.rerun()
+            existing_text = debrief
+            existing_audio = audio_bytes
         except Exception as exc:
-            st.error(f"Practice debrief could not be generated: {exc}")
+            st.warning(f"Practice debrief audio is temporarily unavailable: {exc}")
 
     debrief = str(st.session_state.get(text_key, "") or "").strip()
     audio_bytes = st.session_state.get(audio_key)
+
     if debrief:
         st.success(f'**{caddie_name}:** “{debrief}”')
     if audio_bytes:
@@ -2243,6 +2305,33 @@ def render_practice_voice_debrief(persona_key, diagnosis, practice_row, kpi):
             uid=f"debrief-{digest}",
             caddie_name=caddie_name,
         )
+
+    # Optional fresh take after the automatically prepared debrief.
+    if debrief and st.button(
+        "🔄 New Caddie Debrief",
+        key=f"practice_debrief_button_{digest}",
+        use_container_width=True,
+    ):
+        try:
+            take_number = int(st.session_state.get(take_key, 1)) + 1
+            with st.spinner("Creating a fresh practice debrief..."):
+                fresh_debrief = _generate_persona_practice_debrief(
+                    persona_key=persona_key,
+                    diagnosis=diagnosis,
+                    practice_row=practice_row,
+                    kpi=kpi,
+                    previous_text=debrief,
+                    take_number=take_number,
+                )
+                fresh_audio, _, _ = generate_gemini_tts_audio(
+                    fresh_debrief, persona_key
+                )
+            st.session_state[text_key] = fresh_debrief
+            st.session_state[audio_key] = fresh_audio
+            st.session_state[take_key] = take_number
+            st.rerun()
+        except Exception as exc:
+            st.error(f"Practice debrief could not be regenerated: {exc}")
 
 
 # -------------------------------------------------------------
