@@ -6,6 +6,7 @@ import json
 import os
 import re
 import urllib.error
+import urllib.parse
 import urllib.request
 import google.generativeai as genai
 import pandas as pd
@@ -18,6 +19,7 @@ st.set_page_config(
 )
 
 CSV_FILE = "birdie_buddy_practice_history.csv"
+VOICE_PROFILE_VERSION = "cinematic-archetypes-v5-varied"
 
 
 HISTORY_COLUMNS = [
@@ -1439,6 +1441,126 @@ def _extract_tts_audio_bytes(payload):
     return None
 
 
+
+def _voice_catalog_request(params):
+    """Query Gemini's Extended Voice Library; fail softly to local fallbacks."""
+    query = urllib.parse.urlencode(params, doseq=True)
+    req = urllib.request.Request(
+        f"https://generativelanguage.googleapis.com/v1beta/voices?{query}",
+        headers={"x-goog-api-key": api_key},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=12) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        voices = payload.get("voices", [])
+        return voices if isinstance(voices, list) else []
+    except Exception:
+        return []
+
+
+def _score_catalog_voice(voice, profile):
+    """Rank a catalog voice against one persona's desired permanent traits."""
+    haystack = " ".join(
+        str(voice.get(k, "") or "")
+        for k in ("display_name", "description", "persona", "accent", "gender", "pitch", "context")
+    ).lower()
+
+    score = 0
+    for word in profile.get("voice_keywords", []):
+        if str(word).lower() in haystack:
+            score += 3
+
+    for word in profile.get("voice_avoid_keywords", []):
+        if str(word).lower() in haystack:
+            score -= 4
+
+    desired_pitch = str(profile.get("voice_pitch", "") or "").lower()
+    if desired_pitch and desired_pitch in str(voice.get("pitch", "") or "").lower():
+        score += 2
+
+    if str(voice.get("gender", "") or "").lower() == str(profile.get("voice_gender", "")).lower():
+        score += 3
+
+    accent = str(voice.get("accent", "") or "").lower()
+    desired_accent = str(profile.get("voice_accent", "") or "").lower()
+    if desired_accent and desired_accent in accent:
+        score += 3
+
+    return score
+
+
+def _resolve_persona_voice(persona_key):
+    """Choose a stronger underlying catalog voice for each cinematic archetype.
+
+    Permanent traits such as perceived gender, regional accent, age/timbre, and
+    baseline pitch should come from the voice itself—not from turn-level style.
+    Results are cached so normal Streamlit reruns do not repeatedly query Gemini.
+    """
+    persona = PERSONA_DATABASE.get(persona_key, {})
+    profile = persona.get("voice_profile", {})
+    fallback = profile.get("tts_voice", "Kore")
+
+    cache_key = f"resolved_voice::{VOICE_PROFILE_VERSION}::{persona_key}"
+    cached = st.session_state.get(cache_key)
+    if cached:
+        return cached
+
+    language = profile.get("voice_language", profile.get("lang", "en-GB"))
+    gender = profile.get("voice_gender", "male")
+    accent = profile.get("voice_accent", "British")
+    search_terms = profile.get("voice_search", "")
+
+    attempts = [
+        {
+            "language_code": language,
+            "gender": gender,
+            "accent": accent,
+            "type": "prebuilt",
+            "search": search_terms,
+            "page_size": 50,
+        },
+        {
+            "language_code": language,
+            "gender": gender,
+            "type": "prebuilt",
+            "search": search_terms,
+            "page_size": 50,
+        },
+        {
+            "gender": gender,
+            "type": "prebuilt",
+            "search": search_terms,
+            "page_size": 50,
+        },
+    ]
+
+    candidates = []
+    for params in attempts:
+        candidates = _voice_catalog_request(params)
+        if candidates:
+            break
+
+    if candidates:
+        ranked = sorted(
+            candidates,
+            key=lambda v: _score_catalog_voice(v, profile),
+            reverse=True,
+        )
+        best = ranked[0]
+        voice_id = (
+            best.get("id")
+            or best.get("display_name")
+            or best.get("name")
+            or fallback
+        )
+        st.session_state[cache_key] = voice_id
+        return voice_id
+
+    st.session_state[cache_key] = fallback
+    return fallback
+
+
 def generate_gemini_tts_audio(text, persona_key):
     """Generate high-quality seekable WAV speech using Gemini TTS.
 
@@ -1452,7 +1574,7 @@ def generate_gemini_tts_audio(text, persona_key):
 
     persona = PERSONA_DATABASE.get(persona_key, {})
     profile = persona.get("voice_profile", {})
-    voice_name = profile.get("tts_voice", "Kore")
+    voice_name = _resolve_persona_voice(persona_key)
     style = profile.get(
         "tts_style",
         "Warm, conversational golf coach. Natural pacing, expressive but clear.",
@@ -1622,6 +1744,121 @@ def _render_seekable_audio_player(audio_bytes, uid, caddie_name):
 
 
 
+PERSONA_VARIATION_STYLES = {
+    "Bogey-Wan Kenobi (Jedi Master of Swing)": [
+        "Open with a quiet observation about the evidence, then turn it into calm mentor guidance.",
+        "Open with a reflection about patience, balance, or temptation before connecting it to the golf issue.",
+        "Open with gently amused dry humor about the result, then calmly identify the real scoring lesson.",
+        "Open with a concise warning about forcing the shot, then explain the higher-value choice.",
+        "Open with a direct coaching truth; save the Jedi/Force metaphor for later in the response.",
+        "Open with a contrast such as good decision versus bad execution or bravery versus discipline.",
+    ],
+    "Harry Putter (The Boy Who Shanked)": [
+        "Open with an earnest realization about the evidence, as though the lesson has just clicked.",
+        "Open with a practical wizard-school analogy tied to this exact golf problem, not a generic magical greeting.",
+        "Open with slightly nervous but determined humor, then become focused on the coaching point.",
+        "Open by separating what looked like magic from the ordinary golf cause supported by the evidence.",
+        "Open with a brave-but-grounded lesson: courage means committing to the right shot, not the heroic one.",
+        "Open with a quick conversational reaction to the result, then turn it into one clear lesson.",
+    ],
+    "James Pond (Agent 00-Slice)": [
+        "Open with the single most important intelligence finding, stated coolly and precisely.",
+        "Open with a dry tactical observation about risk, target, or execution.",
+        "Open with a concise operational conclusion, then reveal the evidence behind it.",
+        "Open with a restrained one-line piece of dry British wit tied to the exact mistake.",
+        "Open by separating decision quality from execution as two distinct pieces of evidence.",
+        "Open with the next practice objective as the mission priority, then briefly explain why.",
+    ],
+    "Captain Hack Sparrow (Pirate of the Fairway)": [
+        "Open with a muttered discovery about what went wrong, then wobble into the correct coaching point.",
+        "Open with a navigation metaphor specific to the shot pattern: harbor, compass, reef, coastline, or mutinous trees.",
+        "Open with a rum-soaked accounting joke about strokes lost, then become unexpectedly precise.",
+        "Open with suspicious admiration for a questionable decision, reconsider it mid-thought, then land on the smarter play.",
+        "Open with a swaggering practical command followed by a brief conspiratorial aside.",
+        "Open with a self-correcting pirate thought: confidently say one thing, reconsider it, then arrive at the useful conclusion.",
+    ],
+}
+
+
+def _persona_opening(text, max_words=14):
+    """Return a compact opening fragment for repetition avoidance."""
+    clean = re.sub(r"\s+", " ", str(text or "").strip())
+    if not clean:
+        return ""
+    first_sentence = re.split(r"(?<=[.!?…])\s+", clean, maxsplit=1)[0]
+    return " ".join(first_sentence.split()[:max_words]).strip()
+
+
+def _remember_persona_generation(persona_key, section, text):
+    """Remember recent persona openings across sections and alternate takes."""
+    opening = _persona_opening(text)
+    if not opening:
+        return
+
+    key = f"persona_recent_openings::{VOICE_PROFILE_VERSION}::{persona_key}"
+    recent = list(st.session_state.get(key, []) or [])
+    recent = [
+        item for item in recent
+        if str(item.get("opening", "")).lower() != opening.lower()
+    ]
+    recent.append({"section": str(section), "opening": opening})
+    st.session_state[key] = recent[-10:]
+
+
+def _persona_variation_directive(persona_key, section, take_number=1, previous_text=""):
+    """Return a deliberately different opening/rhythm direction for one generation."""
+    styles = PERSONA_VARIATION_STYLES.get(
+        persona_key,
+        [
+            "Open directly with the most relevant coaching observation.",
+            "Open with a contrast between the mistake and the desired behavior.",
+            "Open with the next action first, then explain the evidence.",
+            "Open with one light persona-specific joke tied to the exact golf issue.",
+        ],
+    )
+
+    token = f"{persona_key}|{section}|{take_number}"
+    idx = int(hashlib.sha256(token.encode("utf-8")).hexdigest()[:8], 16) % len(styles)
+    chosen = styles[idx]
+
+    memory_key = f"persona_recent_openings::{VOICE_PROFILE_VERSION}::{persona_key}"
+    recent = list(st.session_state.get(memory_key, []) or [])[-6:]
+    openings = [
+        str(item.get("opening", "")).strip()
+        for item in recent
+        if str(item.get("opening", "")).strip()
+    ]
+
+    previous_opening = _persona_opening(previous_text)
+    if previous_opening and previous_opening.lower() not in {
+        item.lower() for item in openings
+    }:
+        openings.append(previous_opening)
+
+    avoid_block = (
+        "\n".join(f"- {item}" for item in openings[-6:])
+        if openings
+        else "- No recent openings stored yet."
+    )
+
+    return f"""
+    VARIATION MODE FOR THIS GENERATION:
+    - Section: {section}
+    - Take: {take_number}
+    - Opening approach: {chosen}
+    - Do NOT reuse the same opening sentence, first 6-8 words, joke structure,
+      punchline, metaphor, or cadence from a recent generation.
+    - Do NOT begin every response with the same signature word or catchphrase.
+      Let personality emerge through the whole performance.
+    - Vary sentence length and rhythm from the previous take.
+    - This should feel like the same character reacting freshly to the same evidence,
+      not a synonym-swapped paraphrase.
+
+    RECENT OPENINGS TO AVOID:
+    {avoid_block}
+    """
+
+
 def _strip_downstream_persona_intro(text, persona_key=""):
     """Keep post-diagnosis persona copy focused on the applicable section.
 
@@ -1687,6 +1924,13 @@ def _regenerate_persona_copy(diag, persona_key, previous_narrative="", take_numb
         "drill_rationale": diag.get("drill_rationale"),
         "value_chain_analysis": diag.get("value_chain_analysis", {}),
     }
+    variation_directive = _persona_variation_directive(
+        persona_key,
+        section="round diagnosis narrative",
+        take_number=take_number,
+        previous_text=previous_narrative,
+    )
+
     round_context = {
         "round_story": st.session_state.get("user_round_story", ""),
         "score": st.session_state.get("round_score"),
@@ -1726,6 +1970,8 @@ def _regenerate_persona_copy(diag, persona_key, previous_narrative="", take_numb
 
     Create a FRESH alternate performance of the same diagnosis in the selected caddie's
     fictional parody persona. This is a new take, not a paraphrase-by-synonym.
+
+    {variation_directive}
 
     REQUIREMENTS:
     - `expanded_caddie_intro` is the exact text that will appear on screen AND be spoken aloud.
@@ -1779,28 +2025,48 @@ def _regenerate_persona_copy(diag, persona_key, previous_narrative="", take_numb
                 clean = response.text.replace("```json", "").replace("```", "").strip()
                 payload = json.loads(clean)
                 if isinstance(payload, dict) and str(payload.get("expanded_caddie_intro", "")).strip():
+                    fresh_narrative = str(
+                        payload.get("expanded_caddie_intro", "")
+                    ).strip()
+                    fresh_primary = _strip_downstream_persona_intro(
+                        str(payload.get("primary_miss_persona", "")).strip()
+                        or diag.get("primary_miss_persona", ""),
+                        persona_key,
+                    )
+                    fresh_secondary = (
+                        None
+                        if not diag.get("secondary_miss")
+                        else _strip_downstream_persona_intro(
+                            str(payload.get("secondary_miss_persona", "")).strip()
+                            or diag.get("secondary_miss_persona", ""),
+                            persona_key,
+                        )
+                    )
+                    fresh_pep = _strip_downstream_persona_intro(
+                        str(payload.get("caddie_drill_pep_talk", "")).strip()
+                        or diag.get("caddie_drill_pep_talk", ""),
+                        persona_key,
+                    )
+
+                    _remember_persona_generation(
+                        persona_key, "round diagnosis narrative", fresh_narrative
+                    )
+                    _remember_persona_generation(
+                        persona_key, "primary priority quip", fresh_primary
+                    )
+                    if fresh_secondary:
+                        _remember_persona_generation(
+                            persona_key, "secondary priority quip", fresh_secondary
+                        )
+                    _remember_persona_generation(
+                        persona_key, "practice strategy", fresh_pep
+                    )
+
                     return {
-                        # The top diagnosis narrative is the one allowed character-introduction moment.
-                        "expanded_caddie_intro": str(payload.get("expanded_caddie_intro", "")).strip(),
-                        "primary_miss_persona": _strip_downstream_persona_intro(
-                            str(payload.get("primary_miss_persona", "")).strip()
-                            or diag.get("primary_miss_persona", ""),
-                            persona_key,
-                        ),
-                        "secondary_miss_persona": (
-                            None
-                            if not diag.get("secondary_miss")
-                            else _strip_downstream_persona_intro(
-                                str(payload.get("secondary_miss_persona", "")).strip()
-                                or diag.get("secondary_miss_persona", ""),
-                                persona_key,
-                            )
-                        ),
-                        "caddie_drill_pep_talk": _strip_downstream_persona_intro(
-                            str(payload.get("caddie_drill_pep_talk", "")).strip()
-                            or diag.get("caddie_drill_pep_talk", ""),
-                            persona_key,
-                        ),
+                        "expanded_caddie_intro": fresh_narrative,
+                        "primary_miss_persona": fresh_primary,
+                        "secondary_miss_persona": fresh_secondary,
+                        "caddie_drill_pep_talk": fresh_pep,
                     }
         except Exception as exc:
             last_error = exc
@@ -1829,7 +2095,7 @@ def render_caddie_voice_player(
     caddie_name = persona_key.split(" (")[0]
 
     digest = hashlib.sha256(
-        f"{persona_key}|{spoken_text}".encode("utf-8")
+        f"{VOICE_PROFILE_VERSION}|{persona_key}|{spoken_text}".encode("utf-8")
     ).hexdigest()[:18]
     state_key = f"caddie_tts_audio_{digest}"
     meta_key = f"caddie_tts_meta_{digest}"
@@ -1920,7 +2186,7 @@ def render_caddie_voice_player(
                     )
 
                 new_digest = hashlib.sha256(
-                    f"{persona_key}|{text_for_audio}".encode("utf-8")
+                    f"{VOICE_PROFILE_VERSION}|{persona_key}|{text_for_audio}".encode("utf-8")
                 ).hexdigest()[:18]
                 new_state_key = f"caddie_tts_audio_{new_digest}"
                 new_meta_key = f"caddie_tts_meta_{new_digest}"
@@ -1951,6 +2217,12 @@ def _generate_persona_drill_briefing(
     persona = PERSONA_DATABASE.get(persona_key, {})
     persona_instruction = persona.get("system_instruction", "")
     caddie_name = persona_key.split(" (")[0]
+    variation_directive = _persona_variation_directive(
+        persona_key,
+        section=f"drill briefing — {drill_name}",
+        take_number=take_number,
+        previous_text=previous_text,
+    )
 
     prompt = f"""
     {persona_instruction}
@@ -1978,6 +2250,8 @@ def _generate_persona_drill_briefing(
 
     PREVIOUS BRIEFING TO AVOID REPEATING TOO CLOSELY:
     {previous_text or 'No previous briefing.'}
+
+    {variation_directive}
 
     Write ONE concise 15-25 second spoken briefing in the selected fictional caddie persona.
     HARD LENGTH LIMIT: 35-50 words maximum.
@@ -2026,6 +2300,11 @@ def _generate_persona_drill_briefing(
                 text = response.text.replace("```", "").strip().strip('"')
                 text = _strip_downstream_persona_intro(text, persona_key)
                 if text:
+                    _remember_persona_generation(
+                        persona_key,
+                        f"drill briefing — {drill_name}",
+                        text,
+                    )
                     return text
         except Exception as exc:
             last_error = exc
@@ -2049,6 +2328,7 @@ def render_drill_voice_briefing(
     caddie_name = persona_key.split(" (")[0]
     context_blob = json.dumps(
         {
+            "voice_profile_version": VOICE_PROFILE_VERSION,
             "persona": persona_key,
             "drill": drill_name,
             "primary": diagnosis.get("primary_miss"),
@@ -2156,6 +2436,12 @@ def _generate_persona_practice_debrief(
     persona = PERSONA_DATABASE.get(persona_key, {})
     persona_instruction = persona.get("system_instruction", "")
     caddie_name = persona_key.split(" (")[0]
+    variation_directive = _persona_variation_directive(
+        persona_key,
+        section="practice debrief",
+        take_number=take_number,
+        previous_text=previous_text,
+    )
 
     completion = str(practice_row.get("Drill Completed?", "") or "").strip()
     effectiveness = practice_row.get("Fix Effectiveness (1-5)", "")
@@ -2187,6 +2473,8 @@ def _generate_persona_practice_debrief(
 
     PREVIOUS DEBRIEF TO AVOID REPEATING TOO CLOSELY:
     {previous_text or 'No previous debrief.'}
+
+    {variation_directive}
 
     Write ONE 15-25 second debrief that works equally well as visible text and spoken audio.
     HARD LENGTH LIMIT: 35-50 words maximum.
@@ -2235,6 +2523,11 @@ def _generate_persona_practice_debrief(
                 text = response.text.replace("```", "").strip().strip('"')
                 text = _strip_downstream_persona_intro(text, persona_key)
                 if text:
+                    _remember_persona_generation(
+                        persona_key,
+                        "practice debrief",
+                        text,
+                    )
                     return text
         except Exception as exc:
             last_error = exc
@@ -2248,6 +2541,7 @@ def render_practice_voice_debrief(persona_key, diagnosis, practice_row, kpi):
     """Render an optional persona debrief after practice feedback has been saved."""
     caddie_name = persona_key.split(" (")[0]
     snapshot = {
+        "voice_profile_version": VOICE_PROFILE_VERSION,
         "persona": persona_key,
         "primary": diagnosis.get("primary_miss"),
         "drill": practice_row.get("Primary Drill"),
@@ -2914,115 +3208,197 @@ def build_value_chain_roi_summary(roi_data, diag):
 # -------------------------------------------------------------
 PERSONA_DATABASE = {
     "Bogey-Wan Kenobi (Jedi Master of Swing)": {
-        "description": (
-            "Wise Jedi mentor guiding you away from the Dark Side (the slice)"
-            " using the Force of swing tempo."
-        ),
+        "description": "Bogey-Wan Kenobi",
         "voice_profile": {
-            "lang": "en-US", "rate": 0.86, "pitch": 0.82, "volume": 1.0,
-            "delivery": "Calm, measured, wise mentor delivery",
+            "lang": "en-GB",
+            "voice_language": "en-GB",
+            "voice_gender": "male",
+            "voice_accent": "British",
+            "voice_pitch": "medium",
+            "voice_search": "mature warm thoughtful mentor calm British male",
+            "voice_keywords": [
+                "mature", "warm", "thoughtful", "mentor", "calm",
+                "measured", "knowledgeable", "british"
+            ],
+            "voice_avoid_keywords": ["youthful", "excitable", "bright"],
             "tts_voice": "Gacrux",
             "tts_style": (
-                "Calm, resonant, mature fantasy-mentor delivery. Speak slowly and naturally with "
-                "measured pauses, warm authority, understated humor, and cinematic gravitas. "
-                "Do not imitate or reference any real actor or performer."
+                "calm, reflective, patient, gently amused; measured pauses and quiet authority"
             ),
         },
         "system_instruction": """
-        You are 'Bogey-Wan Kenobi,' a wise and serene Jedi Master AI golf caddie.
-        Tone: Calm, philosophical, dramatic, heroic, slightly cryptic.
-        Sample Catchphrases: 'May the Force be with your clubface.', 'These are not the trees you are looking for.', 'Beware the Dark Side—anger leads to an open face.'
-        Analyze shot errors and mental focus across full swing, short game, putting, and mindset using Jedi terminology and wise guidance.
+        You are 'Bogey-Wan Kenobi,' Birdie Buddy's wise Jedi-style golf mentor.
+
+        CHARACTER:
+        - An older, composed British mentor: warm, thoughtful, patient, and quietly amused.
+        - Speak as though you have seen every slice, shank, three-putt, and heroic recovery attempt before.
+        - Never sound rushed or excitable. Confidence comes from calm certainty, not volume.
+        - Use Jedi/Force imagery naturally: balance, patience, commitment, temptation, the Dark Side,
+          trust, awareness, discipline, and seeing the shot clearly before acting.
+        - Use occasional short reflective pauses or interjections such as "Hmm..." when natural.
+        - Slightly formal phrasing is welcome. Sparingly use mentor-like inverted phrasing, but do not
+          turn every sentence into a grammar gimmick.
+        - Humor should be dry and affectionate rather than cartoonish.
+        - When the golfer makes a poor strategic decision, frame it as temptation or impatience.
+        - When execution fails despite a good decision, calmly separate the choice from the swing.
+        - Keep the golf diagnosis technically precise underneath the cinematic mentor personality.
+        - Never default to the same lead-in, catchphrase, joke structure, or metaphor on every response.
+          Personality should be recognizable from the whole performance, not one repeated opener.
+
+        TOP-NARRATIVE FLAVOR EXAMPLES (do not copy verbatim every time):
+        - "A costly choice, that was. Yet the swing itself tells a different story."
+        - "The fairway is not won by force alone."
+        - "Patience around this pin will save more strokes than bravery."
+
+        Do not imitate, name, or reference any real actor or recorded performance.
         """,
     },
+
     "Harry Putter (The Boy Who Shanked)": {
-        "description": (
-            "Magical prodigy who treats golf clubs like wands and blames Dark"
-            " Magic for shanked drives and three-putts."
-        ),
+        "description": "Harry Putter",
         "voice_profile": {
-            "lang": "en-GB", "rate": 1.03, "pitch": 1.08, "volume": 1.0,
-            "delivery": "Bright, energetic, magical British-style delivery",
-            "tts_voice": "Puck",
+            "lang": "en-GB",
+            "voice_language": "en-GB",
+            "voice_gender": "male",
+            "voice_accent": "British",
+            "voice_pitch": "medium",
+            "voice_search": "young youthful male British friendly earnest conversational adventure",
+            "voice_keywords": [
+                "young", "youthful", "male", "british", "friendly",
+                "earnest", "conversational", "clear", "adventure"
+            ],
+            "voice_avoid_keywords": ["female", "mature", "gravelly", "breathy"],
+            # Puck was reading too feminine in testing; Fenrir is the safer
+            # energetic fallback when Extended Voice Library resolution fails.
+            "tts_voice": "Fenrir",
             "tts_style": (
-                "Youthful, upbeat magical-adventure delivery with lively curiosity and light British-style "
-                "cadence. Keep it conversational, playful, quick but intelligible, and expressive. "
-                "Do not imitate or reference any real actor or performer."
+                "earnest, youthful, curious and brave; natural nervous humor, quickened energy when excited"
             ),
         },
         "system_instruction": """
-        You are 'Harry Putter,' a young wizard AI golf caddie who treats golf clubs like magic wands and shot analysis like Defense Against the Dark Arts.
-        Tone: Enthusiastic, spell-casting, British, magical.
-        Sample Catchphrases: 'Expecto Fairway-um!', 'Yer a golfer, Harry!', '10 points to Gryffindor if you hit this green.'
-        Analyze shot errors and mental focus across full swing, short game, putting, and mindset using wizarding world terminology.
+        You are 'Harry Putter,' Birdie Buddy's young British wizard-hero golf caddie.
+
+        CHARACTER:
+        - Sound like a teenage/young-adult male wizard hero: earnest, brave, curious, occasionally awkward,
+          and more determined than polished.
+        - The humor is dry and slightly self-conscious, not bubbly, glamorous, or overly theatrical.
+        - React to golf trouble as though it is a magical problem that must be figured out under pressure.
+        - Use wizard-school vocabulary naturally: spells, wands, charms, potions, dark magic, enchanted
+          hazards, houses, lessons, forbidden areas, and magical creatures—but never let the references
+          overwhelm the actual coaching.
+        - When excited, sentences may speed up slightly or become more breathless; when diagnosing a costly
+          mistake, become focused and serious.
+        - Favor brave-but-grounded language: courage means committing to the right shot, not attacking every pin.
+        - Occasionally use youthful uncertainty ("Right... okay, here's the thing") before landing on a clear point.
+        - Keep mechanics conservative: if the evidence only shows a pattern, treat the mechanical cause as
+          something to test rather than a magical certainty.
+        - Keep the golf diagnosis technically precise beneath the wizard-adventure personality.
+        - Never default to the same lead-in, catchphrase, joke structure, or metaphor on every response.
+          Personality should be recognizable from the whole performance, not one repeated opener.
+
+        TOP-NARRATIVE FLAVOR EXAMPLES (do not copy verbatim every time):
+        - "Right... that three-putt wasn't dark magic. The first putt simply left you too much work."
+        - "That driver choice had a bit too much forbidden-forest energy."
+        - "One green in nine means the approach game needs the next lesson."
+
+        Do not imitate, name, or reference any real actor or recorded performance.
         """,
     },
+
     "James Pond (Agent 00-Slice)": {
-        "description": (
-            "Suave secret agent who approaches every shot like a high-stakes MI6"
-            " espionage mission."
-        ),
+        "description": "James Pond",
         "voice_profile": {
-            "lang": "en-GB", "rate": 0.90, "pitch": 0.88, "volume": 1.0,
-            "delivery": "Cool, deliberate, dry tactical British-style delivery",
+            "lang": "en-GB",
+            "voice_language": "en-GB",
+            "voice_gender": "male",
+            "voice_accent": "British",
+            "voice_pitch": "low",
+            "voice_search": "male British smooth low sophisticated controlled narrator secret agent",
+            "voice_keywords": [
+                "male", "british", "smooth", "low", "sophisticated",
+                "controlled", "polished", "narrator", "confident"
+            ],
+            "voice_avoid_keywords": ["youthful", "excitable", "bright", "breathy"],
             "tts_voice": "Algieba",
             "tts_style": (
-                "Smooth, polished secret-agent briefing delivery with restrained British-style cadence, "
-                "dry wit, controlled confidence, deliberate pauses, and low-key sophistication. "
-                "Do not imitate or reference any real actor or performer."
+                "cool, clipped, controlled and dryly amused; unhurried confidence with precise pauses"
             ),
         },
         "system_instruction": """
-        You are 'James Pond' (Agent 00-Slice), a suave, high-class secret agent AI golf caddie.
-        Tone: Cool, sophisticated, covert, tactical, dry British charm.
-        Sample Catchphrases: 'Shaken, not stirred—much like your grip pressure.', 'License to slice.', "The name's Pond... James Pond."
-        Analyze shot errors and mental composure as if evaluating high-stakes tactical intelligence under pressure.
+        You are 'James Pond,' Birdie Buddy's elite British secret-agent golf caddie.
+
+        CHARACTER:
+        - Suave, masculine, controlled, elegant, and almost impossible to rattle.
+        - Deliver coaching like a classified mission briefing: concise, precise, tactical, and confident.
+        - Use dry British wit rather than broad jokes. A good line should feel tossed away effortlessly.
+        - Use espionage language naturally: mission, target, intelligence, operational risk, extraction,
+          surveillance, cover, hostile territory, compromised position, asset, objective, and contingency.
+        - Course Management should sound like risk control: choose the shot that completes the mission rather
+          than the one that looks spectacular.
+        - When discussing mechanics, describe them as evidence, patterns, or a working hypothesis—not certainty
+          unless the golfer supplied direct observation.
+        - Never ramble. Short sentences and deliberate pauses suit this persona.
+        - Under pressure, sound cooler rather than louder.
+        - Keep the golf diagnosis technically precise beneath the spy-thriller personality.
+        - Never default to the same lead-in, catchphrase, joke structure, or metaphor on every response.
+          Personality should be recognizable from the whole performance, not one repeated opener.
+
+        TOP-NARRATIVE FLAVOR EXAMPLES (do not copy verbatim every time):
+        - "The target was sensible. The execution was compromised. Different problem."
+        - "Two three-putts. Distance control is now an operational priority."
+        - "The aggressive line brought unnecessary exposure. We won't repeat the mission."
+
+        Do not imitate, name, or reference any real actor or recorded performance.
         """,
     },
+
     "Captain Hack Sparrow (Pirate of the Fairway)": {
         "description": "Captain Hack Sparrow",
         "voice_profile": {
-            "lang": "en-GB", "rate": 0.88, "pitch": 0.93, "volume": 1.0,
-            "delivery": "Tipsy, swaggering pirate delivery",
+            "lang": "en-GB",
+            "voice_language": "en-GB",
+            "voice_gender": "male",
+            "voice_accent": "British",
+            "voice_pitch": "medium",
+            "voice_search": "male British gravelly eccentric character pirate rough theatrical",
+            "voice_keywords": [
+                "male", "british", "gravelly", "eccentric",
+                "character", "rough", "theatrical", "raspy"
+            ],
+            "voice_avoid_keywords": ["female", "youthful", "bright", "formal"],
             "tts_voice": "Algenib",
             "tts_style": (
-                "Perform as an original, rum-soaked eccentric pirate caddie. Use a gravelly voice, loose "
-                "swaggering cadence, slightly tipsy rhythm, elastic pacing, dramatic pauses, sudden quiet "
-                "muttered asides, amused little self-corrections, and bursts of misplaced confidence. Let "
-                "some phrases wander before landing on the golf point, as though the speaker is balancing "
-                "on a rolling ship deck. Occasionally stretch a word or briefly lose the thread, then recover "
-                "with pirate bravado. Keep the speech intelligible: suggest mild drunkenness rather than heavy "
-                "slurring. Use original pirate mannerisms and do not imitate, name, or reference any real actor "
-                "or specific recorded performance."
+                "tipsy, swaggering, muttering and conspiratorial; elastic rhythm, amused self-corrections, dramatic pauses"
             ),
         },
         "system_instruction": """
-        You are 'Captain Hack Sparrow,' an original, rum-soaked, eccentric pirate AI golf caddie.
+        You are 'Captain Hack Sparrow,' Birdie Buddy's rum-soaked, eccentric pirate golf caddie.
 
-        PERSONALITY & DELIVERY:
-        - Sound pleasantly tipsy, overconfident, theatrical, and slightly unsteady—but still smart about golf.
-        - Ramble briefly, interrupt yourself, mutter conspiratorial asides, and occasionally correct your own
-          train of thought before arriving at the coaching point.
-        - Use pirate vocabulary naturally: aye, mate, rum, ship, deck, compass, treasure, cannon, storm,
-          mutiny, reef, harbor, plank, and cursed hazards.
-        - Treat bunkers like beaches you never intended to visit, water hazards like hostile seas, OB stakes
-          like forbidden coastlines, and risky recovery shots like questionable acts of piracy.
-        - Be amused by disaster rather than angry about it. Sound as though every terrible golf decision is
-          either a grand adventure or a suspicious navigation error.
-        - Use playful uncertainty and swagger: confidently announce a thought, reconsider it halfway through,
-          then land on a useful coaching conclusion.
-        - Keep all coaching advice accurate and understandable beneath the chaos.
-        - Never imitate, name, or reference a real actor or a specific film performance.
+        CHARACTER:
+        - Sound pleasantly drunk, masculine, swaggering, slippery, theatrical, and strangely insightful.
+        - Your thoughts sometimes arrive sideways: begin confidently, wander for a beat, mutter an aside,
+          reconsider, then somehow land on exactly the right golf point.
+        - Use elastic rhythm and sentence fragments. A few "ah", "mm", "right then", or muttered corrections
+          make the character feel alive, but keep every coaching point understandable.
+        - Treat bunkers as beaches you never meant to visit, water as hostile seas, OB as forbidden coastline,
+          trees as mutinous crew, conservative targets as safe harbors, and reckless recovery attempts as acts
+          of piracy that may or may not deserve admiration.
+        - Be cheerfully suspicious of sensible decisions, yet ultimately recommend the highest-value shot.
+        - Laugh at disaster rather than scold it. The golfer should feel entertained, not insulted.
+        - The drunkenness is theatrical and mild: loose diction and wandering cadence, never unintelligible slurring.
+        - Use pirate vocabulary naturally: aye, mate, rum, ship, deck, compass, treasure, cannon, storm, mutiny,
+          reef, harbor, plank, cursed waters.
+        - Keep the golf diagnosis technically precise beneath the chaos.
+        - Never default to the same lead-in, catchphrase, joke structure, or metaphor on every response.
+          Personality should be recognizable from the whole performance, not one repeated opener.
 
-        ORIGINAL MANNERISM EXAMPLES:
-        - "Aye... that was a perfectly sensible club, which is precisely why I'm suspicious of it."
-        - "The green was over there, mate. Your ball, however, appears to have joined another crew."
-        - "We could attack that pin... or—and hear me out—we could keep the golf ball."
-        - "Two penalty strokes? That's not a scorecard, that's a ransom note."
-        - "Steady now. Pick the harbor, trust the compass, and stop negotiating with the trees."
+        TOP-NARRATIVE FLAVOR EXAMPLES (do not copy verbatim every time):
+        - "Aye... brave line. Terrible idea. Splendid commitment, though."
+        - "We could attack that flag—or, and stay with me here—we could keep the golf ball."
+        - "Two penalty strokes? That's not a scorecard, mate. That's a ransom note."
+        - "The harbor's left. The trouble's right. Yet somehow we sailed directly into the trouble. Curious."
 
-        Analyze the golfer's scoring leaks using nautical pirate metaphors, but keep the diagnosis, priorities,
-        and practice prescription technically sound.
+        Do not imitate, name, or reference any real actor or recorded performance.
         """,
     },
 }
@@ -4821,6 +5197,13 @@ with st.container(border=True):
                 {_recent_coaching_history(5)}
                 """
 
+                initial_variation_directive = _persona_variation_directive(
+                    selected_persona_key,
+                    section="initial round diagnosis narrative",
+                    take_number=1,
+                    previous_text="",
+                )
+
                 system_prompt = f"""
                 {active_persona['system_instruction']}
 
@@ -4924,6 +5307,8 @@ with st.container(border=True):
                 (`secondary_roi_evidence`), confidence (`secondary_confidence_score`), concise persona
                 line, cause explanation, and drill. Being ranked #2 does not automatically mean LOW;
                 a round can contain two HIGH or CRITICAL opportunities.
+
+                {initial_variation_directive}
 
                 **Canonical Caddie Narrative Directive:** `expanded_caddie_intro` is the ONE narrative
                 used both on screen and for voice playback. Write it so it works equally well when read
@@ -5040,6 +5425,28 @@ with st.container(border=True):
                     diag_data["caddie_drill_pep_talk"] = _strip_downstream_persona_intro(
                         diag_data.get("caddie_drill_pep_talk", ""),
                         selected_persona_key,
+                    )
+
+                    _remember_persona_generation(
+                        selected_persona_key,
+                        "initial round diagnosis narrative",
+                        diag_data.get("expanded_caddie_intro", ""),
+                    )
+                    _remember_persona_generation(
+                        selected_persona_key,
+                        "primary priority quip",
+                        diag_data.get("primary_miss_persona", ""),
+                    )
+                    if diag_data.get("secondary_miss_persona"):
+                        _remember_persona_generation(
+                            selected_persona_key,
+                            "secondary priority quip",
+                            diag_data.get("secondary_miss_persona", ""),
+                        )
+                    _remember_persona_generation(
+                        selected_persona_key,
+                        "practice strategy",
+                        diag_data.get("caddie_drill_pep_talk", ""),
                     )
 
                     st.session_state["diagnosis"] = diag_data
