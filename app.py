@@ -1595,11 +1595,7 @@ def render_caddie_voice_player(text, persona_key, label="Generate Caddie Audio")
 
     with st.container(border=True):
         st.markdown("#### 🎧 Caddie Audio")
-        st.caption(
-            f"High-quality generated speech • {delivery} • Voice: {voice_name}"
-        )
-
-        button_text = "🎙️ Generate High-Quality Caddie Audio"
+        button_text = "🎙️ Generate Caddie Audio"
         if state_key in st.session_state:
             button_text = "🔄 Regenerate Caddie Audio"
 
@@ -1609,7 +1605,7 @@ def render_caddie_voice_player(text, persona_key, label="Generate Caddie Audio")
             use_container_width=True,
         ):
             try:
-                with st.spinner("Creating studio-quality caddie audio..."):
+                with st.spinner("Creating caddie audio..."):
                     audio_bytes, used_voice, used_model = generate_gemini_tts_audio(
                         spoken_text, persona_key
                     )
@@ -1620,21 +1616,17 @@ def render_caddie_voice_player(text, persona_key, label="Generate Caddie Audio")
                 }
                 st.rerun()
             except Exception as exc:
-                st.error(f"High-quality voice generation failed: {exc}")
+                st.error(f"Voice generation failed: {exc}")
 
         audio_bytes = st.session_state.get(state_key)
         if audio_bytes:
             meta = st.session_state.get(meta_key, {})
             used_voice = meta.get("voice", voice_name)
-            used_model = meta.get("model", "Gemini TTS")
             _render_seekable_audio_player(
                 audio_bytes,
                 uid=digest,
                 voice_label=used_voice,
                 delivery_label=delivery,
-            )
-            st.caption(
-                f"Generated with {used_model}. Use the large timeline or ±10-second controls to move through the audio."
             )
         else:
             st.caption(
@@ -4208,13 +4200,15 @@ with st.container(border=True):
                 line, cause explanation, and drill. Being ranked #2 does not automatically mean LOW;
                 a round can contain two HIGH or CRITICAL opportunities.
 
-                **Spoken Caddie Directive:** Create `spoken_caddie_summary` specifically for read-aloud.
-                Make it about 45-75 seconds when spoken, conversational rather than report-like, and in
+                **Canonical Caddie Narrative Directive:** `expanded_caddie_intro` is the ONE narrative
+                used both on screen and for voice playback. Write it so it works equally well when read
+                and when spoken aloud: about 45-75 seconds, conversational rather than report-like, and in
                 the selected caddie's fictional parody persona. Use that persona's pacing, vocabulary,
                 humor, tone, and mannerisms, but do not claim to be or imitate a real actor/performer.
                 Mention the #1 opportunity, the most important evidence, the #2 opportunity if material,
                 and the immediate practice focus. Avoid markdown, tables, raw JSON language, long strings
-                of statistics, or reading confidence percentages aloud.
+                of statistics, or reading confidence percentages aloud. Do NOT create a separate alternate
+                spoken version of this narrative.
 
                 Map faults to the most effective drills from this EXACT list of 45 drills:
                 - FULL SWING: 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill', 'Towel Under Armpits Drill', 'Coin Strike Low-Point Drill', 'Split-Hands Release Drill', 'Feet-Together Balance Drill', 'Wall-Head Posture Drill', 'Impact Bag Compression Drill', 'Two-Step Pump Lag Drill'
@@ -4236,9 +4230,8 @@ with st.container(border=True):
                   "secondary_roi_priority": "CRITICAL | HIGH | MEDIUM | LOW | null — severity of the secondary opportunity itself, independent of being ranked #2",
                   "secondary_roi_evidence": "string or null — specific round evidence supporting the secondary opportunity",
                   "secondary_confidence_score": "number from 0.0 to 1.0 or null — confidence in the secondary diagnosis",
-                  "expanded_caddie_intro": "string (3-4 robust sentences in persona referencing their story and strategic ROI fix)",
-                  "spoken_caddie_summary": "string (audio-friendly 45-75 second caddie summary in persona; conversational, no markdown, no real-actor imitation)",
-                  "caddie_drill_pep_talk": "string (2-3 sentences in persona giving encouraging range advice)",
+                  "expanded_caddie_intro": "string (canonical 45-75 second caddie narrative used VERBATIM for both on-screen text and voice playback; conversational, persona-consistent, references the golfer's story, #1 opportunity, key evidence, #2 opportunity if material, and immediate practice focus; no markdown or real-actor imitation)",
+                  "caddie_drill_pep_talk": "string (2-3 sentences in persona giving encouraging range advice; this same exact text is displayed and spoken in the practice section)",
                   "value_chain_analysis": {{
                     "off_the_tee": "string (1 sentence assessment of driving/tee-shot performance, grounded in the numbers if provided)",
                     "approach": "string (1 sentence assessment of mid-iron/approach performance)",
@@ -4378,26 +4371,24 @@ with st.container(border=True):
             "One five-stage view of your highest-ROI scoring opportunities. Numerical stroke estimates come from logged round data; strategy/mental attribution comes from your story and follow-up answers."
         )
 
-        intro_text = diag.get("expanded_caddie_intro", "")
-        if intro_text:
-            st.success(f'**{caddie}:** “{intro_text}”')
+        # The on-screen narrative is the single source of truth for voice playback.
+        # Whatever the golfer reads here is exactly what the caddie audio speaks.
+        narrative_text = str(diag.get("expanded_caddie_intro", "") or "").strip()
+        if not narrative_text:
+            narrative_text = " ".join(
+                x for x in [
+                    diag.get("primary_miss_persona", ""),
+                    diag.get("secondary_miss_persona", ""),
+                ]
+                if x
+            ).strip()
 
-        spoken_summary = diag.get("spoken_caddie_summary") or " ".join(
-            x for x in [
-                intro_text,
-                diag.get("primary_miss_persona", ""),
-                diag.get("secondary_miss_persona", ""),
-            ]
-            if x
-        )
-        if spoken_summary:
+        if narrative_text:
+            st.success(f'**{caddie}:** “{narrative_text}”')
             render_caddie_voice_player(
-                spoken_summary,
+                narrative_text,
                 selected_persona_key,
                 label=f"Hear {caddie}'s Round Diagnosis",
-            )
-            st.caption(
-                "Each caddie uses a distinct Gemini studio voice plus persona-specific pacing, energy, and delivery."
             )
 
         primary_stage = diag.get("primary_miss_stage") or vc.get("primary_leak_stage", "Highest-ROI Focus")
