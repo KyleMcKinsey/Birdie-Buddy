@@ -6,6 +6,7 @@ import re
 import google.generativeai as genai
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 from PIL import Image
 
 st.set_page_config(
@@ -1262,6 +1263,193 @@ genai.configure(api_key=api_key)
 
 
 # -------------------------------------------------------------
+# VOICE INPUT + CHARACTER-STYLE CADDIE READ-ALOUD
+# -------------------------------------------------------------
+def transcribe_round_audio(audio_file):
+    """Transcribe a golfer's microphone recording without diagnosing it.
+
+    The transcript is always returned to an editable text box before it can be
+    used as diagnostic evidence.
+    """
+    if audio_file is None:
+        return ""
+
+    audio_bytes = audio_file.getvalue()
+    if not audio_bytes:
+        return ""
+
+    mime_type = getattr(audio_file, "type", None) or "audio/wav"
+    prompt = """
+    Transcribe this golfer's spoken round description accurately.
+
+    Rules:
+    - Return ONLY the transcript. No diagnosis, summary, coaching, or commentary.
+    - Preserve golf terminology, club names, hole numbers, score/stat numbers,
+      miss directions, hazards, and quoted distances as spoken.
+    - Use normal punctuation and paragraphing so the golfer can review/edit it.
+    - If a word is genuinely unclear, write [unclear] instead of guessing.
+    """
+
+    flash_models = [
+        m.name
+        for m in genai.list_models()
+        if "generateContent" in m.supported_generation_methods
+        and "flash" in m.name.lower()
+    ]
+    flash_models.sort(reverse=True)
+
+    last_error = None
+    for model_name in flash_models:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(
+                [prompt, {"mime_type": mime_type, "data": audio_bytes}]
+            )
+            if response and response.text:
+                return response.text.strip()
+        except Exception as exc:
+            last_error = exc
+            continue
+
+    raise RuntimeError(
+        f"No Gemini Flash model could transcribe the recording. {last_error or ''}".strip()
+    )
+
+
+def render_voice_story_input(text_state_key, audio_key, button_key, label):
+    """Record -> transcribe -> append into an editable Streamlit text field."""
+    if not hasattr(st, "audio_input"):
+        st.caption(
+            "🎙️ Microphone input requires a Streamlit version that supports audio_input. "
+            "Typing still works normally."
+        )
+        return
+
+    st.markdown("##### 🎙️ Voice Input")
+    audio_file = st.audio_input(label, key=audio_key)
+    if audio_file is not None:
+        if st.button(
+            "Transcribe & Add to Round Story",
+            key=button_key,
+            use_container_width=True,
+        ):
+            try:
+                with st.spinner("Transcribing your round description..."):
+                    transcript = transcribe_round_audio(audio_file)
+                existing = str(st.session_state.get(text_state_key, "") or "").strip()
+                combined = "\n\n".join(x for x in [existing, transcript] if x).strip()
+                st.session_state[text_state_key] = combined
+                st.session_state[f"{audio_key}_transcript_notice"] = True
+                st.rerun()
+            except Exception as exc:
+                st.error(f"Voice transcription failed: {exc}")
+
+    if st.session_state.pop(f"{audio_key}_transcript_notice", False):
+        st.success("Voice description added below. Review or edit it before continuing.")
+
+
+def _speech_clean_text(text):
+    """Make generated caddie prose sound natural in browser speech synthesis."""
+    if not text:
+        return ""
+    cleaned = str(text)
+    cleaned = re.sub(r"[`*_#>]", "", cleaned)
+    cleaned = cleaned.replace("•", ". ").replace("—", ", ")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
+
+
+def render_caddie_voice_player(text, persona_key, label="Hear Caddie"):
+    """Render user-initiated browser TTS with persona-specific prosody.
+
+    This intentionally uses a character-inspired delivery profile rather than
+    cloning or imitating a specific performer's recorded voice. Actual voice
+    timbre depends on voices installed in the user's browser/operating system.
+    """
+    spoken_text = _speech_clean_text(text)
+    if not spoken_text:
+        return
+
+    persona = PERSONA_DATABASE.get(persona_key, {})
+    profile = persona.get("voice_profile", {})
+    lang = profile.get("lang", "en-US")
+    rate = float(profile.get("rate", 0.95))
+    pitch = float(profile.get("pitch", 1.0))
+    volume = float(profile.get("volume", 1.0))
+    delivery = profile.get("delivery", "Character-inspired caddie delivery")
+
+    # JSON encoding protects quotes/newlines when embedding generated text in JS.
+    js_text = json.dumps(spoken_text, ensure_ascii=False).replace("</", "<\\/")
+    js_lang = json.dumps(lang)
+    js_delivery = json.dumps(delivery, ensure_ascii=False)
+    uid = str(abs(hash((spoken_text, persona_key, label))))
+
+    html = f"""
+    <div style="font-family: sans-serif; display:flex; align-items:center; gap:8px;
+                padding:4px 0 2px 0; flex-wrap:wrap;">
+      <button id="play-{uid}" style="border:1px solid #6b7280; border-radius:8px;
+              padding:7px 12px; background:transparent; color:inherit; cursor:pointer;">
+        🔊 {label}
+      </button>
+      <button id="stop-{uid}" style="border:1px solid #6b7280; border-radius:8px;
+              padding:7px 10px; background:transparent; color:inherit; cursor:pointer;">
+        ■ Stop
+      </button>
+      <span id="status-{uid}" style="font-size:12px; opacity:.68;"></span>
+    </div>
+    <script>
+    (() => {{
+      const text = {js_text};
+      const lang = {js_lang};
+      const delivery = {js_delivery};
+      const rate = {rate};
+      const pitch = {pitch};
+      const volume = {volume};
+      const status = document.getElementById('status-{uid}');
+
+      function chooseVoice() {{
+        const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+        if (!voices.length) return null;
+        const exact = voices.find(v => (v.lang || '').toLowerCase() === lang.toLowerCase());
+        if (exact) return exact;
+        const base = lang.split('-')[0].toLowerCase();
+        return voices.find(v => (v.lang || '').toLowerCase().startsWith(base)) || voices[0];
+      }}
+
+      document.getElementById('play-{uid}').onclick = () => {{
+        if (!('speechSynthesis' in window)) {{
+          status.textContent = 'Read-aloud is not supported in this browser.';
+          return;
+        }}
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = lang;
+        utterance.rate = rate;
+        utterance.pitch = pitch;
+        utterance.volume = volume;
+        const voice = chooseVoice();
+        if (voice) utterance.voice = voice;
+        utterance.onstart = () => {{
+          status.textContent = delivery + (voice ? ' • ' + voice.name : '');
+        }};
+        utterance.onend = () => {{ status.textContent = delivery; }};
+        utterance.onerror = () => {{ status.textContent = 'Unable to play speech in this browser.'; }};
+        window.speechSynthesis.speak(utterance);
+      }};
+
+      document.getElementById('stop-{uid}').onclick = () => {{
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        status.textContent = 'Stopped';
+      }};
+
+      status.textContent = delivery;
+    }})();
+    </script>
+    """
+    components.html(html, height=56)
+
+
+# -------------------------------------------------------------
 # SCORE-ROI PRIORITY ENGINE
 # -------------------------------------------------------------
 VALUE_CHAIN_STAGES = [
@@ -1845,6 +2033,10 @@ PERSONA_DATABASE = {
             "Wise Jedi mentor guiding you away from the Dark Side (the slice)"
             " using the Force of swing tempo."
         ),
+        "voice_profile": {
+            "lang": "en-US", "rate": 0.86, "pitch": 0.82, "volume": 1.0,
+            "delivery": "Calm, measured, wise mentor delivery",
+        },
         "system_instruction": """
         You are 'Bogey-Wan Kenobi,' a wise and serene Jedi Master AI golf caddie.
         Tone: Calm, philosophical, dramatic, heroic, slightly cryptic.
@@ -1857,6 +2049,10 @@ PERSONA_DATABASE = {
             "Magical prodigy who treats golf clubs like wands and blames Dark"
             " Magic for shanked drives and three-putts."
         ),
+        "voice_profile": {
+            "lang": "en-GB", "rate": 1.03, "pitch": 1.08, "volume": 1.0,
+            "delivery": "Bright, energetic, magical British-style delivery",
+        },
         "system_instruction": """
         You are 'Harry Putter,' a young wizard AI golf caddie who treats golf clubs like magic wands and shot analysis like Defense Against the Dark Arts.
         Tone: Enthusiastic, spell-casting, British, magical.
@@ -1869,6 +2065,10 @@ PERSONA_DATABASE = {
             "Suave secret agent who approaches every shot like a high-stakes MI6"
             " espionage mission."
         ),
+        "voice_profile": {
+            "lang": "en-GB", "rate": 0.90, "pitch": 0.88, "volume": 1.0,
+            "delivery": "Cool, deliberate, dry tactical British-style delivery",
+        },
         "system_instruction": """
         You are 'James Pond' (Agent 00-Slice), a suave, high-class secret agent AI golf caddie.
         Tone: Cool, sophisticated, covert, tactical, dry British charm.
@@ -1881,6 +2081,10 @@ PERSONA_DATABASE = {
             "Eccentric, unpredictable pirate caddie stumbling through hazards"
             " with rum-fueled optimism and chaotic strategies."
         ),
+        "voice_profile": {
+            "lang": "en-GB", "rate": 0.92, "pitch": 0.94, "volume": 1.0,
+            "delivery": "Eccentric, theatrical, uneven pirate-style delivery",
+        },
         "system_instruction": """
         You are 'Captain Hack Sparrow,' an eccentric, wildly unpredictable pirate AI golf caddie.
         Tone: Slurred charm, chaotic, theatrical, witty, rum-obsessed, highly eccentric.
@@ -3042,13 +3246,21 @@ with st.container(border=True):
         gir_opportunities = 18
 
         if intake_mode == "✍️ Describe / Enter Stats":
+            render_voice_story_input(
+                text_state_key="round_story_text",
+                audio_key="round_story_audio",
+                button_key="transcribe_round_story_btn",
+                label="Record your round description",
+            )
             user_round_story = st.text_area(
                 "Describe your round in your own words:",
-                height=120,
+                height=150,
                 placeholder=(
                     "e.g., I hit several solid drives but kept choosing aggressive targets after bogeys. "
                     "My approaches tended to finish short-right and I struggled with long-putt distance control..."
                 ),
+                key="round_story_text",
+                help="Type normally or use Voice Input above. Voice transcripts stay editable before diagnosis.",
             )
 
             stats_tracked = st.toggle(
@@ -3295,14 +3507,21 @@ with st.container(border=True):
                         placeholder="Not shown", key="upload_scramble_review",
                     )
 
+                render_voice_story_input(
+                    text_state_key="upload_round_notes",
+                    audio_key="upload_round_notes_audio",
+                    button_key="transcribe_upload_notes_btn",
+                    label="Record context the scorecard cannot show",
+                )
                 user_round_story = st.text_area(
                     "Anything the scorecard does not show? (optional)",
-                    height=100,
+                    height=120,
                     placeholder=(
                         "e.g., The two penalty holes came from aggressive recovery attempts; "
                         "my driver contact actually felt solid most of the day."
                     ),
                     key="upload_round_notes",
+                    help="You can type or dictate this context. Review the transcript before continuing.",
                 )
 
                 scorecard_context = json.dumps(extraction, ensure_ascii=False)
@@ -3772,6 +3991,14 @@ with st.container(border=True):
                 line, cause explanation, and drill. Being ranked #2 does not automatically mean LOW;
                 a round can contain two HIGH or CRITICAL opportunities.
 
+                **Spoken Caddie Directive:** Create `spoken_caddie_summary` specifically for read-aloud.
+                Make it about 45-75 seconds when spoken, conversational rather than report-like, and in
+                the selected caddie's fictional parody persona. Use that persona's pacing, vocabulary,
+                humor, tone, and mannerisms, but do not claim to be or imitate a real actor/performer.
+                Mention the #1 opportunity, the most important evidence, the #2 opportunity if material,
+                and the immediate practice focus. Avoid markdown, tables, raw JSON language, long strings
+                of statistics, or reading confidence percentages aloud.
+
                 Map faults to the most effective drills from this EXACT list of 45 drills:
                 - FULL SWING: 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill', 'Towel Under Armpits Drill', 'Coin Strike Low-Point Drill', 'Split-Hands Release Drill', 'Feet-Together Balance Drill', 'Wall-Head Posture Drill', 'Impact Bag Compression Drill', 'Two-Step Pump Lag Drill'
                 - SHORT GAME: 'Towel Behind Ball Drill', 'Lead Foot Weight Anchor Drill', 'Brush Turf Chipping Drill', 'Coin Lead-Point Pitch Drill', 'Ruler in Glove Wrist Anchor Drill', 'Hinge-and-Hold Chipping Drill', 'Clock System Wedge Drill', 'Landing Zone Target Towel Drill', 'Trail-Hand Only Pitch Drill', 'Line in the Sand Drill', 'Dollar Bill Sand Extraction Drill', 'Open-Face Sand Splash Drill', 'Continuous Motion Pendulum Chipping Drill', 'Accelerating Through Impact Gate Drill', 'Target-Focused Eyes-Up Chipping Drill'
@@ -3793,6 +4020,7 @@ with st.container(border=True):
                   "secondary_roi_evidence": "string or null — specific round evidence supporting the secondary opportunity",
                   "secondary_confidence_score": "number from 0.0 to 1.0 or null — confidence in the secondary diagnosis",
                   "expanded_caddie_intro": "string (3-4 robust sentences in persona referencing their story and strategic ROI fix)",
+                  "spoken_caddie_summary": "string (audio-friendly 45-75 second caddie summary in persona; conversational, no markdown, no real-actor imitation)",
                   "caddie_drill_pep_talk": "string (2-3 sentences in persona giving encouraging range advice)",
                   "value_chain_analysis": {{
                     "off_the_tee": "string (1 sentence assessment of driving/tee-shot performance, grounded in the numbers if provided)",
@@ -3935,7 +4163,25 @@ with st.container(border=True):
 
         intro_text = diag.get("expanded_caddie_intro", "")
         if intro_text:
-            st.success(f"**{caddie}:** \"{intro_text}\"")
+            st.success(f'**{caddie}:** “{intro_text}”')
+
+        spoken_summary = diag.get("spoken_caddie_summary") or " ".join(
+            x for x in [
+                intro_text,
+                diag.get("primary_miss_persona", ""),
+                diag.get("secondary_miss_persona", ""),
+            ]
+            if x
+        )
+        if spoken_summary:
+            render_caddie_voice_player(
+                spoken_summary,
+                selected_persona_key,
+                label=f"Hear {caddie}'s Round Diagnosis",
+            )
+            st.caption(
+                "Voice uses a character-inspired delivery profile. Exact timbre depends on the voices available in your browser/device."
+            )
 
         primary_stage = diag.get("primary_miss_stage") or vc.get("primary_leak_stage", "Highest-ROI Focus")
         primary_title = diag.get("primary_miss", "Primary scoring opportunity")
@@ -4352,7 +4598,12 @@ if (
                 )
 
             if pep_talk:
-                st.success(f"🗣️ **{caddie}'s Practice Strategy:** \"{pep_talk}\"")
+                st.success(f"🗣️ **{caddie}'s Practice Strategy:** “{pep_talk}”")
+                render_caddie_voice_player(
+                    pep_talk,
+                    selected_persona_key,
+                    label=f"Hear {caddie}'s Practice Strategy",
+                )
 
             summary_line = (
                 "💡 **Targeted Prescription:** Circuit optimized across"
