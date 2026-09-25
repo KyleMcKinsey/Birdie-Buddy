@@ -6381,8 +6381,13 @@ if (
 
 
 # -------------------------------------------------------------
-# PROGRESS & TRENDS — intentionally placed after the current-round
-# diagnosis, practice plan, and practice-feedback workflow.
+# PROGRESS & TRENDS — reveal only after the current practice
+# execution plan has actually been generated.
 # -------------------------------------------------------------
-_progress_df = load_history_df()
-render_progress_trends(_progress_df)
+if (
+    "diagnosis" in st.session_state
+    and "confirmed_resources" in st.session_state
+    and st.session_state.get("show_execution_plan", False)
+):
+    _progress_df = load_history_df()
+    render_progress_trends(_progress_df)
