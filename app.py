@@ -1621,8 +1621,143 @@ def _render_seekable_audio_player(audio_bytes, uid, caddie_name):
     components.html(html, height=210, scrolling=False)
 
 
-def render_caddie_voice_player(text, persona_key, label="Generate Caddie Audio"):
-    """Generate and render seekable, persona-specific studio-quality TTS audio."""
+
+def _regenerate_persona_copy(diag, persona_key, previous_narrative="", take_number=1):
+    """Rewrite persona-facing copy without changing the underlying golf diagnosis."""
+    persona = PERSONA_DATABASE.get(persona_key, {})
+    persona_instruction = persona.get("system_instruction", "")
+    caddie_name = persona_key.split(" (")[0]
+
+    diagnosis_facts = {
+        "primary_miss": diag.get("primary_miss"),
+        "primary_miss_stage": diag.get("primary_miss_stage"),
+        "primary_cause_breakdown": diag.get("primary_cause_breakdown"),
+        "secondary_miss": diag.get("secondary_miss"),
+        "secondary_miss_stage": diag.get("secondary_miss_stage"),
+        "secondary_cause_breakdown": diag.get("secondary_cause_breakdown"),
+        "roi_priority": diag.get("roi_priority"),
+        "roi_evidence": diag.get("roi_evidence"),
+        "secondary_roi_priority": diag.get("secondary_roi_priority"),
+        "secondary_roi_evidence": diag.get("secondary_roi_evidence"),
+        "decision_quality": diag.get("decision_quality"),
+        "mechanical_evidence_level": diag.get("mechanical_evidence_level"),
+        "course_management_subtype": diag.get("course_management_subtype"),
+        "diagnostic_blind_spot": diag.get("diagnostic_blind_spot"),
+        "recommended_primary_drill": diag.get("recommended_primary_drill"),
+        "recommended_secondary_drill": diag.get("recommended_secondary_drill"),
+        "drill_rationale": diag.get("drill_rationale"),
+        "value_chain_analysis": diag.get("value_chain_analysis", {}),
+    }
+    round_context = {
+        "round_story": st.session_state.get("user_round_story", ""),
+        "score": st.session_state.get("round_score"),
+        "holes_played": st.session_state.get("round_holes_played"),
+        "fairways_hit": st.session_state.get("round_fairways_hit"),
+        "fairway_opportunities": st.session_state.get("round_fairway_opportunities"),
+        "gir": st.session_state.get("round_gir"),
+        "gir_opportunities": st.session_state.get("round_gir_opportunities"),
+        "putts": st.session_state.get("round_putts"),
+        "penalty_strokes": st.session_state.get("round_penalty_strokes"),
+        "ob_lost_balls": st.session_state.get("round_ob_lost_balls"),
+        "three_putts": st.session_state.get("round_three_putts"),
+        "failed_up_downs": st.session_state.get("round_failed_up_downs"),
+        "scrambling_opportunities": st.session_state.get("round_scrambling_opportunities"),
+        "handicap": st.session_state.get("round_handicap"),
+    }
+
+    prompt = f"""
+    {persona_instruction}
+
+    You are rewriting ONLY the persona-facing presentation for an ALREADY COMPLETED
+    Birdie Buddy golf diagnosis. The golf analysis is locked. Do not change the diagnosis,
+    ranking, evidence, stage attribution, decision-quality conclusion, confidence, drills,
+    or any numerical fact.
+
+    Selected caddie: {caddie_name}
+    Alternate take number: {take_number}
+
+    LOCKED DIAGNOSIS FACTS:
+    {json.dumps(diagnosis_facts, ensure_ascii=False, indent=2)}
+
+    ROUND CONTEXT:
+    {json.dumps(round_context, ensure_ascii=False, indent=2)}
+
+    PREVIOUS NARRATIVE TO AVOID REPEATING TOO CLOSELY:
+    {previous_narrative or 'No previous narrative supplied.'}
+
+    Create a FRESH alternate performance of the same diagnosis in the selected caddie's
+    fictional parody persona. This is a new take, not a paraphrase-by-synonym.
+
+    REQUIREMENTS:
+    - `expanded_caddie_intro` is the exact text that will appear on screen AND be spoken aloud.
+    - Keep it conversational and approximately 45-75 seconds when spoken.
+    - Preserve every material coaching conclusion from the locked facts.
+    - Mention the #1 opportunity, the key evidence, the #2 opportunity if material, and the
+      immediate practice focus.
+    - Use noticeably different phrasing, opening, rhythm, jokes/metaphors, and transitions from
+      the previous narrative while staying factually consistent.
+    - Do not invent new swing mechanics, stats, penalties, causes, or strategy conclusions.
+    - If mechanical evidence is only a pattern/hypothesis, preserve that uncertainty.
+    - Keep movie-character flavor original; do not imitate or name a real actor/performer.
+    - No markdown, tables, headings, or percentages read aloud.
+    - `primary_miss_persona` and `secondary_miss_persona` are short persona quips only; they must
+      not alter the neutral diagnosis titles.
+    - `caddie_drill_pep_talk` should fit the same selected persona and the existing prescribed drill(s).
+
+    Output STRICT raw JSON with no markdown:
+    {{
+      "expanded_caddie_intro": "fresh canonical narrative",
+      "primary_miss_persona": "fresh short persona quip for the primary opportunity",
+      "secondary_miss_persona": "fresh short persona quip or null",
+      "caddie_drill_pep_talk": "fresh 2-3 sentence persona practice pep talk"
+    }}
+    """
+
+    flash_models = [
+        m.name
+        for m in genai.list_models()
+        if "generateContent" in m.supported_generation_methods
+        and "flash" in m.name.lower()
+    ]
+    flash_models.sort(reverse=True)
+
+    last_error = None
+    for model_name in flash_models:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(
+                prompt,
+                generation_config={"temperature": 1.05, "top_p": 0.95},
+            )
+            if response and response.text:
+                clean = response.text.replace("```json", "").replace("```", "").strip()
+                payload = json.loads(clean)
+                if isinstance(payload, dict) and str(payload.get("expanded_caddie_intro", "")).strip():
+                    return {
+                        "expanded_caddie_intro": str(payload.get("expanded_caddie_intro", "")).strip(),
+                        "primary_miss_persona": str(payload.get("primary_miss_persona", "")).strip()
+                        or diag.get("primary_miss_persona", ""),
+                        "secondary_miss_persona": (
+                            None
+                            if not diag.get("secondary_miss")
+                            else str(payload.get("secondary_miss_persona", "")).strip()
+                            or diag.get("secondary_miss_persona")
+                        ),
+                        "caddie_drill_pep_talk": str(payload.get("caddie_drill_pep_talk", "")).strip()
+                        or diag.get("caddie_drill_pep_talk", ""),
+                    }
+        except Exception as exc:
+            last_error = exc
+            continue
+
+    raise RuntimeError(
+        f"No Gemini Flash model could create a fresh caddie response. {last_error or ''}".strip()
+    )
+
+def render_caddie_voice_player(
+    text, persona_key, label="Generate Caddie Audio", diagnosis=None, refresh_persona_copy=False
+):
+    """Generate seekable TTS; optionally refresh persona copy without re-diagnosing the round."""
     spoken_text = _speech_clean_text(text)
     if not spoken_text:
         return
@@ -1640,9 +1775,16 @@ def render_caddie_voice_player(text, persona_key, label="Generate Caddie Audio")
 
     with st.container(border=True):
         st.markdown("#### 🎧 Caddie Audio")
-        button_text = "🎙️ Generate Caddie Audio"
-        if state_key in st.session_state:
-            button_text = "🔄 Regenerate Caddie Audio"
+        has_audio = state_key in st.session_state
+        stored_persona_key = st.session_state.get("caddie_persona_key")
+        persona_changed = bool(stored_persona_key and stored_persona_key != persona_key)
+
+        if has_audio:
+            button_text = "🔄 Regenerate Caddie Response"
+        elif persona_changed and diagnosis is not None and refresh_persona_copy:
+            button_text = f"🎭 Generate {caddie_name} Version"
+        else:
+            button_text = "🎙️ Generate Caddie Audio"
 
         if st.button(
             button_text,
@@ -1650,12 +1792,48 @@ def render_caddie_voice_player(text, persona_key, label="Generate Caddie Audio")
             use_container_width=True,
         ):
             try:
+                text_for_audio = spoken_text
+                should_refresh_copy = bool(
+                    diagnosis is not None
+                    and refresh_persona_copy
+                    and (has_audio or persona_changed)
+                )
+
+                if should_refresh_copy:
+                    counter_key = f"persona_regen_count::{persona_key}"
+                    take_number = int(st.session_state.get(counter_key, 0)) + 1
+                    with st.spinner("Creating a fresh caddie response..."):
+                        fresh_copy = _regenerate_persona_copy(
+                            diagnosis,
+                            persona_key,
+                            previous_narrative=str(
+                                diagnosis.get("expanded_caddie_intro", "") or ""
+                            ),
+                            take_number=take_number,
+                        )
+
+                    updated_diag = dict(diagnosis)
+                    updated_diag.update(fresh_copy)
+                    st.session_state["diagnosis"] = updated_diag
+                    st.session_state["caddie_name"] = caddie_name
+                    st.session_state["caddie_persona_key"] = persona_key
+                    st.session_state[counter_key] = take_number
+                    text_for_audio = _speech_clean_text(
+                        fresh_copy.get("expanded_caddie_intro", "")
+                    )
+
                 with st.spinner("Creating caddie audio..."):
                     audio_bytes, used_voice, used_model = generate_gemini_tts_audio(
-                        spoken_text, persona_key
+                        text_for_audio, persona_key
                     )
-                st.session_state[state_key] = audio_bytes
-                st.session_state[meta_key] = {
+
+                new_digest = hashlib.sha256(
+                    f"{persona_key}|{text_for_audio}".encode("utf-8")
+                ).hexdigest()[:18]
+                new_state_key = f"caddie_tts_audio_{new_digest}"
+                new_meta_key = f"caddie_tts_meta_{new_digest}"
+                st.session_state[new_state_key] = audio_bytes
+                st.session_state[new_meta_key] = {
                     "voice": used_voice,
                     "model": used_model,
                 }
@@ -3895,6 +4073,7 @@ with st.container(border=True):
                 st.session_state["impact_feel"] = impact_feel
                 st.session_state["miss_freq"] = miss_freq
                 st.session_state["caddie_name"] = persona_display_name
+                st.session_state["caddie_persona_key"] = selected_persona_key
                 st.session_state["round_intake_source"] = intake_mode
                 st.session_state["scorecard_context"] = scorecard_context
                 st.session_state["round_stats_tracked"] = stats_tracked
@@ -4452,6 +4631,8 @@ with st.container(border=True):
                 narrative_text,
                 selected_persona_key,
                 label=f"Hear {caddie}'s Round Diagnosis",
+                diagnosis=diag,
+                refresh_persona_copy=True,
             )
 
         primary_stage = diag.get("primary_miss_stage") or vc.get("primary_leak_stage", "Highest-ROI Focus")
@@ -4878,7 +5059,7 @@ if (
                 st.success(f"🗣️ **{caddie}'s Practice Strategy:** “{pep_talk}”")
                 render_caddie_voice_player(
                     pep_talk,
-                    selected_persona_key,
+                    st.session_state.get("caddie_persona_key", selected_persona_key),
                     label=f"Hear {caddie}'s Practice Strategy",
                 )
 
