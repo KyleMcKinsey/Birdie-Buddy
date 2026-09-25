@@ -1622,6 +1622,45 @@ def _render_seekable_audio_player(audio_bytes, uid, caddie_name):
 
 
 
+def _strip_downstream_persona_intro(text, persona_key=""):
+    """Keep post-diagnosis persona copy focused on the applicable section.
+
+    The first/top caddie narrative may establish the character. Later practice,
+    drill, priority, and debrief copy should not re-introduce the caddie.
+    """
+    value = str(text or "").strip().strip('"').strip()
+    if not value:
+        return ""
+
+    caddie_name = str(persona_key or "").split(" (")[0].strip()
+
+    # Remove a redundant speaker label if the model places it inside the copy.
+    if caddie_name:
+        value = re.sub(
+            rf"^\s*{re.escape(caddie_name)}\s*[:\-—]\s*",
+            "",
+            value,
+            flags=re.IGNORECASE,
+        ).strip()
+
+    # Conservative self-introduction / greeting removals. These only operate
+    # at the very beginning of downstream copy.
+    patterns = [
+        r"^\s*the name(?:'s| is)\s+pond(?:\s*[\.\u2026,;:\-—]*\s*james pond)?[\.\u2026!?;:\-—,\s]*",
+        r"^\s*i(?:\s+am|'m)\s+(?:bogey-wan kenobi|harry putter|james pond|captain hack sparrow)\b[\.\u2026!?;:\-—,\s]*",
+        r"^\s*(?:bogey-wan kenobi|harry putter|james pond|captain hack sparrow)\s+(?:here|speaking|reporting for duty)\b[\.\u2026!?;:\-—,\s]*",
+        r"^\s*(?:hello|greetings|ahoy|avast|well hello|listen up)\b[\.\u2026!?;:\-—,\s]*",
+        r"^\s*(?:young padawan|matey|mate)\b[\.\u2026!?;:\-—,\s]*",
+    ]
+    for pattern in patterns:
+        cleaned = re.sub(pattern, "", value, count=1, flags=re.IGNORECASE).strip()
+        if cleaned != value:
+            value = cleaned
+            break
+
+    return value
+
+
 def _regenerate_persona_copy(diag, persona_key, previous_narrative="", take_number=1):
     """Rewrite persona-facing copy without changing the underlying golf diagnosis."""
     persona = PERSONA_DATABASE.get(persona_key, {})
@@ -1690,7 +1729,8 @@ def _regenerate_persona_copy(diag, persona_key, previous_narrative="", take_numb
 
     REQUIREMENTS:
     - `expanded_caddie_intro` is the exact text that will appear on screen AND be spoken aloud.
-    - Keep it conversational and approximately 45-75 seconds when spoken.
+    - Keep it conversational and approximately 25-40 seconds when spoken.
+    - HARD LENGTH LIMIT: 55-70 words maximum. Favor one strong joke/metaphor over extra commentary.
     - Preserve every material coaching conclusion from the locked facts.
     - Mention the #1 opportunity, the key evidence, the #2 opportunity if material, and the
       immediate practice focus.
@@ -1702,14 +1742,20 @@ def _regenerate_persona_copy(diag, persona_key, previous_narrative="", take_numb
     - No markdown, tables, headings, or percentages read aloud.
     - `primary_miss_persona` and `secondary_miss_persona` are short persona quips only; they must
       not alter the neutral diagnosis titles.
-    - `caddie_drill_pep_talk` should fit the same selected persona and the existing prescribed drill(s).
+    - IMPORTANT: the top `expanded_caddie_intro` is the ONLY place where the caddie may introduce
+      themselves, greet the golfer, state their name/title, or use an introductory catchphrase.
+    - `primary_miss_persona`, `secondary_miss_persona`, and `caddie_drill_pep_talk` must start
+      directly with their applicable coaching point. No greetings, no "The name is...", no "I am...",
+      no "Ahoy...", no "Young Padawan...", and no repeated character introduction.
+    - `caddie_drill_pep_talk` should fit the same selected persona and the existing prescribed drill(s),
+      stay to 25-40 words maximum, and discuss ONLY how to approach the prescribed practice.
 
     Output STRICT raw JSON with no markdown:
     {{
       "expanded_caddie_intro": "fresh canonical narrative",
       "primary_miss_persona": "fresh short persona quip for the primary opportunity",
       "secondary_miss_persona": "fresh short persona quip or null",
-      "caddie_drill_pep_talk": "fresh 2-3 sentence persona practice pep talk"
+      "caddie_drill_pep_talk": "fresh concise persona practice pep talk, 25-40 words maximum"
     }}
     """
 
@@ -1734,17 +1780,27 @@ def _regenerate_persona_copy(diag, persona_key, previous_narrative="", take_numb
                 payload = json.loads(clean)
                 if isinstance(payload, dict) and str(payload.get("expanded_caddie_intro", "")).strip():
                     return {
+                        # The top diagnosis narrative is the one allowed character-introduction moment.
                         "expanded_caddie_intro": str(payload.get("expanded_caddie_intro", "")).strip(),
-                        "primary_miss_persona": str(payload.get("primary_miss_persona", "")).strip()
-                        or diag.get("primary_miss_persona", ""),
+                        "primary_miss_persona": _strip_downstream_persona_intro(
+                            str(payload.get("primary_miss_persona", "")).strip()
+                            or diag.get("primary_miss_persona", ""),
+                            persona_key,
+                        ),
                         "secondary_miss_persona": (
                             None
                             if not diag.get("secondary_miss")
-                            else str(payload.get("secondary_miss_persona", "")).strip()
-                            or diag.get("secondary_miss_persona")
+                            else _strip_downstream_persona_intro(
+                                str(payload.get("secondary_miss_persona", "")).strip()
+                                or diag.get("secondary_miss_persona", ""),
+                                persona_key,
+                            )
                         ),
-                        "caddie_drill_pep_talk": str(payload.get("caddie_drill_pep_talk", "")).strip()
-                        or diag.get("caddie_drill_pep_talk", ""),
+                        "caddie_drill_pep_talk": _strip_downstream_persona_intro(
+                            str(payload.get("caddie_drill_pep_talk", "")).strip()
+                            or diag.get("caddie_drill_pep_talk", ""),
+                            persona_key,
+                        ),
                     }
         except Exception as exc:
             last_error = exc
@@ -1896,7 +1952,8 @@ def _generate_persona_drill_briefing(
     PREVIOUS BRIEFING TO AVOID REPEATING TOO CLOSELY:
     {previous_text or 'No previous briefing.'}
 
-    Write ONE concise 25-40 second spoken briefing in the selected fictional caddie persona.
+    Write ONE concise 15-25 second spoken briefing in the selected fictional caddie persona.
+    HARD LENGTH LIMIT: 35-50 words maximum.
     It must work equally well as visible text and spoken audio.
 
     INCLUDE ONLY:
@@ -1907,7 +1964,11 @@ def _generate_persona_drill_briefing(
     5. The {kpi.get('target', '')}/10 pass target.
 
     RULES:
-    - Keep it roughly 65-100 words.
+    - This is NOT the golfer's first interaction with the caddie. Start immediately with THIS DRILL.
+    - Do not greet the golfer, state the caddie's name/title, introduce the character, or use a generic
+      introductory catchphrase. Persona must come through only in the way the drill coaching is delivered.
+    - The first sentence must contain a drill-specific goal, setup cue, or execution cue.
+    - Stay within the 35-50 word hard limit above.
     - Be encouraging and useful at the range, not report-like.
     - Do not read every section of the card aloud.
     - Preserve uncertainty if the diagnosis says the mechanical cause is only a hypothesis.
@@ -1936,6 +1997,7 @@ def _generate_persona_drill_briefing(
             )
             if response and response.text:
                 text = response.text.replace("```", "").strip().strip('"')
+                text = _strip_downstream_persona_intro(text, persona_key)
                 if text:
                     return text
         except Exception as exc:
@@ -2068,9 +2130,15 @@ def _generate_persona_practice_debrief(
     PREVIOUS DEBRIEF TO AVOID REPEATING TOO CLOSELY:
     {previous_text or 'No previous debrief.'}
 
-    Write ONE 20-35 second debrief that works equally well as visible text and spoken audio.
+    Write ONE 15-25 second debrief that works equally well as visible text and spoken audio.
+    HARD LENGTH LIMIT: 35-50 words maximum.
 
     COACHING INTERPRETATION RULES:
+    - This is NOT the golfer's first interaction with the caddie. Start immediately with what the
+      practice result means.
+    - Do not greet the golfer, state the caddie's name/title, introduce the character, or use a generic
+      introductory catchphrase. Persona should color the interpretation, not delay it.
+    - The first sentence must refer to completion, effectiveness, the objective result, or the next-step implication.
     - If the golfer did not fully complete the practice, do NOT call the drill ineffective.
     - If an objective pre/post test exists and improved by 2 or more out of 10, explain that the
       skill showed measurable improvement and the next logical step is more transfer/random/pressure work.
@@ -2107,6 +2175,7 @@ def _generate_persona_practice_debrief(
             )
             if response and response.text:
                 text = response.text.replace("```", "").strip().strip('"')
+                text = _strip_downstream_persona_intro(text, persona_key)
                 if text:
                     return text
         except Exception as exc:
@@ -4769,13 +4838,25 @@ with st.container(border=True):
 
                 **Canonical Caddie Narrative Directive:** `expanded_caddie_intro` is the ONE narrative
                 used both on screen and for voice playback. Write it so it works equally well when read
-                and when spoken aloud: about 45-75 seconds, conversational rather than report-like, and in
+                and when spoken aloud: about 25-40 seconds, conversational rather than report-like, and in
                 the selected caddie's fictional parody persona. Use that persona's pacing, vocabulary,
                 humor, tone, and mannerisms, but do not claim to be or imitate a real actor/performer.
-                Mention the #1 opportunity, the most important evidence, the #2 opportunity if material,
-                and the immediate practice focus. Avoid markdown, tables, raw JSON language, long strings
+                HARD LENGTH LIMIT: 55-70 words maximum so the audio remains comfortably under 45 seconds,
+                including slower personas. Mention the #1 opportunity, the most important evidence, the #2
+                opportunity if material, and the immediate practice focus. Favor one memorable persona line
+                over extra commentary. Avoid markdown, tables, raw JSON language, long strings
                 of statistics, or reading confidence percentages aloud. Do NOT create a separate alternate
                 spoken version of this narrative.
+
+                **One-Time Character Introduction Rule:** `expanded_caddie_intro` is the ONLY field in the
+                entire diagnosis allowed to greet the golfer, state the caddie's name/title, introduce the
+                persona, or use a generic introductory catchphrase. Every other persona-facing field is
+                downstream coaching and must begin directly with its applicable content:
+                - `primary_miss_persona`: immediately call out the primary golf issue.
+                - `secondary_miss_persona`: immediately call out the secondary golf issue.
+                - `caddie_drill_pep_talk`: immediately coach how to approach the prescribed practice.
+                Do not repeat "The name is...", "I am...", "Ahoy...", "Young Padawan...", or equivalent
+                introductions in those downstream fields.
 
                 Map faults to the most effective drills from this EXACT list of 45 drills:
                 - FULL SWING: 'Alignment Stick Gate Drill', 'Pause at Top Drill', 'Tee Gate Drill', 'Towel Under Armpits Drill', 'Coin Strike Low-Point Drill', 'Split-Hands Release Drill', 'Feet-Together Balance Drill', 'Wall-Head Posture Drill', 'Impact Bag Compression Drill', 'Two-Step Pump Lag Drill'
@@ -4788,17 +4869,17 @@ with st.container(border=True):
                   "diagnosis_category": "Strategic ROI & Value Chain Diagnosis",
                   "primary_miss": "string — concise plain golf-language title, 2-6 words, no movie/persona language or dramatic metaphor; use labels like 'Putting — Distance Control', 'Approach — Contact', or 'Course Management — Recovery Decisions'",
                   "primary_miss_stage": "string — exactly one of: 'Off-the-Tee Performance (Primary Drive)', 'Approach Precision (Mid Game)', 'Scoring/Scrambling (Short Game/Putting)', 'Course Management / Strategic Decision-Making', 'Mental Infrastructure (Support Systems)'",
-                  "primary_miss_persona": "string (1 short, witty sentence calling out primary flaw in character)",
+                  "primary_miss_persona": "string (1 short, witty sentence immediately calling out the primary flaw in character; NO greeting, self-introduction, name/title announcement, or generic character opener)",
                   "primary_cause_breakdown": "string (2-3 sentences explaining the performance cause and ROI. Do not state a specific biomechanical fault as fact unless the mechanical evidence level supports it.)",
                   "secondary_miss": "string or null — concise plain golf-language title using the same neutral style as primary_miss",
                   "secondary_miss_stage": "string or null — one of the same five Value Chain stage names",
-                  "secondary_miss_persona": "string or null (1 short, witty sentence calling out the secondary opportunity in character)",
+                  "secondary_miss_persona": "string or null (1 short, witty sentence immediately calling out the secondary opportunity in character; NO greeting or character re-introduction)",
                   "secondary_cause_breakdown": "string or null (2-3 sentences explaining secondary cause and its relative stroke impact)",
                   "secondary_roi_priority": "CRITICAL | HIGH | MEDIUM | LOW | null — severity of the secondary opportunity itself, independent of being ranked #2",
                   "secondary_roi_evidence": "string or null — specific round evidence supporting the secondary opportunity",
                   "secondary_confidence_score": "number from 0.0 to 1.0 or null — confidence in the secondary diagnosis",
-                  "expanded_caddie_intro": "string (canonical 45-75 second caddie narrative used VERBATIM for both on-screen text and voice playback; conversational, persona-consistent, references the golfer's story, #1 opportunity, key evidence, #2 opportunity if material, and immediate practice focus; no markdown or real-actor imitation)",
-                  "caddie_drill_pep_talk": "string (2-3 sentences in persona giving encouraging range advice; this same exact text is displayed and spoken in the practice section)",
+                  "expanded_caddie_intro": "string (canonical 25-40 second / 55-70 word maximum caddie narrative used VERBATIM for both on-screen text and voice playback; conversational, persona-consistent, references the golfer's story, #1 opportunity, key evidence, #2 opportunity if material, and immediate practice focus; no markdown or real-actor imitation)",
+                  "caddie_drill_pep_talk": "string (1-2 concise sentences, about 15-20 seconds / 25-40 words maximum, in persona and focused ONLY on how to execute the prescribed practice; NO greeting or character re-introduction; this same exact text is displayed and spoken in the practice section)",
                   "value_chain_analysis": {{
                     "off_the_tee": "string (1 sentence assessment of driving/tee-shot performance, grounded in the numbers if provided)",
                     "approach": "string (1 sentence assessment of mid-iron/approach performance)",
@@ -4855,6 +4936,23 @@ with st.container(border=True):
                     )
                     diag_data = json.loads(clean_json)
                     diag_data = _enforce_history_aware_drill(diag_data)
+
+                    # Only the top diagnosis narrative may establish/re-introduce the caddie.
+                    # All later persona-facing fields start directly with their section content.
+                    diag_data["primary_miss_persona"] = _strip_downstream_persona_intro(
+                        diag_data.get("primary_miss_persona", ""),
+                        selected_persona_key,
+                    )
+                    if diag_data.get("secondary_miss"):
+                        diag_data["secondary_miss_persona"] = _strip_downstream_persona_intro(
+                            diag_data.get("secondary_miss_persona", ""),
+                            selected_persona_key,
+                        )
+                    diag_data["caddie_drill_pep_talk"] = _strip_downstream_persona_intro(
+                        diag_data.get("caddie_drill_pep_talk", ""),
+                        selected_persona_key,
+                    )
+
                     st.session_state["diagnosis"] = diag_data
                     st.session_state["show_practice_builder"] = False
                     st.session_state["show_execution_plan"] = False
