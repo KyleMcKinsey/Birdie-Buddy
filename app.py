@@ -18,11 +18,8 @@ CSV_FILE = "birdie_buddy_practice_history.csv"
 HISTORY_COLUMNS = [
     "Timestamp",
     "Score",
-    "Holes Played",
     "Fairways Hit",
-    "Fairway Opportunities",
     "GIR",
-    "GIR Opportunities",
     "Putts",
     "Penalty Strokes",
     "OB/Lost Balls",
@@ -33,7 +30,6 @@ HISTORY_COLUMNS = [
     "Primary Macro-Fault",
     "Primary Value Chain Stage",
     "Course Mgmt Subtype",
-    "Decision Quality",
     "Secondary Fault",
     "Miss Frequency",
     "Primary Drill",
@@ -44,9 +40,20 @@ HISTORY_COLUMNS = [
     "Handicap",
     "ROI Priority",
     "ROI Score",
-    "Observed Direct Score Cost",
-    "Estimated Peer Gap Strokes",
     "Estimated Excess Strokes",
+    "Holes Played",
+    "Fairway Opportunities",
+    "GIR Opportunities",
+    "Observed Direct Score Cost",
+    "Handicap-Relative Peer Gap",
+    "Decision Quality",
+    "Mechanical Evidence Level",
+    "Practice Environment",
+    "Available Equipment",
+    "Practice Allocation",
+    "Baseline KPI (10)",
+    "Post KPI (10)",
+    "Objective Gain",
 ]
 
 
@@ -84,11 +91,8 @@ def save_session_to_csv(
     secondary_miss="",
     roi_opportunity="",
     score=None,
-    holes_played=None,
     fairways_hit=None,
-    fairway_opportunities=None,
     gir=None,
-    gir_opportunities=None,
     putts=None,
     penalty_strokes=None,
     ob_lost_balls=None,
@@ -98,51 +102,44 @@ def save_session_to_csv(
     problem_area="",
     primary_stage="",
     course_management_subtype="",
-    decision_quality="",
     miss_freq="",
     confidence=None,
     handicap=None,
     roi_priority="",
     roi_score=None,
-    observed_direct_score_cost="",
-    estimated_peer_gap_strokes="",
     estimated_excess_strokes="",
+    holes_played=None,
+    fairway_opportunities=None,
+    gir_opportunities=None,
+    observed_direct_score_cost="",
+    handicap_relative_peer_gap="",
+    decision_quality="",
+    mechanical_evidence_level="",
+    practice_environment="",
+    available_equipment="",
+    practice_allocation="",
+    baseline_kpi="",
+    post_kpi="",
+    objective_gain="",
 ):
-    """Persist a diagnosed round while safely migrating older CSV schemas."""
     _init_history()
     row = {
         "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "Score": score if score not in (None, "") else "N/A",
-        "Holes Played": holes_played if holes_played not in (None, "") else "N/A",
         "Fairways Hit": fairways_hit if fairways_hit not in (None, "") else "N/A",
-        "Fairway Opportunities": (
-            fairway_opportunities if fairway_opportunities not in (None, "") else "N/A"
-        ),
         "GIR": gir if gir not in (None, "") else "N/A",
-        "GIR Opportunities": (
-            gir_opportunities if gir_opportunities not in (None, "") else "N/A"
-        ),
         "Putts": putts if putts not in (None, "") else "N/A",
         "Penalty Strokes": (
             penalty_strokes if penalty_strokes not in (None, "") else "N/A"
         ),
         "OB/Lost Balls": ob_lost_balls if ob_lost_balls not in (None, "") else "N/A",
         "3-Putts": three_putts if three_putts not in (None, "") else "N/A",
-        "Failed Up-and-Downs": (
-            failed_up_downs if failed_up_downs not in (None, "") else "N/A"
-        ),
-        "Scrambling Opportunities": (
-            scrambling_opportunities
-            if scrambling_opportunities not in (None, "")
-            else "N/A"
-        ),
+        "Failed Up-and-Downs": failed_up_downs if failed_up_downs not in (None, "") else "N/A",
+        "Scrambling Opportunities": scrambling_opportunities if scrambling_opportunities not in (None, "") else "N/A",
         "Problem Area": _blank_if_none(problem_area),
         "Primary Macro-Fault": primary_miss if primary_miss else "N/A",
         "Primary Value Chain Stage": primary_stage if primary_stage else "N/A",
-        "Course Mgmt Subtype": (
-            course_management_subtype if course_management_subtype else "N/A"
-        ),
-        "Decision Quality": decision_quality if decision_quality else "N/A",
+        "Course Mgmt Subtype": course_management_subtype if course_management_subtype else "N/A",
         "Secondary Fault": secondary_miss if secondary_miss else "N/A",
         "Miss Frequency": _blank_if_none(miss_freq),
         "Primary Drill": primary_drill if primary_drill else "N/A",
@@ -153,27 +150,27 @@ def save_session_to_csv(
         "Handicap": handicap if handicap not in (None, "") else "N/A",
         "ROI Priority": roi_priority if roi_priority else "N/A",
         "ROI Score": roi_score if roi_score not in (None, "") else "N/A",
-        "Observed Direct Score Cost": (
-            observed_direct_score_cost
-            if observed_direct_score_cost not in (None, "")
-            else "N/A"
-        ),
-        "Estimated Peer Gap Strokes": (
-            estimated_peer_gap_strokes
-            if estimated_peer_gap_strokes not in (None, "")
-            else "N/A"
-        ),
-        "Estimated Excess Strokes": (
-            estimated_excess_strokes
-            if estimated_excess_strokes not in (None, "")
-            else "N/A"
-        ),
+        "Estimated Excess Strokes": estimated_excess_strokes if estimated_excess_strokes not in (None, "") else "N/A",
+        "Holes Played": holes_played if holes_played not in (None, "") else "N/A",
+        "Fairway Opportunities": fairway_opportunities if fairway_opportunities not in (None, "") else "N/A",
+        "GIR Opportunities": gir_opportunities if gir_opportunities not in (None, "") else "N/A",
+        "Observed Direct Score Cost": observed_direct_score_cost if observed_direct_score_cost not in (None, "") else "N/A",
+        "Handicap-Relative Peer Gap": handicap_relative_peer_gap if handicap_relative_peer_gap not in (None, "") else "N/A",
+        "Decision Quality": decision_quality if decision_quality not in (None, "") else "N/A",
+        "Mechanical Evidence Level": mechanical_evidence_level if mechanical_evidence_level not in (None, "") else "N/A",
+        "Practice Environment": practice_environment if practice_environment not in (None, "") else "N/A",
+        "Available Equipment": available_equipment if available_equipment not in (None, "") else "N/A",
+        "Practice Allocation": practice_allocation if practice_allocation not in (None, "") else "N/A",
+        "Baseline KPI (10)": baseline_kpi if baseline_kpi not in (None, "") else "N/A",
+        "Post KPI (10)": post_kpi if post_kpi not in (None, "") else "N/A",
+        "Objective Gain": objective_gain if objective_gain not in (None, "") else "N/A",
     }
 
+    # 1. Save to memory first - this is what the sidebar reads.
     st.session_state["practice_history"].append(row)
 
-    # Rewrite the full file instead of blindly appending. This safely migrates
-    # older history files when new columns are introduced.
+    # 2. Try to also write the CSV file. If the disk is read-only
+    #    (common on hosted Streamlit), we quietly skip it instead of crashing.
     try:
         pd.DataFrame(
             st.session_state["practice_history"], columns=HISTORY_COLUMNS
@@ -182,16 +179,42 @@ def save_session_to_csv(
         st.session_state["history_file_warning"] = str(file_error)
 
 
-def update_last_session_feedback(completed_label, effectiveness):
-    """Called next visit: closes the loop on the PREVIOUS round's drill."""
+def update_last_session_feedback(
+    completed_label,
+    effectiveness,
+    baseline_kpi=None,
+    post_kpi=None,
+    practice_environment="",
+    available_equipment="",
+    practice_allocation="",
+    actual_primary_drill="",
+):
+    """Close the loop on the latest prescribed practice session."""
     _init_history()
     rows = st.session_state["practice_history"]
     if not rows:
         return
-    rows[-1]["Drill Completed?"] = completed_label
-    rows[-1]["Fix Effectiveness (1-5)"] = effectiveness
 
-    # Rewrite the whole CSV so the update is reflected on disk too.
+    row = rows[-1]
+    row["Drill Completed?"] = completed_label
+    row["Fix Effectiveness (1-5)"] = effectiveness
+
+    if baseline_kpi not in (None, ""):
+        row["Baseline KPI (10)"] = int(baseline_kpi)
+    if post_kpi not in (None, ""):
+        row["Post KPI (10)"] = int(post_kpi)
+    if baseline_kpi not in (None, "") and post_kpi not in (None, ""):
+        row["Objective Gain"] = int(post_kpi) - int(baseline_kpi)
+
+    if practice_environment:
+        row["Practice Environment"] = practice_environment
+    if available_equipment:
+        row["Available Equipment"] = available_equipment
+    if practice_allocation:
+        row["Practice Allocation"] = practice_allocation
+    if actual_primary_drill:
+        row["Primary Drill"] = actual_primary_drill
+
     try:
         pd.DataFrame(rows, columns=HISTORY_COLUMNS).to_csv(CSV_FILE, index=False)
     except Exception as file_error:
@@ -205,164 +228,6 @@ def clear_history_csv():
             os.remove(CSV_FILE)
     except Exception:
         pass
-
-
-def _clean_history_value(value):
-    """Normalize empty/legacy history cells without treating zero as missing."""
-    if value in (None, "", "N/A", "nan", "None"):
-        return None
-    return value
-
-
-def build_recent_coaching_history_context(limit=5):
-    """Summarize recent coaching outcomes for the next diagnosis.
-
-    Completion and effectiveness are kept separate so a drill that was never
-    attempted is never mislabeled as an ineffective intervention.
-    """
-    _init_history()
-    rows = st.session_state.get("practice_history", [])[-limit:]
-    if not rows:
-        return "No prior Birdie Buddy coaching history is available."
-
-    lines = []
-    for idx, row in enumerate(rows, start=1):
-        completion = _clean_history_value(row.get("Drill Completed?"))
-        effectiveness = _clean_history_value(row.get("Fix Effectiveness (1-5)"))
-        lines.append(
-            f"Recent round {idx}: "
-            f"score={_clean_history_value(row.get('Score')) or 'unknown'}; "
-            f"primary_stage={_clean_history_value(row.get('Primary Value Chain Stage')) or 'unknown'}; "
-            f"primary_opportunity={_clean_history_value(row.get('Primary Macro-Fault')) or 'unknown'}; "
-            f"primary_drill={_clean_history_value(row.get('Primary Drill')) or 'unknown'}; "
-            f"practice_completion={completion or 'not logged'}; "
-            f"effectiveness={effectiveness if effectiveness is not None else 'not rated'}; "
-            f"course_management_subtype={_clean_history_value(row.get('Course Mgmt Subtype')) or 'n/a'}."
-        )
-
-    return "\\n".join(lines)
-
-
-def _history_adaptation_signal(primary_stage, proposed_drill):
-    """Return the most relevant prior result for the proposed stage/drill."""
-    _init_history()
-    rows = list(reversed(st.session_state.get("practice_history", [])[-5:]))
-    for row in rows:
-        if str(row.get("Primary Value Chain Stage", "")).strip() != str(primary_stage or "").strip():
-            continue
-        prior_drill = str(row.get("Primary Drill", "") or "").strip()
-        completion = str(row.get("Drill Completed?", "") or "").strip()
-        effectiveness_raw = row.get("Fix Effectiveness (1-5)", "")
-        try:
-            effectiveness = float(effectiveness_raw)
-        except (TypeError, ValueError):
-            effectiveness = None
-        return {
-            "prior_drill": prior_drill,
-            "same_drill": bool(prior_drill and prior_drill == str(proposed_drill or "").strip()),
-            "completion": completion,
-            "effectiveness": effectiveness,
-        }
-    return None
-
-
-def _history_alternative_drill(stage, current_drill, title=""):
-    """Choose a sensible alternate when a completed drill was clearly ineffective."""
-    pair_map = {
-        "Target Visual Anchoring Drill": "Positive Box Pre-Shot Routine Drill",
-        "Positive Box Pre-Shot Routine Drill": "Target Visual Anchoring Drill",
-        "Ladder Distance Lag Drill": "Fringe-to-Fringe Feel Drill",
-        "Fringe-to-Fringe Feel Drill": "Eyes-Closed Distance Perception Drill",
-        "Eyes-Closed Distance Perception Drill": "Ladder Distance Lag Drill",
-        "Putting Tee Gate Drill": "Metal Yardstick Roll Drill",
-        "Metal Yardstick Roll Drill": "Parallel Rod Putting Channel Drill",
-        "Parallel Rod Putting Channel Drill": "Putting Tee Gate Drill",
-        "Coin Strike Low-Point Drill": "Tee Gate Drill",
-        "Tee Gate Drill": "Alignment Stick Gate Drill",
-        "Alignment Stick Gate Drill": "Coin Strike Low-Point Drill",
-        "Pause at Top Drill": "Two-Step Pump Lag Drill",
-        "Two-Step Pump Lag Drill": "Feet-Together Balance Drill",
-        "Towel Behind Ball Drill": "Lead Foot Weight Anchor Drill",
-        "Lead Foot Weight Anchor Drill": "Brush Turf Chipping Drill",
-        "Brush Turf Chipping Drill": "Landing Zone Target Towel Drill",
-        "Clock System Wedge Drill": "Landing Zone Target Towel Drill",
-        "Landing Zone Target Towel Drill": "Clock System Wedge Drill",
-        "1-2-3 Box Breathing Reset Drill": "Post-Shot Acceptance Hold Drill",
-        "Post-Shot Acceptance Hold Drill": "Mantra & Thought Neutralizer Drill",
-        "Mantra & Thought Neutralizer Drill": "1-2-3 Box Breathing Reset Drill",
-    }
-    if current_drill in pair_map:
-        return pair_map[current_drill]
-
-    stage_defaults = {
-        "Off-the-Tee Performance (Primary Drive)": "Tee Gate Drill",
-        "Approach Precision (Mid Game)": "Coin Strike Low-Point Drill",
-        "Course Management / Strategic Decision-Making": "Positive Box Pre-Shot Routine Drill",
-        "Mental Infrastructure (Support Systems)": "Post-Shot Acceptance Hold Drill",
-    }
-    if stage == "Scoring/Scrambling (Short Game/Putting)":
-        lower_title = str(title or "").lower()
-        if "putt" in lower_title or "distance control" in lower_title:
-            return "Ladder Distance Lag Drill"
-        return "Landing Zone Target Towel Drill"
-
-    return stage_defaults.get(stage, current_drill)
-
-
-def apply_history_aware_drill_adjustment(diag_data):
-    """Enforce a minimal history-aware prescription rule.
-
-    If the same stage recurs and the golfer actually completed the same drill
-    but rated it 1-2/5, Birdie Buddy changes the primary intervention. If the
-    drill was not completed, no failure is inferred.
-    """
-    if not isinstance(diag_data, dict):
-        return diag_data
-
-    stage = diag_data.get("primary_miss_stage")
-    drill = diag_data.get("recommended_primary_drill")
-    signal = _history_adaptation_signal(stage, drill)
-    if not signal:
-        diag_data.setdefault(
-            "history_adaptation_note",
-            "No directly comparable recent practice result was available.",
-        )
-        return diag_data
-
-    completion = signal.get("completion", "")
-    effectiveness = signal.get("effectiveness")
-    completed = completion in {"Yes, fully", "Yes, partially", "Yes, a little"}
-
-    if signal.get("same_drill") and completed and effectiveness is not None and effectiveness <= 2:
-        replacement = _history_alternative_drill(
-            stage, drill, diag_data.get("primary_miss", "")
-        )
-        if replacement and replacement != drill:
-            diag_data["recommended_primary_drill"] = replacement
-            diag_data["history_adaptation_note"] = (
-                f"The prior {drill} was actually completed for the same stage but "
-                f"rated {effectiveness:.0f}/5, so Birdie Buddy changed the primary "
-                f"intervention to {replacement} rather than repeating a low-response drill."
-            )
-            return diag_data
-
-    if not completed:
-        diag_data["history_adaptation_note"] = (
-            "A prior drill exists for this stage, but it was not completed enough to "
-            "judge effectiveness. Birdie Buddy does not treat non-completion as a failed intervention."
-        )
-    elif effectiveness is not None and effectiveness >= 4:
-        diag_data["history_adaptation_note"] = (
-            "Prior practice for this stage was completed and rated effective. If the "
-            "opportunity recurs, the plan should emphasize transfer/pressure rather than "
-            "assuming the original skill drill failed."
-        )
-    else:
-        diag_data.setdefault(
-            "history_adaptation_note",
-            "Recent practice history was considered when selecting the current intervention.",
-        )
-    return diag_data
 
 
 # --- HELPER FUNCTIONS FOR CLEAN UI & EXPORTS ---
@@ -421,6 +286,282 @@ def _drill_category(drill_name: str) -> str:
     if drill_name in mental:
         return "mental"
     return "general"
+
+
+def _format_stroke_estimate(value, include_word=True):
+    """Display heuristic stroke estimates as ranges/rounded values, not false precision."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return "—"
+    if v <= 0:
+        return "0 strokes" if include_word else "0"
+    if v < 0.5:
+        return "<0.5 stroke" if include_word else "<0.5"
+    lower = int(v * 2) / 2.0
+    upper = (int(v * 2 + 0.999999)) / 2.0
+    if lower <= 0:
+        lower = 0.5
+    if abs(upper - lower) < 1e-9:
+        amount = f"{lower:g}"
+    else:
+        amount = f"{lower:g}–{upper:g}"
+    if not include_word:
+        return f"≈{amount}"
+    suffix = "stroke" if amount == "1" else "strokes"
+    return f"≈{amount} {suffix}"
+
+
+PRACTICE_AREA_OPTIONS = [
+    "Driving Range / Full-Swing Bay",
+    "Short-Game / Chipping Area",
+    "Putting Green",
+    "Practice Bunker",
+    "Indoor Net / Simulator",
+    "Home / Indoor Putting Mat",
+    "On-Course / Practice Hole",
+]
+
+EQUIPMENT_OPTIONS = [
+    "Alignment Sticks",
+    "Tees",
+    "Towel",
+    "Coins / Ball Marker",
+    "Putting Mirror",
+    "Yardstick / Straightedge",
+    "Chalk / String Line",
+    "Impact Bag",
+    "Ruler / Flat Wrist Aid",
+    "Rubber Bands",
+    "Rangefinder",
+]
+
+CATEGORY_DRILL_CANDIDATES = {
+    "full_swing": [
+        "Alignment Stick Gate Drill", "Pause at Top Drill", "Tee Gate Drill",
+        "Towel Under Armpits Drill", "Coin Strike Low-Point Drill",
+        "Split-Hands Release Drill", "Feet-Together Balance Drill",
+        "Wall-Head Posture Drill", "Impact Bag Compression Drill",
+        "Two-Step Pump Lag Drill",
+    ],
+    "short_game": [
+        "Towel Behind Ball Drill", "Lead Foot Weight Anchor Drill",
+        "Brush Turf Chipping Drill", "Coin Lead-Point Pitch Drill",
+        "Ruler in Glove Wrist Anchor Drill", "Hinge-and-Hold Chipping Drill",
+        "Clock System Wedge Drill", "Landing Zone Target Towel Drill",
+        "Trail-Hand Only Pitch Drill", "Continuous Motion Pendulum Chipping Drill",
+        "Accelerating Through Impact Gate Drill", "Target-Focused Eyes-Up Chipping Drill",
+    ],
+    "bunker": [
+        "Line in the Sand Drill", "Dollar Bill Sand Extraction Drill",
+        "Open-Face Sand Splash Drill",
+    ],
+    "putting": [
+        "Putting Tee Gate Drill", "Chalk Line Straight Target Drill",
+        "Mirror Alignment Face Drill", "Trail-Hand Push Putting Drill",
+        "Metal Yardstick Roll Drill", "Parallel Rod Putting Channel Drill",
+        "Ladder Distance Lag Drill", "Fringe-to-Fringe Feel Drill",
+        "Eyes-Closed Distance Perception Drill", "Rubber Band Putter Sweet-Spot Drill",
+        "Two-Tee Putter Gate Drill", "Coin Balance Putter Back Drill",
+        "Push-Putting No-Backswing Drill", "Short Back Long Through Stroke Drill",
+        "Coin Balance Motion Stroke Drill",
+    ],
+    "mental": [
+        "1-2-3 Box Breathing Reset Drill", "Post-Shot Acceptance Hold Drill",
+        "Positive Box Pre-Shot Routine Drill", "Target Visual Anchoring Drill",
+        "Mantra & Thought Neutralizer Drill",
+    ],
+}
+
+
+def _required_equipment_for_drill(drill_name):
+    requirements = {
+        "Alignment Stick Gate Drill": {"Alignment Sticks"},
+        "Parallel Rod Putting Channel Drill": {"Alignment Sticks"},
+        "Tee Gate Drill": {"Tees"},
+        "Putting Tee Gate Drill": {"Tees"},
+        "Two-Tee Putter Gate Drill": {"Tees"},
+        "Towel Under Armpits Drill": {"Towel"},
+        "Towel Behind Ball Drill": {"Towel"},
+        "Landing Zone Target Towel Drill": {"Towel"},
+        "Coin Strike Low-Point Drill": {"Coins / Ball Marker"},
+        "Coin Lead-Point Pitch Drill": {"Coins / Ball Marker"},
+        "Coin Balance Putter Back Drill": {"Coins / Ball Marker"},
+        "Coin Balance Motion Stroke Drill": {"Coins / Ball Marker"},
+        "Mirror Alignment Face Drill": {"Putting Mirror"},
+        "Metal Yardstick Roll Drill": {"Yardstick / Straightedge"},
+        "Chalk Line Straight Target Drill": {"Chalk / String Line"},
+        "Impact Bag Compression Drill": {"Impact Bag"},
+        "Ruler in Glove Wrist Anchor Drill": {"Ruler / Flat Wrist Aid"},
+        "Rubber Band Putter Sweet-Spot Drill": {"Rubber Bands"},
+    }
+    return requirements.get(drill_name, set())
+
+
+def _drill_supported(drill_name, practice_areas, equipment):
+    """Return whether the drill is realistically executable in today's environment."""
+    areas = set(practice_areas or [])
+    gear = set(equipment or [])
+    category = _drill_category(drill_name)
+    if category == "full_swing":
+        area_ok = bool(areas & {
+            "Driving Range / Full-Swing Bay", "Indoor Net / Simulator",
+            "On-Course / Practice Hole",
+        })
+    elif category == "putting":
+        area_ok = bool(areas & {
+            "Putting Green", "Home / Indoor Putting Mat", "On-Course / Practice Hole",
+        })
+    elif category == "short_game":
+        area_ok = bool(areas & {
+            "Short-Game / Chipping Area", "On-Course / Practice Hole",
+        })
+    elif category == "bunker":
+        area_ok = bool(areas & {"Practice Bunker", "On-Course / Practice Hole"})
+    else:
+        area_ok = bool(areas)
+    return area_ok and _required_equipment_for_drill(drill_name).issubset(gear)
+
+
+def _resolve_drill_for_environment(drill_name, practice_areas, equipment):
+    """Preserve the same coaching category when substituting for unavailable gear/facilities."""
+    if not drill_name:
+        return None, None
+    if _drill_supported(drill_name, practice_areas, equipment):
+        return drill_name, None
+    category = _drill_category(drill_name)
+    for candidate in CATEGORY_DRILL_CANDIDATES.get(category, []):
+        if candidate != drill_name and _drill_supported(candidate, practice_areas, equipment):
+            return candidate, f"{drill_name} → {candidate}"
+    return None, f"{drill_name} is not executable with the selected practice area/equipment."
+
+
+def _adaptive_hybrid_split(diag):
+    """Return an evidence/history-aware controlled-work vs transfer split."""
+    stage = str((diag or {}).get("primary_miss_stage") or "")
+    base_by_stage = {
+        "Off-the-Tee Performance (Primary Drive)": 0.60,
+        "Approach Precision (Mid Game)": 0.65,
+        "Scoring/Scrambling (Short Game/Putting)": 0.55,
+        "Course Management / Strategic Decision-Making": 0.35,
+        "Mental Infrastructure (Support Systems)": 0.35,
+    }
+    grind = base_by_stage.get(stage, 0.55)
+    reasons = [f"Base split reflects the primary stage ({_short_progress_stage(stage) or 'general performance'})."]
+
+    mech = str((diag or {}).get("mechanical_evidence_level") or "")
+    if mech == "Supported by golfer observations":
+        grind += 0.08
+        reasons.append("Supported mechanical evidence favors more controlled skill acquisition.")
+    elif mech == "Hypothesis to test":
+        grind += 0.03
+        reasons.append("A mechanical hypothesis gets a modest controlled-rep bias while it is tested.")
+    elif mech == "Performance pattern only":
+        grind -= 0.05
+        reasons.append("A performance pattern without proven mechanics favors more transfer/feedback work.")
+
+    decision_quality = str((diag or {}).get("decision_quality") or "")
+    if stage == "Course Management / Strategic Decision-Making" and decision_quality in {
+        "Poor decision / reasonable execution", "Both contributed"
+    }:
+        grind -= 0.08
+        reasons.append("Decision-quality problems are trained more effectively through scenario/transfer reps than blocked mechanics.")
+
+    df = load_history_df()
+    if not df.empty and stage:
+        same_stage = df[df["Primary Value Chain Stage"].astype(str) == stage].tail(3)
+        if not same_stage.empty:
+            last = same_stage.iloc[-1]
+            completed = str(last.get("Drill Completed?", "")).lower()
+            try:
+                effectiveness = float(last.get("Fix Effectiveness (1-5)", ""))
+            except Exception:
+                effectiveness = None
+            try:
+                objective_gain = float(last.get("Objective Gain", ""))
+            except Exception:
+                objective_gain = None
+            actually_completed = ("partial" in completed) or ("fully" in completed) or completed.startswith("yes")
+            if actually_completed and objective_gain is not None:
+                if objective_gain >= 2:
+                    grind -= 0.15
+                    reasons.append("The prior objective test improved by at least 2/10, so more time shifts to transfer/pressure instead of more blocked repetition.")
+                elif objective_gain <= 0:
+                    grind += 0.05
+                    reasons.append("The prior objective test did not improve, so the new intervention gets slightly more controlled learning time.")
+            elif actually_completed and effectiveness is not None and effectiveness >= 4:
+                grind -= 0.15
+                reasons.append("The prior drill was completed and rated effective, so more time shifts to transfer/pressure instead of repeating blocked work.")
+            elif actually_completed and effectiveness is not None and effectiveness <= 2:
+                grind += 0.05
+                reasons.append("The prior completed drill rated poorly, so the new intervention gets a little more controlled learning time.")
+            elif not actually_completed:
+                reasons.append("Prior work was not completed, so Birdie Buddy does not treat the intervention as failed.")
+
+    grind = max(0.30, min(0.75, grind))
+    return round(grind, 2), " ".join(reasons)
+
+
+def _practice_drill_weights(diag, active_drills):
+    """Allocate controlled-work time by the relative importance of the selected drills."""
+    n = len(active_drills)
+    if n <= 1:
+        return [1.0] if n == 1 else []
+    secondary_priority = str((diag or {}).get("secondary_roi_priority") or "").upper()
+    if secondary_priority in {"CRITICAL", "HIGH"}:
+        primary = 0.60
+    elif secondary_priority == "MEDIUM":
+        primary = 0.70
+    else:
+        primary = 0.80
+    try:
+        conf = float((diag or {}).get("confidence_score"))
+    except Exception:
+        conf = 1.0
+    if conf < 0.65:
+        primary = min(primary, 0.65)
+    if n == 2:
+        return [primary, 1.0 - primary]
+    remaining = 1.0 - primary
+    return [primary] + [remaining / (n - 1)] * (n - 1)
+
+
+def _allocate_integer(total, weights):
+    if not weights:
+        return []
+    raw = [total * w for w in weights]
+    base = [int(x) for x in raw]
+    remainder = int(total) - sum(base)
+    order = sorted(range(len(raw)), key=lambda i: raw[i] - base[i], reverse=True)
+    for i in order[:max(0, remainder)]:
+        base[i] += 1
+    return base
+
+
+def get_drill_kpi(drill_name):
+    """Objective 10-rep pre/post test tied to the skill the drill is meant to train."""
+    lag_putting = {"Ladder Distance Lag Drill", "Fringe-to-Fringe Feel Drill", "Eyes-Closed Distance Perception Drill", "Trail-Hand Push Putting Drill", "Short Back Long Through Stroke Drill", "Push-Putting No-Backswing Drill"}
+    start_line_putting = {"Putting Tee Gate Drill", "Chalk Line Straight Target Drill", "Mirror Alignment Face Drill", "Metal Yardstick Roll Drill", "Parallel Rod Putting Channel Drill", "Two-Tee Putter Gate Drill"}
+    strike_putting = {"Rubber Band Putter Sweet-Spot Drill", "Coin Balance Putter Back Drill", "Coin Balance Motion Stroke Drill"}
+    distance_short_game = {"Clock System Wedge Drill", "Landing Zone Target Towel Drill", "Target-Focused Eyes-Up Chipping Drill", "Trail-Hand Only Pitch Drill"}
+    contact_short_game = {"Towel Behind Ball Drill", "Lead Foot Weight Anchor Drill", "Brush Turf Chipping Drill", "Coin Lead-Point Pitch Drill", "Ruler in Glove Wrist Anchor Drill", "Hinge-and-Hold Chipping Drill", "Continuous Motion Pendulum Chipping Drill", "Accelerating Through Impact Gate Drill"}
+    if drill_name in lag_putting:
+        return {"name": "Lag-putt proximity", "test": "Hit 10 putts from roughly 30–40 feet to one target.", "success": "A success finishes inside a 3-foot radius without racing more than 3 feet past.", "target": 7}
+    if drill_name in start_line_putting:
+        return {"name": "Start-line control", "test": "Hit 10 straight putts from 6–8 feet through the drill's intended start-line gate/reference.", "success": "A success starts through the gate/on the reference line with centered contact.", "target": 8}
+    if drill_name in strike_putting:
+        return {"name": "Centered putter contact", "test": "Hit 10 putts from 6–10 feet using the strike constraint.", "success": "A success contacts the intended center of the face and starts on the chosen line.", "target": 8}
+    if drill_name in distance_short_game:
+        return {"name": "Landing-zone control", "test": "Hit 10 chips/pitches to one landing zone, then let the ball release normally.", "success": "A success lands inside a roughly 3-foot landing-zone circle and produces the intended trajectory.", "target": 7}
+    if drill_name in contact_short_game:
+        return {"name": "Short-game contact", "test": "Hit 10 chips/pitches from the same lie using the drill constraint.", "success": "A success produces the intended turf/ball contact and a predictable launch—judge strike before final proximity.", "target": 7}
+    if _drill_category(drill_name) == "bunker":
+        return {"name": "Bunker entry & escape", "test": "Hit 10 bunker shots from one consistent lie to a defined landing zone.", "success": "A success enters the sand at the intended spot, exits the bunker, and finishes in a playable target zone.", "target": 7}
+    if _drill_category(drill_name) == "full_swing":
+        return {"name": "Playable full-swing reps", "test": "Hit 10 balls to one clearly defined target corridor using the drill constraint.", "success": "A success satisfies the drill checkpoint, produces functional contact, and finishes in the chosen playable corridor.", "target": 7}
+    if _drill_category(drill_name) == "mental":
+        return {"name": "Process completion", "test": "Hit 10 one-ball reps with a full reset and pre-shot process before each shot.", "success": "A success completes the intended routine/decision cue and commits before the swing, regardless of whether the result is perfect.", "target": 8}
+    return {"name": "Quality reps", "test": "Complete 10 scored reps using the drill exactly as written.", "success": "A success meets the drill's stated SUCCESS checkpoint without changing the setup to make the rep easier.", "target": 7}
 
 
 DRILL_PURPOSES = {
@@ -882,6 +1023,15 @@ def render_progress_trends(df_history):
             else:
                 st.caption("No practice-effectiveness feedback logged yet.")
 
+            objective_gain = pd.to_numeric(
+                df_history.get("Objective Gain", pd.Series(dtype=float)), errors="coerce"
+            ).dropna()
+            if len(objective_gain) >= 2:
+                st.caption("Objective practice-test gain — post-test minus pre-test (out of 10)")
+                st.line_chart(objective_gain.reset_index(drop=True))
+            elif len(objective_gain) == 1:
+                st.caption(f"Latest objective practice-test gain: {objective_gain.iloc[-1]:+.0f}/10.")
+
         # Full history log lives with Progress & Trends instead of in the sidebar.
         with st.expander("👁️ View Color-Coded Practice Log", expanded=False):
             def highlight_progress_cols(val):
@@ -913,11 +1063,8 @@ def render_progress_trends(df_history):
                 column_config={
                     "Timestamp": st.column_config.TextColumn("Date / Time"),
                     "Score": st.column_config.TextColumn("Score"),
-                    "Holes Played": st.column_config.TextColumn("Holes"),
                     "Fairways Hit": st.column_config.TextColumn("FIR"),
-                    "Fairway Opportunities": st.column_config.TextColumn("FIR Opps."),
                     "GIR": st.column_config.TextColumn("GIR"),
-                    "GIR Opportunities": st.column_config.TextColumn("GIR Opps."),
                     "Putts": st.column_config.TextColumn("Putts"),
                     "Penalty Strokes": st.column_config.TextColumn("Penalties"),
                     "OB/Lost Balls": st.column_config.TextColumn("OB / Lost"),
@@ -934,7 +1081,6 @@ def render_progress_trends(df_history):
                     "Course Mgmt Subtype": st.column_config.TextColumn(
                         "Strategy Subtype"
                     ),
-                    "Decision Quality": st.column_config.TextColumn("Decision Quality"),
                     "Secondary Fault": st.column_config.TextColumn(
                         "Secondary Opportunity"
                     ),
@@ -947,17 +1093,22 @@ def render_progress_trends(df_history):
                         "Effectiveness (1-5)"
                     ),
                     "Handicap": st.column_config.TextColumn("Handicap"),
-                    "ROI Priority": st.column_config.TextColumn("ROI Priority"),
-                    "ROI Score": st.column_config.TextColumn("Priority Index"),
-                    "Observed Direct Score Cost": st.column_config.TextColumn(
-                        "Direct Cost"
-                    ),
-                    "Estimated Peer Gap Strokes": st.column_config.TextColumn(
-                        "Peer Gap"
-                    ),
-                    "Estimated Excess Strokes": st.column_config.TextColumn(
-                        "Peer Gap Detail"
-                    ),
+                    "ROI Priority": st.column_config.TextColumn("Practice Priority"),
+                    "ROI Score": st.column_config.TextColumn("Practice Priority Index"),
+                    "Estimated Excess Strokes": st.column_config.TextColumn("Peer Gap (legacy)"),
+                    "Holes Played": st.column_config.TextColumn("Holes"),
+                    "Fairway Opportunities": st.column_config.TextColumn("FW Opps"),
+                    "GIR Opportunities": st.column_config.TextColumn("GIR Opps"),
+                    "Observed Direct Score Cost": st.column_config.TextColumn("Direct Cost"),
+                    "Handicap-Relative Peer Gap": st.column_config.TextColumn("Peer Gap"),
+                    "Decision Quality": st.column_config.TextColumn("Decision Quality"),
+                    "Mechanical Evidence Level": st.column_config.TextColumn("Mechanical Evidence"),
+                    "Practice Environment": st.column_config.TextColumn("Practice Environment"),
+                    "Available Equipment": st.column_config.TextColumn("Equipment"),
+                    "Practice Allocation": st.column_config.TextColumn("Practice Split"),
+                    "Baseline KPI (10)": st.column_config.TextColumn("Pre-Test /10"),
+                    "Post KPI (10)": st.column_config.TextColumn("Post-Test /10"),
+                    "Objective Gain": st.column_config.TextColumn("Objective Gain"),
                 },
             )
 
@@ -1006,10 +1157,6 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
     lines.append(f"Caddie Persona: {caddie}")
     lines.append(f"Primary Scoring Opportunity: {diag.get('primary_miss', 'N/A')}")
     lines.append(f"Primary Value Chain Stage: {diag.get('primary_miss_stage', 'N/A')}")
-    if diag.get("decision_quality_classification") not in (None, "", "not_applicable"):
-        lines.append(f"Decision Quality: {diag.get('decision_quality_classification')}")
-    if diag.get("history_adaptation_note"):
-        lines.append(f"History Adaptation: {diag.get('history_adaptation_note')}")
     if diag.get("course_management_subtype"):
         lines.append(f"Course Management Subtype: {diag.get('course_management_subtype')}")
     if diag.get("secondary_miss"):
@@ -1018,6 +1165,14 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
         f"Total Allocation: {res['total_balls']} Balls | {res['total_time']} Mins"
         f" (@ {res['sec_per_ball']}s/ball)"
     )
+    lines.append(f"Practice Areas: {', '.join(res.get('practice_areas', [])) or 'Not specified'}")
+    lines.append(f"Available Equipment: {', '.join(res.get('equipment', [])) or 'No training aids selected'}")
+    lines.append(
+        f"Practice Split: {int(res.get('grind_pct', 0)*100)}% controlled skill work | "
+        f"{int(res.get('game_pct', 0)*100)}% transfer/game work"
+    )
+    if res.get("allocation_rationale"):
+        lines.append(f"Why this split: {res['allocation_rationale']}")
     lines.append("-" * 50)
     lines.append("\nVALUE CHAIN OPPORTUNITY BREAKDOWN:")
     vc = diag.get("value_chain_analysis", {})
@@ -1045,21 +1200,18 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
 
     num_drills = len(active_drills)
     is_pure_game = (
-        res.get("practice_mode") == "Pure Game Mode (100% Target Pressure)"
+        res.get("practice_mode") == "Pure Game Mode (100% Target / Transfer Work)"
     )
     alloc_balls = res["total_balls"] if is_pure_game else res["grind_balls"]
     alloc_time = res["total_time"] if is_pure_game else res["grind_time"]
 
-    for idx, d_name in enumerate(active_drills):
-        if num_drills == 1:
-            weight = 1.0
-        elif num_drills == 2:
-            weight = 0.65 if idx == 0 else 0.35
-        else:
-            weight = 0.60 if idx == 0 else (0.40 / (num_drills - 1))
+    drill_weights = _practice_drill_weights(diag, active_drills)
+    drill_ball_alloc = _allocate_integer(alloc_balls, drill_weights)
+    drill_time_alloc = _allocate_integer(alloc_time, drill_weights)
 
-        balls_per_drill = int(alloc_balls * weight)
-        time_per_drill = int(alloc_time * weight)
+    for idx, d_name in enumerate(active_drills):
+        balls_per_drill = drill_ball_alloc[idx]
+        time_per_drill = drill_time_alloc[idx]
 
         schematic = drill_schematics.get(
             d_name, drill_schematics["Alignment Stick Gate Drill"]
@@ -1067,6 +1219,10 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
         lines.append(f"\nDRILL #{idx+1}: {d_name.upper()}")
         lines.append(f"Target: {balls_per_drill} Balls | {time_per_drill} Mins")
         lines.append(f"Equipment: {schematic['equipment']}")
+        kpi = get_drill_kpi(d_name)
+        lines.append(f"Objective Test: {kpi['test']}")
+        lines.append(f"Success Definition: {kpi['success']}")
+        lines.append(f"Pass Target: {kpi['target']}/10")
         lines.append("Setup & Execution:\n" + format_instruction_steps_for_export(schematic["vivid_description"]))
         lines.append(f"Mental Analogy: {schematic['analogy']}")
         lines.append(
@@ -1199,10 +1355,6 @@ def _extract_scorecard_with_gemini(uploaded_file):
       played round shown is complete enough to support it. List derived fields.
     - Preserve useful directional tracking such as fairway misses left/right and
       GIR misses short/long/left/right when the app visibly provides those markers.
-    - `holes_played` must reflect the number of played holes actually represented by
-      the visible score/stat set. Do not assume 18. Use 9 for a complete 9-hole round.
-    - `fairways_total` is the number of actual fairway opportunities shown/tracked,
-      not a hard-coded 14. `gir_total` is the number of GIR opportunities represented.
     - For screenshots such as 18Birdies, use labels/icons actually present rather
       than assuming the app's layout.
     - Capture hole-level evidence when readable because it can expose patterns that
@@ -1340,6 +1492,60 @@ def _normalize_followup_questions(payload):
     ]
 
 
+
+def _recent_coaching_history(limit=5):
+    """Return a compact, prompt-safe summary of recent coaching outcomes."""
+    df = load_history_df()
+    if df.empty:
+        return "No prior coaching history available."
+    rows = df.tail(limit).to_dict("records")
+    lines = []
+    for row in rows:
+        lines.append(
+            f"Stage={row.get('Primary Value Chain Stage','N/A')} | "
+            f"Opportunity={row.get('Primary Macro-Fault','N/A')} | "
+            f"Drill={row.get('Primary Drill','N/A')} | "
+            f"Completed={row.get('Drill Completed?','')} | "
+            f"Effectiveness={row.get('Fix Effectiveness (1-5)','')}"
+        )
+    return "\n".join(lines)
+
+
+def _enforce_history_aware_drill(diag):
+    """Change a repeated low-effectiveness drill only when it was actually completed."""
+    df = load_history_df()
+    if df.empty or not isinstance(diag, dict):
+        return diag
+    stage = str(diag.get("primary_miss_stage") or "")
+    drill = str(diag.get("recommended_primary_drill") or "")
+    if not stage or not drill:
+        return diag
+    candidates = df[df["Primary Value Chain Stage"].astype(str) == stage].tail(3)
+    if candidates.empty:
+        return diag
+    last = candidates.iloc[-1]
+    prior_drill = str(last.get("Primary Drill", ""))
+    completed = str(last.get("Drill Completed?", "")).lower()
+    try:
+        effectiveness = float(last.get("Fix Effectiveness (1-5)", ""))
+    except Exception:
+        effectiveness = None
+    actually_completed = ("partial" in completed) or ("fully" in completed) or completed.startswith("yes")
+    if prior_drill == drill and actually_completed and effectiveness is not None and effectiveness <= 2:
+        alternatives = {
+            "Off-the-Tee Performance (Primary Drive)": ["Alignment Stick Gate Drill", "Tee Gate Drill", "Feet-Together Balance Drill", "Pause at Top Drill"],
+            "Approach Precision (Mid Game)": ["Coin Strike Low-Point Drill", "Alignment Stick Gate Drill", "Impact Bag Compression Drill", "Pause at Top Drill"],
+            "Scoring/Scrambling (Short Game/Putting)": ["Ladder Distance Lag Drill", "Putting Tee Gate Drill", "Landing Zone Target Towel Drill", "Brush Turf Chipping Drill"],
+            "Course Management / Strategic Decision-Making": ["Target Visual Anchoring Drill", "Positive Box Pre-Shot Routine Drill"],
+            "Mental Infrastructure (Support Systems)": ["1-2-3 Box Breathing Reset Drill", "Positive Box Pre-Shot Routine Drill", "Target Visual Anchoring Drill"],
+        }
+        for alt in alternatives.get(stage, []):
+            if alt != drill:
+                diag["recommended_primary_drill"] = alt
+                diag["drill_rationale"] = (diag.get("drill_rationale", "") + " Prior practice history showed the previous drill was completed but rated low-effectiveness, so Birdie Buddy changed the intervention rather than repeating it.").strip()
+                break
+    return diag
+
 # Published Shot Scope amateur benchmarks. These are peer benchmarks, not
 # literal Strokes Gained values. They are used to make the diagnostic
 # handicap-relative rather than comparing every golfer to scratch.
@@ -1352,50 +1558,28 @@ HANDICAP_BENCHMARKS = {
 }
 
 
-def calculate_score_roi(
-    round_score,
-    fairways_hit,
-    gir,
-    putts,
-    penalty_strokes,
-    ob_lost_balls=None,
-    three_putts=None,
-    failed_up_downs=None,
-    scrambling_opportunities=None,
-    handicap=None,
-    holes_played=None,
-    fairway_opportunities=None,
-    gir_opportunities=None,
-):
-    """Estimate practice priority while separating two different questions.
+def calculate_score_roi(round_score, fairways_hit, gir, putts, penalty_strokes,
+                       ob_lost_balls=None, three_putts=None, failed_up_downs=None,
+                       scrambling_opportunities=None, handicap=None, holes_played=18,
+                       fairway_opportunities=None, gir_opportunities=None):
+    """Estimate practice priority while separating observed cost from peer-relative gaps.
 
-    1) direct_score_costs: strokes/events visibly paid on the card (e.g. penalties,
-       three-putts). This answers "where did strokes actually show up?"
-    2) peer_gap_strokes: a conservative handicap-relative estimate. This answers
-       "where was this round worse than a comparable golfer?"
-
-    The two are displayed separately. Priority can consider both, but the app does
-    not present a peer gap as though it were the same thing as an observed stroke.
+    Raw total putts are deliberately supporting evidence only because they are
+    strongly affected by GIR, proximity, and short-game leave distance. Three-putts
+    remain the stronger direct putting signal when they are actually tracked.
     """
+    holes = max(1, int(holes_played or 18))
+    gir_opps = max(1, int(gir_opportunities or holes))
+    fw_opps = fairway_opportunities
+    if fw_opps in (None, ""):
+        fw_opps = round(14 * holes / 18)
+    fw_opps = max(1, int(fw_opps))
+    scale = holes / 18.0
     has_hcp = handicap not in (None, "")
     hcp = float(handicap) if has_hcp else None
 
-    # Denominators are explicit. GIR opportunities usually equal holes played,
-    # but keeping both allows partial/stat-tracking screenshots to stay honest.
-    holes = _as_int_or_none(holes_played)
-    gir_opps = _as_int_or_none(gir_opportunities)
-    fir_opps = _as_int_or_none(fairway_opportunities)
-    if holes is None and gir_opps is not None:
-        holes = gir_opps
-
-    score = 0.0
-    reasons = []
-    gaps = {}
-
-    direct_costs = {
-        "Penalty / Trouble": None,
-        "Putting": None,
-    }
+    priority_score = 0.0
+    reasons, gaps = [], {}
     peer_gap = {
         "Penalty / Trouble": None,
         "Approach / GIR": None,
@@ -1403,105 +1587,56 @@ def calculate_score_roi(
         "Putting": None,
         "Driving / FIR": None,
     }
+    direct_cost = {"Penalty / Trouble": 0.0, "Putting": 0.0}
 
-    # ---------------------------
-    # DIRECT SCORE COST
-    # ---------------------------
     if penalty_strokes is not None:
-        direct_penalty = max(0.0, float(penalty_strokes))
-        direct_costs["Penalty / Trouble"] = round(direct_penalty, 2)
-        if direct_penalty > 0:
-            score += min(42.0, direct_penalty * 14.0)
+        penalty_value = max(0.0, float(penalty_strokes))
+        direct_cost["Penalty / Trouble"] = penalty_value
+        if penalty_value > 0:
+            priority_score += min(40.0, penalty_value * 12.0)
+            reasons.append(f"{penalty_value:.0f} penalty stroke(s) were observed direct score cost")
+        if has_hcp:
+            bench18 = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["penalty_strokes"])
+            bench = bench18 * scale
+            gap = max(0.0, penalty_value - bench)
+            peer_gap["Penalty / Trouble"] = gap
+            gaps["penalty_strokes_vs_handicap"] = round(penalty_value - bench, 2)
             reasons.append(
-                f"[Direct cost] {direct_penalty:.0f} penalty stroke(s) were actually added to the card."
-            )
-
-    if three_putts is not None:
-        direct_three_putt = max(0.0, float(three_putts))
-        direct_costs["Putting"] = round(direct_three_putt, 2)
-        if direct_three_putt > 0:
-            reasons.append(
-                f"[Direct event] {direct_three_putt:.0f} three-putt(s) each contained at least one stroke beyond a two-putt baseline; first-putt distance still matters."
+                f"Penalty peer benchmark for {holes} holes: {bench:.1f}; "
+                f"peer-relative opportunity {_format_stroke_estimate(gap)}"
             )
 
     if ob_lost_balls is not None and float(ob_lost_balls) > 0:
-        if penalty_strokes is not None and float(penalty_strokes) > 0:
-            reasons.append(
-                f"{int(ob_lost_balls)} OB/lost-ball event(s) help explain the penalty cost; they are not added again."
-            )
-        else:
-            score += min(10.0, float(ob_lost_balls) * 5.0)
-            reasons.append(
-                f"{int(ob_lost_balls)} OB/lost-ball event(s) signal serious trouble, but no separate penalty total was supplied."
-            )
-
-    # ---------------------------
-    # PEER GAP — PENALTIES
-    # ---------------------------
-    if penalty_strokes is not None and has_hcp and holes:
-        penalty_bench_18 = _interp_handicap_benchmark(
-            hcp, HANDICAP_BENCHMARKS["penalty_strokes"]
-        )
-        penalty_bench = penalty_bench_18 * (holes / 18.0)
-        penalty_gap = max(0.0, float(penalty_strokes) - penalty_bench)
-        gaps["penalty_strokes_vs_handicap"] = round(
-            float(penalty_strokes) - penalty_bench, 2
-        )
-        peer_gap["Penalty / Trouble"] = round(penalty_gap, 2)
-        if penalty_gap > 0:
-            # Small relative bonus only; the direct strokes were already counted.
-            score += min(10.0, penalty_gap * 4.0)
-            reasons.append(
-                f"[Peer gap] {float(penalty_strokes):.1f} penalties over {holes} holes vs "
-                f"{penalty_bench:.1f} expected for this handicap/round length = ~+{penalty_gap:.1f} peer-gap strokes."
-            )
-        else:
-            reasons.append(
-                f"[Peer gap] Penalties were at/below the scaled handicap benchmark ({penalty_bench:.1f} over {holes} holes), "
-                "even though any actual penalties still remain direct scoring cost."
-            )
-    elif penalty_strokes is not None and has_hcp and not holes:
+        if not (penalty_strokes is not None and float(penalty_strokes) > 0):
+            priority_score += min(10.0, float(ob_lost_balls) * 5.0)
         reasons.append(
-            "Penalty strokes were tracked, but holes played was not available, so the handicap benchmark was not scaled or applied."
+            f"{int(ob_lost_balls)} OB/lost-ball event(s) identify trouble source; not double-counted"
         )
 
-    # ---------------------------
-    # PEER GAP — APPROACH / GIR
-    # ---------------------------
-    if gir is not None:
-        if has_hcp and gir_opps and gir_opps > 0:
-            gir_pct = float(gir) / float(gir_opps) * 100.0
-            gir_bench = _interp_handicap_benchmark(
-                hcp, HANDICAP_BENCHMARKS["gir_pct"]
-            )
-            expected_gir = float(gir_opps) * gir_bench / 100.0
-            excess_missed_greens = max(0.0, expected_gir - float(gir))
-            gir_excess_strokes = excess_missed_greens * 0.35
-            gir_gap = gir_pct - gir_bench
-            gaps["gir_pct_vs_handicap"] = round(gir_gap, 1)
-            peer_gap["Approach / GIR"] = round(gir_excess_strokes, 2)
-            if gir_gap < -15:
-                score += 32.0
-            elif gir_gap < -8:
-                score += 22.0
-            elif gir_gap < -3:
-                score += 11.0
-            reasons.append(
-                f"[Peer gap] GIR {gir_pct:.0f}% ({int(gir)}/{gir_opps}) vs {gir_bench:.0f}% handicap benchmark = "
-                f"~{gir_excess_strokes:.1f} conservative approach-gap strokes."
-            )
-        elif has_hcp:
-            reasons.append(
-                "GIR was tracked, but GIR opportunities were not available, so no handicap-relative GIR percentage was calculated."
-            )
-        else:
-            reasons.append(
-                "GIR was tracked, but no handicap was supplied for a peer-relative approach estimate."
-            )
+    if gir is not None and has_hcp:
+        gir_pct = float(gir) / gir_opps * 100.0
+        bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["gir_pct"])
+        expected = gir_opps * bench / 100.0
+        missed_gap = max(0.0, expected - float(gir))
+        est = missed_gap * 0.35
+        peer_gap["Approach / GIR"] = est
+        gaps["gir_pct_vs_handicap"] = round(gir_pct - bench, 1)
+        diff = gir_pct - bench
+        if diff < -15:
+            priority_score += 32
+        elif diff < -8:
+            priority_score += 22
+        elif diff < -3:
+            priority_score += 11
+        reasons.append(
+            f"GIR {float(gir):.0f}/{gir_opps} ({gir_pct:.0f}%) vs {bench:.0f}% peer benchmark; "
+            f"heuristic opportunity {_format_stroke_estimate(est)}"
+        )
+    elif gir is not None:
+        reasons.append(
+            f"GIR {float(gir):.0f}/{gir_opps} tracked; handicap-relative peer gap unavailable"
+        )
 
-    # ---------------------------
-    # PEER GAP — SHORT GAME
-    # ---------------------------
     if (
         scrambling_opportunities is not None
         and int(scrambling_opportunities) > 0
@@ -1509,215 +1644,157 @@ def calculate_score_roi(
     ):
         opps = max(1, int(scrambling_opportunities))
         fails = min(opps, int(failed_up_downs))
-        observed_ud = (opps - fails) / opps * 100.0
+        observed = (opps - fails) / opps * 100
         if has_hcp:
-            ud_bench = _interp_handicap_benchmark(
-                hcp, HANDICAP_BENCHMARKS["up_down_pct"]
-            )
-            expected_fails = opps * (1.0 - ud_bench / 100.0)
-            excess_failures = max(0.0, float(fails) - expected_fails)
-            ud_excess_strokes = excess_failures * 0.70
-            ud_gap = observed_ud - ud_bench
-            gaps["up_down_pct_vs_handicap"] = round(ud_gap, 1)
-            peer_gap["Short Game / Scrambling"] = round(ud_excess_strokes, 2)
-            if ud_gap < -15:
-                score += 24.0
-            elif ud_gap < -8:
-                score += 16.0
-            elif ud_gap < -3:
-                score += 8.0
+            bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["up_down_pct"])
+            exp_fails = opps * (1 - bench / 100)
+            extra = max(0.0, float(fails) - exp_fails)
+            est = extra * 0.70
+            peer_gap["Short Game / Scrambling"] = est
+            gaps["up_down_pct_vs_handicap"] = round(observed - bench, 1)
+            diff = observed - bench
+            if diff < -15:
+                priority_score += 24
+            elif diff < -8:
+                priority_score += 16
+            elif diff < -3:
+                priority_score += 8
             reasons.append(
-                f"[Peer gap] Up-and-down {observed_ud:.0f}% vs {ud_bench:.0f}% benchmark = "
-                f"~{ud_excess_strokes:.1f} conservative short-game-gap strokes."
+                f"Up-and-down {observed:.0f}% vs {bench:.0f}% peer benchmark; "
+                f"heuristic opportunity {_format_stroke_estimate(est)}"
             )
-        else:
-            reasons.append(
-                f"Up-and-down rate was {observed_ud:.0f}%, but no handicap was supplied for a peer-relative short-game estimate."
-            )
-    elif failed_up_downs is not None and int(failed_up_downs) > 0:
+
+    # Total putts: supporting context only. We keep the gap for explanation but
+    # do not convert it into an excess-stroke estimate.
+    putt_gap = None
+    if putts is not None and has_hcp:
+        bench18 = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["putts_round"])
+        bench = bench18 * scale
+        putt_gap = float(putts) - bench
+        gaps["putts_vs_handicap"] = round(putt_gap, 1)
         reasons.append(
-            "Failed up-and-downs were tracked without scrambling opportunities, so no save-rate estimate was calculated."
+            f"Putts {float(putts):.0f} vs scaled {holes}-hole benchmark {bench:.1f}; "
+            "raw putts are supporting evidence only because GIR/proximity strongly affect the total"
         )
 
-    # ---------------------------
-    # PUTTING — DIRECT + PEER GAP, WITHOUT DOUBLE COUNTING
-    # ---------------------------
-    putt_gap = None
-    peer_putt_score = 0.0
-    if putts is not None:
-        if has_hcp and holes:
-            putt_bench_18 = _interp_handicap_benchmark(
-                hcp, HANDICAP_BENCHMARKS["putts_round"]
-            )
-            putt_bench = putt_bench_18 * (holes / 18.0)
-            putt_gap = max(0.0, float(putts) - putt_bench)
-            gaps["putts_vs_handicap"] = round(float(putts) - putt_bench, 1)
-            peer_gap["Putting"] = round(putt_gap, 2)
-            if putt_gap >= 5 * (holes / 18.0):
-                peer_putt_score = 11.0
-            elif putt_gap >= 3 * (holes / 18.0):
-                peer_putt_score = 6.0
+    if three_putts is not None:
+        three_est = max(0.0, float(three_putts))
+        direct_cost["Putting"] = three_est
+        if three_est > 0:
+            priority_score += min(24.0, three_est * 10.0)
             reasons.append(
-                f"[Peer gap] {int(putts)} putts over {holes} holes vs scaled benchmark {putt_bench:.1f} = "
-                f"~+{putt_gap:.1f} putts above peer benchmark. Interpret with GIR/proximity."
+                f"{int(three_est)} three-putt(s) = observed direct putting cost and stronger evidence than raw putt total"
             )
-        elif has_hcp:
-            reasons.append(
-                "Total putts were tracked, but holes played was unavailable, so the 18-hole putting benchmark was not applied."
-            )
-        else:
-            reasons.append(
-                "Total putts were tracked, but no handicap was supplied for a peer-relative putting estimate."
-            )
+    elif putt_gap is not None and putt_gap >= max(2.0, 5.0 * scale):
+        priority_score += 3.0
+        reasons.append(
+            "Total putts were materially above the peer benchmark, but without 3-putt/first-putt-distance data this receives only a small supporting-priority boost"
+        )
 
-    three_putt_score = 0.0
-    if three_putts is not None and float(three_putts) > 0:
-        three_putt_score = min(24.0, float(three_putts) * 10.0)
+    if fairways_hit is not None and has_hcp:
+        fir_pct = float(fairways_hit) / fw_opps * 100.0
+        bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["fir_pct"])
+        diff = fir_pct - bench
+        peer_gap["Driving / FIR"] = 0.0
+        gaps["fir_pct_vs_handicap"] = round(diff, 1)
+        if diff < -15 and ((penalty_strokes or 0) > 0 or (ob_lost_balls or 0) > 0):
+            priority_score += 8
+        elif diff < -10:
+            priority_score += 2
+        reasons.append(
+            f"FIR {float(fairways_hit):.0f}/{fw_opps} ({fir_pct:.0f}%) vs {bench:.0f}% peer benchmark; FIR alone gets no stroke value"
+        )
 
-    # Direct 3-putt events and peer total-putt gap describe the same putting
-    # bucket. Use the stronger priority signal instead of stacking both.
-    score += max(peer_putt_score, three_putt_score)
-    if (
-        putt_gap is not None
-        and three_putts is not None
-        and putt_gap > 0
-        and float(three_putts) > 0
-    ):
-        gaps["putting_dedup_rule"] = "max(peer total-putt signal, direct 3-putt signal)"
-
-    # ---------------------------
-    # FIR — CONTEXT ONLY
-    # ---------------------------
-    if fairways_hit is not None:
-        if has_hcp and fir_opps and fir_opps > 0:
-            fir_pct = float(fairways_hit) / float(fir_opps) * 100.0
-            fir_bench = _interp_handicap_benchmark(
-                hcp, HANDICAP_BENCHMARKS["fir_pct"]
-            )
-            fir_gap = fir_pct - fir_bench
-            gaps["fir_pct_vs_handicap"] = round(fir_gap, 1)
-            peer_gap["Driving / FIR"] = 0.0
-            if fir_gap < -15 and (
-                (penalty_strokes or 0) > 0 or (ob_lost_balls or 0) > 0
-            ):
-                score += 8.0
-            elif fir_gap < -10:
-                score += 2.0
-            reasons.append(
-                f"[Peer context] FIR {fir_pct:.0f}% ({int(fairways_hit)}/{fir_opps}) vs {fir_bench:.0f}% benchmark. "
-                "No stroke value is assigned from fairway percentage alone."
-            )
-        elif has_hcp:
-            reasons.append(
-                "Fairways were tracked, but fairway opportunities were unavailable, so no FIR percentage benchmark was calculated."
-            )
-        else:
-            reasons.append(
-                "Fairways were tracked, but no handicap was supplied for a peer-relative FIR comparison."
-            )
-
-    peer_numeric = [
-        float(v)
-        for v in peer_gap.values()
+    numeric_peer = [
+        float(v) for v in peer_gap.values()
         if isinstance(v, (int, float)) and v > 0
     ]
-    direct_numeric = [
-        float(v)
-        for v in direct_costs.values()
+    total_peer = sum(numeric_peer)
+    total_direct = sum(
+        float(v) for v in direct_cost.values()
         if isinstance(v, (int, float)) and v > 0
-    ]
-    total_peer_gap = round(sum(peer_numeric), 2)
-    total_direct_cost = round(sum(direct_numeric), 2)
-
-    score = round(min(100.0, score), 1)
-    if score >= 45:
-        tier = "CRITICAL — Direct / Major Score Leak"
-    elif score >= 30:
-        tier = "HIGH — Major Scoring Opportunity"
-    elif score >= 18:
-        tier = "MEDIUM — Worth Targeting"
-    else:
-        tier = "LOW — Need More Evidence / Near Benchmark"
+    )
+    priority_score = round(min(100.0, priority_score), 1)
+    tier = (
+        "CRITICAL — Direct / Excess Score Leak" if priority_score >= 45
+        else "HIGH — Major Scoring Opportunity" if priority_score >= 30
+        else "MEDIUM — Worth Targeting" if priority_score >= 18
+        else "LOW — Near Benchmark / Need More Evidence"
+    )
 
     peer_parts = [
-        f"{k}: {v:.1f}"
+        f"{k}: {_format_stroke_estimate(v)}"
         for k, v in peer_gap.items()
         if isinstance(v, (int, float)) and v > 0
     ]
-    direct_parts = [
-        f"{k}: {v:.1f}"
-        for k, v in direct_costs.items()
-        if isinstance(v, (int, float)) and v > 0
-    ]
+    peer_display = " | ".join(peer_parts) or (
+        "No material peer gap" if has_hcp else "Handicap benchmark unavailable"
+    )
+    direct_parts = []
+    for key, value in direct_cost.items():
+        if isinstance(value, (int, float)) and value > 0:
+            label = "3-putt cost" if key == "Putting" else key
+            direct_parts.append(f"{label}: {value:g} stroke(s)")
+    direct_display = " | ".join(direct_parts) or "No observed direct-cost event captured"
 
     return {
-        "score": score,
+        "score": priority_score,
         "tier": tier,
         "reasons": reasons,
         "gaps": gaps,
-        "peer_gap_strokes": peer_gap,
-        "direct_score_costs": direct_costs,
-        "total_peer_gap_strokes": total_peer_gap,
-        "total_direct_score_cost": total_direct_cost,
-        # Backward-compatible aliases used by older UI/export code.
         "excess_strokes": peer_gap,
-        "total_excess_strokes": total_peer_gap,
-        "excess_display": (
-            " | ".join(peer_parts)
-            or (
-                "No material handicap-relative peer gap"
-                if has_hcp
-                else "Handicap benchmark unavailable"
-            )
-        ),
-        "direct_cost_display": (
-            " | ".join(direct_parts) or "No direct penalty/3-putt cost recorded"
-        ),
+        "peer_gap_strokes": peer_gap,
+        "direct_score_cost": direct_cost,
+        "total_excess_strokes": total_peer,
+        "total_peer_gap": total_peer,
+        "total_direct_score_cost": total_direct,
+        "excess_display": peer_display,
+        "peer_gap_display": peer_display,
+        "direct_cost_display": direct_display,
         "has_handicap_benchmark": has_hcp,
         "holes_played": holes,
-        "fairway_opportunities": fir_opps,
+        "fairway_opportunities": fw_opps,
         "gir_opportunities": gir_opps,
     }
 
 
 def build_value_chain_roi_summary(roi_data, diag):
-    """Map direct costs and peer gaps into the same five-stage Value Chain UI."""
-    peer_values = {stage: 0.0 for stage, _, _, _ in VALUE_CHAIN_STAGES}
-    direct_values = {stage: 0.0 for stage, _, _, _ in VALUE_CHAIN_STAGES}
-    has_peer = {stage: False for stage, _, _, _ in VALUE_CHAIN_STAGES}
-    has_direct = {stage: False for stage, _, _, _ in VALUE_CHAIN_STAGES}
-    evidence = {stage: [] for stage, _, _, _ in VALUE_CHAIN_STAGES}
+    """Map numerical evidence into the five-stage Value Chain without double counting.
 
+    Direct penalty/3-putt events are used as the stage's observed scoring cost when
+    available. Handicap-relative gaps are used for approach/scrambling. Raw total
+    putts never receive a stroke estimate by themselves.
+    """
+    values = {stage: 0.0 for stage, _, _, _ in VALUE_CHAIN_STAGES}
+    has_numeric = {stage: False for stage, _, _, _ in VALUE_CHAIN_STAGES}
+    evidence = {stage: [] for stage, _, _, _ in VALUE_CHAIN_STAGES}
     peer = roi_data.get("peer_gap_strokes", {}) if roi_data else {}
-    direct = roi_data.get("direct_score_costs", {}) if roi_data else {}
+    direct = roi_data.get("direct_score_cost", {}) if roi_data else {}
     stage_by_key = {key: stage for stage, key, _, _ in VALUE_CHAIN_STAGES}
 
-    def add_peer(stage, raw_key, label):
-        value = peer.get(raw_key)
+    def add_value(stage, value, label):
         if isinstance(value, (int, float)):
-            has_peer[stage] = True
-            peer_values[stage] += float(value)
+            has_numeric[stage] = True
+            values[stage] += float(value)
             evidence[stage].append(label)
 
-    def add_direct(stage, raw_key, label):
-        value = direct.get(raw_key)
-        if isinstance(value, (int, float)):
-            has_direct[stage] = True
-            direct_values[stage] += float(value)
-            evidence[stage].append(label)
+    add_value(stage_by_key["approach"], peer.get("Approach / GIR"), "handicap-relative approach estimate")
+    add_value(stage_by_key["scoring_scrambling"], peer.get("Short Game / Scrambling"), "handicap-relative scrambling estimate")
 
-    add_peer(stage_by_key["approach"], "Approach / GIR", "GIR peer gap")
-    add_peer(
-        stage_by_key["scoring_scrambling"],
-        "Short Game / Scrambling",
-        "scrambling peer gap",
-    )
-    add_peer(stage_by_key["scoring_scrambling"], "Putting", "putting peer gap")
-    add_peer(stage_by_key["off_the_tee"], "Driving / FIR", "FIR peer context")
-    add_direct(stage_by_key["scoring_scrambling"], "Putting", "three-putt direct events")
+    putting_direct = direct.get("Putting")
+    if isinstance(putting_direct, (int, float)) and putting_direct > 0:
+        add_value(stage_by_key["scoring_scrambling"], putting_direct, "observed three-putt cost")
+    elif isinstance(peer.get("Putting"), (int, float)):
+        add_value(stage_by_key["scoring_scrambling"], peer.get("Putting"), "putting estimate")
 
-    penalty_peer = peer.get("Penalty / Trouble")
-    penalty_direct = direct.get("Penalty / Trouble")
+    # FIR remains context only and carries no stroke estimate from accuracy alone.
+    if isinstance(peer.get("Driving / FIR"), (int, float)):
+        add_value(stage_by_key["off_the_tee"], peer.get("Driving / FIR"), "FIR context")
+
+    penalty_value = direct.get("Penalty / Trouble")
+    if not (isinstance(penalty_value, (int, float)) and penalty_value > 0):
+        penalty_value = peer.get("Penalty / Trouble")
+
     penalty_attribution = (diag or {}).get("penalty_attribution", "unknown")
     attribution_map = {
         "course_management": stage_by_key["course_management"],
@@ -1726,75 +1803,37 @@ def build_value_chain_roi_summary(roi_data, diag):
         "scoring_scrambling": stage_by_key["scoring_scrambling"],
     }
     penalty_stage = attribution_map.get(penalty_attribution)
+    if penalty_stage is None and penalty_attribution not in {"mixed", "unknown"}:
+        fallback = (diag or {}).get("primary_miss_stage")
+        if fallback in values and fallback != stage_by_key["mental_infrastructure"]:
+            penalty_stage = fallback
 
-    # Decision quality is an explicit guardrail against outcome bias.
-    decision_quality = (diag or {}).get("decision_quality_classification")
-    if (
-        penalty_stage == stage_by_key["course_management"]
-        and decision_quality == "good_decision_bad_execution"
-    ):
-        penalty_stage = None
-
-    # Unknown or mixed attribution stays unattributed. Do not force penalty cost
-    # into the primary stage merely because that stage ranked first.
-    unattributed_direct = 0.0
-    unattributed_peer = 0.0
-    if isinstance(penalty_direct, (int, float)):
+    unattributed_penalty = 0.0
+    if isinstance(penalty_value, (int, float)):
         if penalty_stage:
-            has_direct[penalty_stage] = True
-            direct_values[penalty_stage] += float(penalty_direct)
-            evidence[penalty_stage].append("penalty direct cost")
-        elif penalty_direct > 0:
-            unattributed_direct = float(penalty_direct)
+            add_value(penalty_stage, penalty_value, "observed penalty/trouble cost")
+        elif penalty_value > 0:
+            unattributed_penalty = float(penalty_value)
 
-    if isinstance(penalty_peer, (int, float)):
-        if penalty_stage:
-            has_peer[penalty_stage] = True
-            peer_values[penalty_stage] += float(penalty_peer)
-            evidence[penalty_stage].append("penalty peer gap")
-        elif penalty_peer > 0:
-            unattributed_peer = float(penalty_peer)
-
-    primary_stage = (diag or {}).get("primary_miss_stage") or (
-        (diag or {}).get("value_chain_analysis", {}).get("primary_leak_stage")
-    )
+    primary_stage = (diag or {}).get("primary_miss_stage") or (diag or {}).get("value_chain_analysis", {}).get("primary_leak_stage")
     secondary_stage = (diag or {}).get("secondary_miss_stage")
 
     rows = []
     for stage, key, icon, short_name in VALUE_CHAIN_STAGES:
-        direct_label = (
-            f"+{direct_values[stage]:.1f}"
-            if has_direct[stage] and direct_values[stage] > 0
-            else ("0.0" if has_direct[stage] else "—")
-        )
-        peer_label = (
-            f"~+{peer_values[stage]:.1f}"
-            if has_peer[stage] and peer_values[stage] > 0
-            else ("0.0" if has_peer[stage] else "—")
-        )
-        rank = (
-            "#1 Priority"
-            if stage == primary_stage
-            else ("#2 Priority" if stage == secondary_stage else "")
-        )
-        rows.append(
-            {
-                "Stage": f"{icon} {short_name}",
-                "Direct Cost": direct_label,
-                "Peer Gap": peer_label,
-                "Role": rank,
-            }
-        )
+        modeled = _format_stroke_estimate(values[stage], include_word=False) if has_numeric[stage] else "—"
+        rank = "#1 Priority" if stage == primary_stage else ("#2 Priority" if stage == secondary_stage else "")
+        rows.append({
+            "Stage": f"{icon} {short_name}",
+            "Modeled Strokes": modeled,
+            "Role": rank,
+        })
 
     return {
-        "peer_values": peer_values,
-        "direct_values": direct_values,
-        "has_peer": has_peer,
-        "has_direct": has_direct,
+        "values": values,
+        "has_numeric": has_numeric,
         "evidence": evidence,
         "rows": rows,
-        "unattributed_direct_penalty": unattributed_direct,
-        "unattributed_peer_penalty": unattributed_peer,
+        "unattributed_penalty": unattributed_penalty,
     }
 
 # -------------------------------------------------------------
@@ -2988,11 +3027,8 @@ with st.container(border=True):
         scorecard_context = "No scorecard image was used."
         stats_tracked = False
         round_score = None
-        holes_played = None
         fairways_hit = None
-        fairway_opportunities = None
         gir = None
-        gir_opportunities = None
         putts = None
         penalty_strokes = None
         ob_lost_balls = None
@@ -3001,6 +3037,9 @@ with st.container(border=True):
         scrambling_opportunities = None
         handicap = None
         handicap_known = False
+        holes_played = 18
+        fairway_opportunities = 14
+        gir_opportunities = 18
 
         if intake_mode == "✍️ Describe / Enter Stats":
             user_round_story = st.text_area(
@@ -3019,29 +3058,14 @@ with st.container(border=True):
             )
 
             if stats_tracked:
-                st.markdown("##### 🧭 Round Coverage")
-                st.caption(
-                    "Use the actual number of holes/stat opportunities tracked. This keeps 9-hole, "
-                    "partial, and non-standard courses from being forced into 18-hole / 14-fairway assumptions."
-                )
+                st.markdown("##### 🔢 Round Numbers")
                 cov1, cov2, cov3 = st.columns(3)
                 with cov1:
-                    holes_played = st.number_input(
-                        "Holes Played", min_value=1, max_value=18, value=18, step=1,
-                        help="Number of holes represented by these stats.",
-                    )
+                    holes_played = st.number_input("Holes Played", min_value=1, max_value=36, value=18, step=1, help="Use 9 for a nine-hole round or the actual number completed.")
                 with cov2:
-                    fairway_opportunities = st.number_input(
-                        "Fairway Opps.", min_value=0, max_value=18, value=14, step=1,
-                        help="Number of tee shots where a fairway was available (normally excludes par 3s).",
-                    )
+                    fairway_opportunities = st.number_input("Fairway Opportunities", min_value=1, max_value=36, value=14, step=1, help="Number of holes where a fairway could be hit; do not assume 14 if the course differs.")
                 with cov3:
-                    gir_opportunities = st.number_input(
-                        "GIR Opps.", min_value=1, max_value=18, value=18, step=1,
-                        help="Number of holes for which GIR was tracked; usually equals holes played.",
-                    )
-
-                st.markdown("##### 🔢 Round Numbers")
+                    gir_opportunities = st.number_input("GIR Opportunities", min_value=1, max_value=36, value=18, step=1, help="Usually equals holes played, but keep the actual denominator for partial rounds.")
                 col_n1, col_n2, col_n3 = st.columns(3)
                 col_n4, col_n5, col_n6 = st.columns(3)
                 with col_n1:
@@ -3187,38 +3211,17 @@ with st.container(border=True):
                     "Your confirmed values override the raw image extraction."
                 )
                 stats_tracked = True
-
-                st.markdown("###### Round Coverage")
+                readable_holes_count = len([h for h in (extraction.get("holes") or []) if isinstance(h, dict) and h.get("hole") is not None])
+                inferred_holes = _as_int_or_none(extraction.get("holes_played")) or readable_holes_count or 18
+                extracted_fw_total = _as_int_or_none(extraction.get("fairways_total"))
+                extracted_gir_total = _as_int_or_none(extraction.get("gir_total"))
                 cov1, cov2, cov3 = st.columns(3)
                 with cov1:
-                    _extracted_holes = _as_int_or_none(extraction.get("holes_played"))
-                    if _extracted_holes is None:
-                        _readable_holes = [
-                            h for h in (extraction.get("holes") or [])
-                            if isinstance(h, dict) and h.get("hole") is not None
-                        ]
-                        _extracted_holes = len(_readable_holes) or _as_int_or_none(extraction.get("gir_total"))
-                    holes_played = st.number_input(
-                        "Holes Played", min_value=1, max_value=18,
-                        value=_extracted_holes, step=1, placeholder="Not shown",
-                        key="upload_holes_review",
-                    )
+                    holes_played = st.number_input("Holes Played", min_value=1, max_value=36, value=int(inferred_holes), step=1, key="upload_holes_review")
                 with cov2:
-                    fairway_opportunities = st.number_input(
-                        "Fairway Opps.", min_value=0, max_value=18,
-                        value=_as_int_or_none(extraction.get("fairways_total")), step=1,
-                        placeholder="Not shown", key="upload_fir_total_review",
-                    )
+                    fairway_opportunities = st.number_input("Fairway Opportunities", min_value=1, max_value=36, value=int(extracted_fw_total or max(1, round(14 * holes_played / 18))), step=1, key="upload_fwopps_review")
                 with cov3:
-                    _extracted_gir_total = _as_int_or_none(extraction.get("gir_total"))
-                    if _extracted_gir_total is None:
-                        _extracted_gir_total = holes_played
-                    gir_opportunities = st.number_input(
-                        "GIR Opps.", min_value=1, max_value=18,
-                        value=_extracted_gir_total, step=1, placeholder="Not shown",
-                        key="upload_gir_total_review",
-                    )
-
+                    gir_opportunities = st.number_input("GIR Opportunities", min_value=1, max_value=36, value=int(extracted_gir_total or holes_played), step=1, key="upload_giropps_review")
                 col_n1, col_n2, col_n3 = st.columns(3)
                 col_n4, col_n5, col_n6 = st.columns(3)
                 with col_n1:
@@ -3384,13 +3387,6 @@ with st.container(border=True):
             else f"Analyze Round with {persona_display_name}"
         )
         if st.button(analyze_label, type="primary"):
-            if stats_tracked and fairways_hit is not None and fairway_opportunities is not None and fairways_hit > fairway_opportunities:
-                st.error("Fairways Hit cannot exceed Fairway Opportunities.")
-                st.stop()
-            if stats_tracked and gir is not None and gir_opportunities is not None and gir > gir_opportunities:
-                st.error("GIR cannot exceed GIR Opportunities.")
-                st.stop()
-
             scorecard_ready = (
                 intake_mode == "📷 Upload Scorecard"
                 and bool(st.session_state.get("scorecard_extraction"))
@@ -3412,11 +3408,8 @@ with st.container(border=True):
                 st.session_state["scorecard_context"] = scorecard_context
                 st.session_state["round_stats_tracked"] = stats_tracked
                 st.session_state["round_score"] = round_score
-                st.session_state["round_holes_played"] = holes_played
                 st.session_state["round_fairways_hit"] = fairways_hit
-                st.session_state["round_fairway_opportunities"] = fairway_opportunities
                 st.session_state["round_gir"] = gir
-                st.session_state["round_gir_opportunities"] = gir_opportunities
                 st.session_state["round_putts"] = putts
                 st.session_state["round_penalty_strokes"] = penalty_strokes
                 st.session_state["round_ob_lost_balls"] = ob_lost_balls
@@ -3425,13 +3418,16 @@ with st.container(border=True):
                 st.session_state["round_scrambling_opportunities"] = scrambling_opportunities
                 st.session_state["round_handicap"] = handicap
                 st.session_state["round_handicap_known"] = handicap_known
+                st.session_state["round_holes_played"] = holes_played
+                st.session_state["round_fairway_opportunities"] = fairway_opportunities
+                st.session_state["round_gir_opportunities"] = gir_opportunities
 
                 if stats_tracked:
                     round_numbers_block = f"""
                     - Score: {_fmt_stat(round_score)}
-                    - Holes Played: {_fmt_stat(holes_played)}
-                    - Fairways Hit: {_fmt_stat(fairways_hit)} of {_fmt_stat(fairway_opportunities)}
-                    - Greens in Regulation: {_fmt_stat(gir)} of {_fmt_stat(gir_opportunities)}
+                    - Holes Played: {holes_played}
+                    - Fairways Hit: {_fmt_stat(fairways_hit)} (out of {fairway_opportunities} opportunities)
+                    - Greens in Regulation: {_fmt_stat(gir)} (out of {gir_opportunities} opportunities)
                     - Putts: {_fmt_stat(putts)}
                     - Penalty Strokes: {_fmt_stat(penalty_strokes)}
                     - OB / Lost Balls: {_fmt_stat(ob_lost_balls)}
@@ -3442,8 +3438,6 @@ with st.container(border=True):
                     """
                 else:
                     round_numbers_block = "No round stats were tracked for this diagnosis."
-
-                recent_coaching_history = build_recent_coaching_history_context(limit=5)
 
                 question_prompt = f"""
                 You are the neutral diagnostic intake layer for Birdie Buddy.
@@ -3473,17 +3467,6 @@ with st.container(border=True):
                 Round numbers they logged:
                 {round_numbers_block}
 
-                Recent Birdie Buddy coaching history:
-                {recent_coaching_history}
-
-                HISTORY USE RULES:
-                - Use prior rounds only to decide which clarification would change the prescription.
-                - Never call a prior drill ineffective if it was not actually completed.
-                - If the same opportunity recurs after a fully/partially completed drill rated 1-2/5,
-                  clarify whether the issue, environment, or failure mode has changed before repeating it.
-                - If a completed drill was rated 4-5/5 but the issue recurs, probe transfer under pressure/context
-                  instead of assuming the original skill intervention failed.
-
                 Your job is NOT to diagnose the golfer yet. Your job is to identify only the
                 remaining uncertainties that could materially change which Value Chain stage deserves
                 the #1 practice priority.
@@ -3510,9 +3493,9 @@ with st.container(border=True):
                   repeated misses right, do not ask whether misses were right; ask what CAUSED or followed them.
                 - Prefer cause-discriminating questions over symptom questions.
                 - If penalties/OB occurred, distinguish strategy from execution before labeling Course Management.
-                  Ask enough to classify the key costly situation as one of:
-                  good decision / bad execution; poor decision / reasonable execution; both; or unclear.
-                  A bad outcome by itself is NOT evidence of a bad decision.
+                - Explicitly resolve decision quality when it matters: good decision/bad execution, poor decision/reasonable execution, both, or unclear.
+                - A bad outcome does NOT prove a bad decision, and a good outcome does NOT prove a good decision.
+                - Do not ask a swing-mechanics question that cannot be answered from the available observations; ask for observable ball flight/contact evidence instead.
                 - If 3-putts occurred, distinguish first-putt pace, read/start line, short-putt conversion,
                   and unusually long first-putt distance.
                 - If GIR is poor, distinguish contact, start direction/curve, distance/club selection, and target choice.
@@ -3637,11 +3620,8 @@ with st.container(border=True):
                 disabled=not answers_complete,
             ):
                 _rs = st.session_state.get("round_score")
-                _holes = st.session_state.get("round_holes_played")
                 _fh = st.session_state.get("round_fairways_hit")
-                _fir_opps = st.session_state.get("round_fairway_opportunities")
                 _gir = st.session_state.get("round_gir")
-                _gir_opps = st.session_state.get("round_gir_opportunities")
                 _pt = st.session_state.get("round_putts")
                 _pen = st.session_state.get("round_penalty_strokes")
                 _ob = st.session_state.get("round_ob_lost_balls")
@@ -3650,19 +3630,11 @@ with st.container(border=True):
                 _scramble_opps = st.session_state.get("round_scrambling_opportunities")
 
                 roi_data = calculate_score_roi(
-                    _rs,
-                    _fh,
-                    _gir,
-                    _pt,
-                    _pen,
-                    _ob,
-                    _3p,
-                    _ud,
-                    _scramble_opps,
+                    _rs, _fh, _gir, _pt, _pen, _ob, _3p, _ud, _scramble_opps,
                     st.session_state.get("round_handicap"),
-                    holes_played=_holes,
-                    fairway_opportunities=_fir_opps,
-                    gir_opportunities=_gir_opps,
+                    st.session_state.get("round_holes_played", 18),
+                    st.session_state.get("round_fairway_opportunities"),
+                    st.session_state.get("round_gir_opportunities")
                 )
 
                 # Preserve the grounded numerical model for the final unified scorecard.
@@ -3683,24 +3655,23 @@ with st.container(border=True):
                 Scorecard / Screenshot Context:
                 {st.session_state.get('scorecard_context', 'No scorecard image was used.')}
                 Round Stats Tracked: {st.session_state.get('round_stats_tracked', False)}
-                Round Coverage: Holes={_fmt_stat(_holes)}, Fairway Opportunities={_fmt_stat(_fir_opps)}, GIR Opportunities={_fmt_stat(_gir_opps)}
-                Round Numbers: Score={_fmt_stat(_rs)}, Fairways Hit={_fmt_stat(_fh)} of {_fmt_stat(_fir_opps)},
-                GIR={_fmt_stat(_gir)} of {_fmt_stat(_gir_opps)}, Putts={_fmt_stat(_pt)}, Penalty Strokes={_fmt_stat(_pen)},
+                Round Numbers: Score={_fmt_stat(_rs)}, Holes Played={st.session_state.get('round_holes_played', 18)}, Fairways Hit={_fmt_stat(_fh)} (of {st.session_state.get('round_fairway_opportunities')}),
+                GIR={_fmt_stat(_gir)} (of {st.session_state.get('round_gir_opportunities')}), Putts={_fmt_stat(_pt)}, Penalty Strokes={_fmt_stat(_pen)},
                 OB/Lost Balls={_fmt_stat(_ob)}, 3-Putts={_fmt_stat(_3p)}, Failed Up-and-Downs={_fmt_stat(_ud)}, Scrambling Opportunities={_fmt_stat(_scramble_opps)},
                 Handicap={_fmt_stat(st.session_state.get('round_handicap'))}
-                Score-ROI Engine: {roi_data['tier']} | Priority Index {roi_data['score']}/100
+                Practice Priority Engine: {roi_data['tier']} | internal priority index {roi_data['score']}/100 (heuristic, not an externally validated score)
                 Handicap Benchmark Available: {roi_data.get('has_handicap_benchmark', False)}
-                Observed Direct Score Cost: {roi_data.get('direct_cost_display')} | Total direct-event cost: {roi_data.get('total_direct_score_cost', 0):.1f}
-                Handicap-Relative Peer Gap: {roi_data['excess_display']} | Partial peer-gap total: {roi_data.get('total_peer_gap_strokes', 0):.1f}
                 Score-ROI Evidence: {'; '.join(roi_data['reasons']) if roi_data['reasons'] else 'No strong numerical scoring signal detected'}
-                Recent Coaching History:
-                {recent_coaching_history}
+                Observed Direct Score Cost: {roi_data['direct_cost_display']} | Total observed direct cost: {roi_data['total_direct_score_cost']:.1f}
+                Handicap-Relative Peer Gap: {roi_data['peer_gap_display']} | Aggregate heuristic range: {_format_stroke_estimate(roi_data['total_peer_gap'])}
+                Recent Coaching History (last 5):
+                {_recent_coaching_history(5)}
                 """
 
                 system_prompt = f"""
                 {active_persona['system_instruction']}
 
-                Act as an expert golf performance coach, sports psychology coach, and strategic instructor AI.
+                Act as an expert biomechanical, sports psychology, and strategic golf instructor AI.
                 Analyze the user's round narrative, decision tree answers, and round numbers through a
                 **Golf Value Chain ROI Lens** — the same "where does the value actually leak" logic used
                 in a business value chain, applied to a round of golf. Every fault belongs to exactly one
@@ -3724,53 +3695,18 @@ with st.container(border=True):
                    confidence, commitment, and focus after the strategic choice has already been made.
                    Do not place target/club/risk-selection mistakes here.
 
+                **Decision-Quality Rule:** Evaluate the choice separately from the result. Use one of: Good decision / bad execution; Poor decision / reasonable execution; Both contributed; Unclear; Not applicable. Never use the final outcome alone to judge the decision.
+
+                **Mechanical Evidence Rule:** A scorecard, round story, or miss pattern can establish a performance problem but usually cannot prove a specific biomechanical cause. Label mechanics as a hypothesis unless direct observations (contact, start direction, curvature, divot, or video-quality evidence) support it. When evidence is limited, prescribe an assessment/feedback drill rather than declaring a body-motion fault as fact.
+
+                **History Adaptation Rule:** Use the recent coaching history supplied in Round Context. If the same issue recurs after the golfer actually completed the same drill and rated it 1-2/5, change the intervention. If the drill was not completed, do not call the intervention ineffective. If a drill was rated highly yet the issue recurs, favor transfer/pressure/context work rather than simply repeating blocked mechanics.
+
+                **Direct Cost vs Peer Gap Rule:** Keep observed direct scoring costs (such as actual penalty strokes and 3-putts) conceptually separate from handicap-relative peer gaps. A direct cost does not disappear merely because it is normal for the golfer's handicap.
+
                 **Scorecard Grounding Rule:** When a scorecard/screenshot was uploaded, treat the reviewed
                 numeric fields as authoritative for totals. Use raw image extraction only for supporting
                 hole-by-hole/directional context. Never invent a stat that the extraction marked null/unclear,
                 and never treat an unreadable icon as evidence.
-
-                **Direct Cost vs. Peer Gap (critical):**
-                - `Observed Direct Score Cost` answers where strokes/events visibly appeared on this card.
-                - `Handicap-Relative Peer Gap` answers where this round underperformed a comparable golfer.
-                - Never say a direct penalty "doesn't matter" merely because it is normal for the golfer's handicap.
-                - Never present peer-gap estimates as observed strokes or measured Strokes Gained.
-                - Rank practice opportunities using both views plus confidence and practiceability.
-
-                **Decision Quality / Outcome-Bias Rule (critical):**
-                Evaluate the strategic decision separately from the result. For the most important costly
-                strategy/trouble pattern, classify `decision_quality_classification` as exactly one of:
-                `good_decision_bad_execution`, `poor_decision_reasonable_execution`, `both`, `unclear`,
-                or `not_applicable`.
-                - A sensible target/club followed by a bad swing is NOT Course Management merely because the ball found trouble.
-                - A poor high-risk decision can still be a Course Management leak even if the golfer happened to pull the shot off.
-                - Course Management should only be elevated when the evidence supports poor decision quality or a meaningful "both" classification.
-                - If different costly events had clearly different causes, use `penalty_attribution = mixed`
-                  rather than forcing all penalty cost into one Value Chain stage.
-
-                **Mechanical Diagnosis Ceiling (critical):**
-                A text story, scorecard, FIR/GIR pattern, or miss direction can establish a PERFORMANCE
-                PATTERN, but it cannot by itself prove a body/club mechanical root cause such as early
-                extension, casting, sequencing failure, or wrist mechanics.
-                - Use `mechanical_diagnosis_status` = `performance_pattern_only` when the problem is visible
-                  but the physical cause is not established.
-                - Use `hypothesis_to_test` when one mechanical explanation is plausible but needs a drill/test.
-                - Use `user_observation_supported` only when the golfer supplied directly relevant observable
-                  evidence (e.g. repeated fat strike/divot behind ball, explicit start/curve pattern, impact feel)
-                  that meaningfully supports the hypothesis.
-                - Use `not_applicable` for strategy/mental issues.
-                - Phrase unproven mechanics as "likely cause to test," never as fact.
-                - When mechanical certainty is low, prefer an assessment-oriented drill that gives immediate
-                  feedback before prescribing a highly specific movement overhaul.
-
-                **History-Aware Coaching Rule (critical):**
-                Use the supplied recent coaching history as evidence about intervention response.
-                - Never call a drill ineffective if it was not completed.
-                - If the same stage recurs after the same drill was completed and rated 1-2/5, do not simply
-                  repeat the same intervention; choose a different drill/test or explain a changed rationale.
-                - If a drill was completed and rated 4-5/5 but the issue recurs, favor transfer/pressure/context
-                  work rather than assuming skill acquisition failed.
-                - If the prior drill was not completed, repeating it can still be appropriate.
-                - Explain the adaptation in `history_adaptation_note`.
 
                 **Score-ROI Evidence Hierarchy:** Direct score events (OB/lost balls, penalty strokes, 3-putts)
                 are stronger evidence of lost strokes than broad accuracy statistics. Failed up-and-downs
@@ -3803,16 +3739,14 @@ with st.container(border=True):
                    recovery caused repeated scoring damage. Frustration alone is not enough, and strategic
                    target/club/risk choices belong in Course Management instead.
 
-                **Putting context rule:** Putts per round must be interpreted with GIR and short-game
-                context. High putts are a flag to investigate, not proof that putting is the highest
-                ROI opportunity. The supplied ROI engine already de-duplicates total-putt excess and
-                3-putts by using the stronger signal rather than adding both; do not add them again.
+                **Putting context rule:** Raw putts per round are supporting evidence only because GIR,
+                first-putt distance, proximity, and short-game leave distance strongly affect the total.
+                Three-putts are the stronger direct putting signal when tracked. Do not convert raw putts
+                into lost strokes or let a high putt total outrank stronger direct evidence by itself.
 
-                **Missing-data / denominator rule:** If handicap is Not tracked, do NOT compare the golfer to scratch
+                **Missing-data rule:** If handicap is Not tracked, do NOT compare the golfer to scratch
                 and do NOT invent a handicap-relative benchmark. If a zero is shown for a tracked stat,
-                treat it as a real zero. If a stat says Not tracked, do not infer a value. Use the supplied
-                holes played, fairway opportunities, and GIR opportunities exactly; never silently replace
-                them with 18 holes or 14 fairways.
+                treat it as a real zero. If a stat says Not tracked, do not infer a value.
 
                 **Blind-Spot Directive (critical):** Players tend to talk about whatever is emotionally
                 freshest. If the numerical evidence reveals a materially larger score leak that the story
@@ -3825,10 +3759,6 @@ with st.container(border=True):
                      **MAXIMUM score reduction** per the Value Chain + numbers analysis above — not
                      necessarily the fault the player talked about most.
                    - Select `recommended_secondary_drill` for the second highest ROI issue.
-                   - For a low-certainty mechanical issue, the selected drill should function as a test/feedback
-                     tool before it functions as a correction. State what result would support or weaken the hypothesis.
-                   - Respect recent practice response: do not repeat a completed 1-2/5 drill for the same stage
-                     unless the evidence clearly shows a different reason to use it.
                    - If **Course Management / Strategic Decision-Making** is the primary or secondary leak,
                      do NOT invent a new drill. Use an existing implementation scaffold only: choose
                      'Target Visual Anchoring Drill' for target/aim discipline or 'Positive Box Pre-Shot
@@ -3854,7 +3784,7 @@ with st.container(border=True):
                   "primary_miss": "string — concise plain golf-language title, 2-6 words, no movie/persona language or dramatic metaphor; use labels like 'Putting — Distance Control', 'Approach — Contact', or 'Course Management — Recovery Decisions'",
                   "primary_miss_stage": "string — exactly one of: 'Off-the-Tee Performance (Primary Drive)', 'Approach Precision (Mid Game)', 'Scoring/Scrambling (Short Game/Putting)', 'Course Management / Strategic Decision-Making', 'Mental Infrastructure (Support Systems)'",
                   "primary_miss_persona": "string (1 short, witty sentence calling out primary flaw in character)",
-                  "primary_cause_breakdown": "string (2-3 sentences explaining the best-supported performance/strategy/mental cause. If mechanics are not established, explicitly call them a hypothesis to test rather than a fact.)",
+                  "primary_cause_breakdown": "string (2-3 sentences explaining the performance cause and ROI. Do not state a specific biomechanical fault as fact unless the mechanical evidence level supports it.)",
                   "secondary_miss": "string or null — concise plain golf-language title using the same neutral style as primary_miss",
                   "secondary_miss_stage": "string or null — one of the same five Value Chain stage names",
                   "secondary_miss_persona": "string or null (1 short, witty sentence calling out the secondary opportunity in character)",
@@ -3875,17 +3805,12 @@ with st.container(border=True):
                   }},
                   "diagnostic_blind_spot": "string or null — a stat-implied leak the player's story did not mention or explain",
                   "course_management_subtype": "one of: Target Selection | Club Selection | Hazard Avoidance | Layup/Go Decision | Recovery Decision | Aggression/Pin Selection | null; use null unless Course Management is a material primary or secondary opportunity",
-                  "decision_quality_classification": "good_decision_bad_execution | poor_decision_reasonable_execution | both | unclear | not_applicable",
-                  "decision_quality_evidence": "string or null — concise evidence for the decision-quality classification; do not infer strategy quality from outcome alone",
-                  "penalty_attribution": "exactly one of: course_management | off_the_tee | approach | scoring_scrambling | mixed | unknown — use mixed when meaningful penalty/trouble events clearly came from different causes; do not force all penalties into one stage",
-                  "mechanical_diagnosis_status": "performance_pattern_only | hypothesis_to_test | user_observation_supported | not_applicable — apply these mechanical fields to the highest-ranked mechanical opportunity (primary if primary is mechanical, otherwise secondary)",
-                  "mechanical_hypothesis": "string or null — only a likely cause to test unless directly supported by golfer observations",
-                  "mechanical_test": "string or null — what drill/observable result would support or weaken the mechanical hypothesis",
-                  "mechanical_confidence_score": "number from 0.0 to 1.0 or null",
-                  "history_adaptation_note": "string — how recent completion/effectiveness history changed or preserved this prescription",
+                  "penalty_attribution": "exactly one of: course_management | off_the_tee | approach | scoring_scrambling | mixed | unknown — classify only the best-supported cause; use mixed/unknown when evidence does not support a single category",
+                  "decision_quality": "Good decision / bad execution | Poor decision / reasonable execution | Both contributed | Unclear | Not applicable",
+                  "mechanical_evidence_level": "Performance pattern only | Hypothesis to test | Supported by golfer observations | Not applicable",
                   "roi_priority": "CRITICAL | HIGH | MEDIUM | LOW",
-                  "roi_score": 0.0,
-                  "estimated_excess_strokes": "string — report handicap-relative peer-gap estimates by category when supported; keep them separate from observed direct score cost and explicitly label them as estimates, not measured Strokes Gained",
+                  "roi_score": 0.0,  // internal Practice Priority Index only; heuristic 0-100, not an externally validated golf metric
+                  "estimated_excess_strokes": "string — use rounded values or ranges (not hundredths) for handicap-relative heuristic estimates; explicitly label them as estimates, not measured Strokes Gained",
                   "roi_evidence": "string — specific round evidence supporting the priority",
                   "confidence_score": 0.95,
                   "recommended_primary_drill": "string",
@@ -3924,8 +3849,11 @@ with st.container(border=True):
                         response.text.replace("```json", "").replace("```", "").strip()
                     )
                     diag_data = json.loads(clean_json)
-                    diag_data = apply_history_aware_drill_adjustment(diag_data)
+                    diag_data = _enforce_history_aware_drill(diag_data)
                     st.session_state["diagnosis"] = diag_data
+                    st.session_state["show_practice_builder"] = False
+                    st.session_state["show_execution_plan"] = False
+                    st.session_state.pop("confirmed_resources", None)
 
                     # --- SAVE TO PERSISTENT CSV SPREADSHEET ---
                     vc_data = diag_data.get("value_chain_analysis", {})
@@ -3943,11 +3871,8 @@ with st.container(border=True):
                         secondary_miss=diag_data.get("secondary_miss", ""),
                         roi_opportunity=roi_note,
                         score=st.session_state.get("round_score"),
-                        holes_played=st.session_state.get("round_holes_played"),
                         fairways_hit=st.session_state.get("round_fairways_hit"),
-                        fairway_opportunities=st.session_state.get("round_fairway_opportunities"),
                         gir=st.session_state.get("round_gir"),
-                        gir_opportunities=st.session_state.get("round_gir_opportunities"),
                         putts=st.session_state.get("round_putts"),
                         penalty_strokes=st.session_state.get("round_penalty_strokes"),
                         ob_lost_balls=st.session_state.get("round_ob_lost_balls"),
@@ -3957,15 +3882,19 @@ with st.container(border=True):
                         problem_area=st.session_state.get("club_category", ""),
                         primary_stage=diag_data.get("primary_miss_stage", ""),
                         course_management_subtype=diag_data.get("course_management_subtype", ""),
-                        decision_quality=diag_data.get("decision_quality_classification", ""),
                         miss_freq=st.session_state.get("miss_freq", ""),
                         confidence=diag_data.get("confidence_score", ""),
                         handicap=st.session_state.get("round_handicap"),
                         roi_priority=diag_data.get("roi_priority", roi_data.get("tier", "")),
                         roi_score=diag_data.get("roi_score", roi_data.get("score", "")),
-                        observed_direct_score_cost=roi_data.get("total_direct_score_cost", ""),
-                        estimated_peer_gap_strokes=roi_data.get("total_peer_gap_strokes", ""),
-                        estimated_excess_strokes=roi_data.get("excess_display", ""),
+                        estimated_excess_strokes=roi_data.get("peer_gap_display", ""),
+                        holes_played=st.session_state.get("round_holes_played"),
+                        fairway_opportunities=st.session_state.get("round_fairway_opportunities"),
+                        gir_opportunities=st.session_state.get("round_gir_opportunities"),
+                        observed_direct_score_cost=roi_data.get("direct_cost_display", ""),
+                        handicap_relative_peer_gap=roi_data.get("peer_gap_display", ""),
+                        decision_quality=diag_data.get("decision_quality", ""),
+                        mechanical_evidence_level=diag_data.get("mechanical_evidence_level", ""),
                     )
 
                     st.session_state["diag_step"] = 3
@@ -3986,6 +3915,9 @@ with st.container(border=True):
                     ):
                         st.session_state.pop(key, None)
                 st.session_state["diag_step"] = 1
+                st.session_state["show_practice_builder"] = False
+                st.session_state["show_execution_plan"] = False
+                st.session_state.pop("confirmed_resources", None)
                 st.rerun()
 
     # --- STEP 1C: UNIFIED ROUND SCORECARD ---
@@ -4008,23 +3940,11 @@ with st.container(border=True):
         primary_stage = diag.get("primary_miss_stage") or vc.get("primary_leak_stage", "Highest-ROI Focus")
         primary_title = diag.get("primary_miss", "Primary scoring opportunity")
         primary_persona = diag.get("primary_miss_persona", primary_title)
-        def _stage_metric_label(stage):
-            direct_value = stage_summary["direct_values"].get(stage, 0.0)
-            peer_value = stage_summary["peer_values"].get(stage, 0.0)
-            has_direct = stage_summary["has_direct"].get(stage, False)
-            has_peer = stage_summary["has_peer"].get(stage, False)
-            parts = []
-            if has_direct and direct_value > 0:
-                parts.append(f"{direct_value:.1f} direct")
-            if has_peer and peer_value > 0:
-                parts.append(f"~{peer_value:.1f} peer gap")
-            if parts:
-                return " • ".join(parts)
-            if has_direct or has_peer:
-                return "0.0"
-            return "Qualitative"
-
-        primary_metric = _stage_metric_label(primary_stage)
+        primary_value = stage_summary["values"].get(primary_stage, 0.0)
+        primary_has_numeric = stage_summary["has_numeric"].get(primary_stage, False)
+        primary_metric = _format_stroke_estimate(primary_value) if primary_has_numeric and primary_value > 0 else (
+            "0" if primary_has_numeric else "Qualitative"
+        )
 
         def _confidence_label(value, fallback="N/A"):
             try:
@@ -4037,10 +3957,7 @@ with st.container(border=True):
         def _render_priority_card(
             rank, stage, title, persona_line, modeled_metric, priority_label,
             confidence_label, evidence, why_it_matters, practice_focus,
-            subtype=None, decision_quality=None, decision_evidence=None,
-            mechanical_status=None, mechanical_hypothesis=None,
-            mechanical_test=None, mechanical_confidence=None,
-            accent="warning"
+            subtype=None, accent="warning"
         ):
             medal = "🥇" if rank == 1 else "🥈"
             with st.container(border=True):
@@ -4057,51 +3974,17 @@ with st.container(border=True):
                 with m1:
                     render_compact_metric("Modeled Scoring Opportunity", modeled_metric)
                 with m2:
-                    render_compact_metric("ROI Priority", priority_label or "N/A")
+                    render_compact_metric("Practice Priority", priority_label or "N/A")
                 with m3:
                     render_compact_metric("AI Confidence", confidence_label)
 
                 if subtype and subtype != "null":
                     st.caption(f"🗺️ **Course-management subtype:** {subtype}")
-
-                decision_labels = {
-                    "good_decision_bad_execution": "Good decision / bad execution",
-                    "poor_decision_reasonable_execution": "Poor decision / reasonable execution",
-                    "both": "Decision and execution both contributed",
-                    "unclear": "Decision quality unclear",
-                    "not_applicable": None,
-                }
-                decision_label = decision_labels.get(decision_quality)
-                if decision_label:
-                    st.caption(f"🧭 **Decision quality:** {decision_label}")
-                    if decision_evidence:
-                        st.caption(f"Evidence: {decision_evidence}")
-
-                mechanical_labels = {
-                    "performance_pattern_only": "Performance pattern identified; mechanical cause not established",
-                    "hypothesis_to_test": "Mechanical hypothesis to test",
-                    "user_observation_supported": "Mechanical hypothesis supported by golfer observations",
-                    "not_applicable": None,
-                }
-                mechanical_label = mechanical_labels.get(mechanical_status)
-                if mechanical_label:
-                    mech_conf = ""
-                    try:
-                        if mechanical_confidence not in (None, "", "null"):
-                            mech_conf = f" ({float(mechanical_confidence) * 100:.0f}% mechanical confidence)"
-                    except Exception:
-                        pass
-                    st.caption(f"🛠️ **Mechanical status:** {mechanical_label}{mech_conf}")
-                    if mechanical_hypothesis:
-                        st.caption(f"Likely cause to test: {mechanical_hypothesis}")
-                    if mechanical_test:
-                        st.caption(f"Test: {mechanical_test}")
-
                 if evidence:
                     st.markdown(f"**Evidence:** {evidence}")
                 if why_it_matters:
                     st.markdown(f"**Why it matters:** {why_it_matters}")
-                st.markdown(f"**Highest-ROI practice focus:** `{practice_focus or 'N/A'}`")
+                st.markdown(f"**Highest-priority practice focus:** `{practice_focus or 'N/A'}`")
 
         priority_label = diag.get("roi_priority") or roi_data.get("tier", "N/A").split(" —")[0]
         confidence_label = _confidence_label(diag.get("confidence_score"))
@@ -4121,21 +4004,17 @@ with st.container(border=True):
             why_it_matters=primary_causes,
             practice_focus=diag.get("recommended_primary_drill"),
             subtype=subtype if primary_stage == "Course Management / Strategic Decision-Making" else None,
-            decision_quality=diag.get("decision_quality_classification")
-            if primary_stage == "Course Management / Strategic Decision-Making" else None,
-            decision_evidence=diag.get("decision_quality_evidence")
-            if primary_stage == "Course Management / Strategic Decision-Making" else None,
-            mechanical_status=diag.get("mechanical_diagnosis_status"),
-            mechanical_hypothesis=diag.get("mechanical_hypothesis"),
-            mechanical_test=diag.get("mechanical_test"),
-            mechanical_confidence=diag.get("mechanical_confidence_score"),
             accent="warning",
         )
 
         secondary = diag.get("secondary_miss")
         if secondary:
             secondary_stage = diag.get("secondary_miss_stage", "Secondary opportunity")
-            secondary_metric = _stage_metric_label(secondary_stage)
+            secondary_value = stage_summary["values"].get(secondary_stage, 0.0)
+            secondary_has_numeric = stage_summary["has_numeric"].get(secondary_stage, False)
+            secondary_metric = _format_stroke_estimate(secondary_value) if secondary_has_numeric and secondary_value > 0 else (
+                "0" if secondary_has_numeric else "Qualitative"
+            )
             secondary_persona = diag.get("secondary_miss_persona") or secondary
             secondary_priority = diag.get("secondary_roi_priority") or "SECONDARY"
             secondary_confidence = _confidence_label(
@@ -4157,21 +4036,25 @@ with st.container(border=True):
                 why_it_matters=diag.get("secondary_cause_breakdown"),
                 practice_focus=diag.get("recommended_secondary_drill"),
                 subtype=subtype if secondary_stage == "Course Management / Strategic Decision-Making" else None,
-                decision_quality=diag.get("decision_quality_classification")
-                if secondary_stage == "Course Management / Strategic Decision-Making" else None,
-                decision_evidence=diag.get("decision_quality_evidence")
-                if secondary_stage == "Course Management / Strategic Decision-Making" else None,
-                mechanical_status=diag.get("mechanical_diagnosis_status")
-                if secondary_stage in {
-                    "Off-the-Tee Performance (Primary Drive)",
-                    "Approach Precision (Mid Game)",
-                    "Scoring/Scrambling (Short Game/Putting)",
-                } else None,
-                mechanical_hypothesis=diag.get("mechanical_hypothesis"),
-                mechanical_test=diag.get("mechanical_test"),
-                mechanical_confidence=diag.get("mechanical_confidence_score"),
                 accent="info",
             )
+
+        with st.container(border=True):
+            st.markdown("#### Scoring Evidence: Direct Cost vs Peer Gap")
+            dc1, dc2 = st.columns(2)
+            with dc1:
+                direct_total = roi_data.get("total_direct_score_cost", 0)
+                direct_text = f"{direct_total:g} stroke(s)" if isinstance(direct_total, (int, float)) else str(direct_total)
+                render_compact_metric("Observed Direct Score Cost", direct_text, subtext=roi_data.get("direct_cost_display", "No direct events captured"))
+            with dc2:
+                peer_text = _format_stroke_estimate(roi_data.get("total_peer_gap", 0)) if roi_data.get("has_handicap_benchmark") else "Unavailable"
+                render_compact_metric("Handicap-Relative Peer Gap", peer_text, subtext=roi_data.get("peer_gap_display", "No handicap benchmark"))
+            st.caption("Direct cost answers what visibly added strokes this round. Peer gap answers where performance fell below a similar-handicap benchmark. Birdie Buddy uses both rather than letting one erase the other.")
+
+        if diag.get("decision_quality") and diag.get("decision_quality") != "Not applicable":
+            st.caption(f"🧭 **Decision quality:** {diag.get('decision_quality')}")
+        if diag.get("mechanical_evidence_level"):
+            st.caption(f"🔬 **Mechanical evidence:** {diag.get('mechanical_evidence_level')}")
 
         st.markdown("#### Five-Stage ROI Snapshot")
         snapshot_df = pd.DataFrame(stage_summary["rows"])
@@ -4181,32 +4064,18 @@ with st.container(border=True):
             use_container_width=True,
             column_config={
                 "Stage": st.column_config.TextColumn("Value Chain Stage"),
-                "Direct Cost": st.column_config.TextColumn("Observed Direct Cost"),
-                "Peer Gap": st.column_config.TextColumn("Handicap-Relative Gap"),
+                "Modeled Strokes": st.column_config.TextColumn("Approx. Opportunity"),
                 "Role": st.column_config.TextColumn("Current Focus"),
             },
         )
 
-        st.caption(
-            "**Observed Direct Cost** is what visibly hit the scorecard (such as penalties/three-putts). "
-            "**Handicap-Relative Gap** is a modeled peer comparison. They answer different questions and are not treated as interchangeable strokes."
-        )
         if not roi_data.get("has_handicap_benchmark", False):
             st.caption(
-                "ℹ️ Handicap was not provided, so handicap-relative estimates are intentionally omitted where a peer benchmark is required. Direct scoring events still influence priority."
+                "ℹ️ Handicap was not provided, so handicap-relative stroke estimates are intentionally omitted where a peer benchmark is required. Direct scoring events still influence priority."
             )
-
-        history_note = diag.get("history_adaptation_note")
-        if history_note:
-            st.info(f"🔁 **How prior practice affected this plan:** {history_note}")
-        if (
-            stage_summary.get("unattributed_direct_penalty", 0) > 0
-            or stage_summary.get("unattributed_peer_penalty", 0) > 0
-        ):
+        if stage_summary.get("unattributed_penalty", 0) > 0:
             st.caption(
-                "ℹ️ Some penalty/trouble cost remains unattributed because the evidence did not "
-                "establish whether the cause was strategy or execution. Birdie Buddy leaves it "
-                "unassigned rather than forcing it into Course Management."
+                f"ℹ️ {stage_summary['unattributed_penalty']:g} penalty/trouble stroke(s) remain unattributed because the story did not establish whether the cause was strategy or execution."
             )
 
         if roi_data.get("reasons"):
@@ -4232,481 +4101,611 @@ with st.container(border=True):
             )
 
         st.markdown("---")
-        if st.button("🔄 Describe Another Round"):
-            st.session_state["diag_step"] = 1
-            st.rerun()
+        action_col1, action_col2 = st.columns([2, 1])
+        with action_col1:
+            if not st.session_state.get("show_practice_builder", False):
+                if st.button("🏌️ Build My Practice Plan", type="primary", use_container_width=True):
+                    st.session_state["show_practice_builder"] = True
+                    st.session_state.pop("confirmed_resources", None)
+                    st.session_state["show_execution_plan"] = False
+                    st.rerun()
+            else:
+                st.success("Practice-plan builder unlocked below.")
+        with action_col2:
+            if st.button("🔄 Describe Another Round", use_container_width=True):
+                st.session_state["diag_step"] = 1
+                st.session_state["show_practice_builder"] = False
+                st.session_state["show_execution_plan"] = False
+                st.session_state.pop("confirmed_resources", None)
+                st.rerun()
 
 # -------------------------------------------------------------
 # STEP 2: PRACTICE ASSET ALLOCATION & CONSTRAINTS
 # -------------------------------------------------------------
-with st.container(border=True):
-    st.subheader("2. Practice Resource Constraints (Balls & Time)")
-
-    col_input_a, col_input_b = st.columns(2)
-    with col_input_a:
-        total_balls = st.number_input(
-            "Total Balls Available:", min_value=10, max_value=300, value=100, step=10
-        )
-    with col_input_b:
-        total_time = st.number_input(
-            "Total Time Available (mins):",
-            min_value=15,
-            max_value=180,
-            value=60,
-            step=15,
+if "diagnosis" in st.session_state and st.session_state.get("show_practice_builder", False):
+    with st.container(border=True):
+        st.subheader("2. Build Today’s Practice Plan")
+        st.caption(
+            "Birdie Buddy now allocates controlled skill work vs transfer work from the diagnosis, "
+            "practice history, and the facilities/equipment you actually have today."
         )
 
-    practice_mode = st.radio(
-        "Select Practice Mode:",
-        options=[
-            "Combination / Hybrid (AI Balanced)",
-            "Pure Grind Mode (100% Technical Drill)",
-            "Pure Game Mode (100% Target Pressure)",
-        ],
-        horizontal=False,
-    )
+        diag_for_plan = st.session_state["diagnosis"]
+        preferred_primary = diag_for_plan.get("recommended_primary_drill")
+        preferred_secondary = diag_for_plan.get("recommended_secondary_drill")
 
-    if practice_mode == "Pure Grind Mode (100% Technical Drill)":
-        grind_pct = 1.0
-    elif practice_mode == "Pure Game Mode (100% Target Pressure)":
-        grind_pct = 0.0
-    else:
-        raw_grind_ratio = 0.60
-        bounded_grind_ratio = max(0.30, min(0.75, raw_grind_ratio))
-        user_override = st.checkbox("Enable Manual Ratio Override")
+        col_input_a, col_input_b = st.columns(2)
+        with col_input_a:
+            total_balls = st.number_input(
+                "Total Balls Available:", min_value=10, max_value=300, value=100, step=10
+            )
+        with col_input_b:
+            total_time = st.number_input(
+                "Total Time Available (mins):",
+                min_value=15,
+                max_value=180,
+                value=60,
+                step=15,
+            )
 
-        if user_override:
-            grind_pct = (
-                st.slider(
-                    "Manual Grind Allocation (%)",
+        primary_category = _drill_category(preferred_primary or "")
+        default_area = {
+            "full_swing": "Driving Range / Full-Swing Bay",
+            "putting": "Putting Green",
+            "short_game": "Short-Game / Chipping Area",
+            "bunker": "Practice Bunker",
+            "mental": "Driving Range / Full-Swing Bay",
+        }.get(primary_category, "Driving Range / Full-Swing Bay")
+
+        practice_areas = st.multiselect(
+            "Where can you practice today?",
+            PRACTICE_AREA_OPTIONS,
+            default=[default_area],
+            help="Select every area you can actually use during this session.",
+        )
+        equipment = st.multiselect(
+            "Training aids / equipment available",
+            EQUIPMENT_OPTIONS,
+            default=["Tees"],
+            help="Golf clubs and balls are assumed. Select only the extra aids you actually have.",
+        )
+
+        resolved_primary, primary_sub = _resolve_drill_for_environment(
+            preferred_primary, practice_areas, equipment
+        )
+        resolved_secondary, secondary_sub = _resolve_drill_for_environment(
+            preferred_secondary, practice_areas, equipment
+        ) if preferred_secondary else (None, None)
+
+        if primary_sub and resolved_primary:
+            st.info(
+                f"🛠️ **Environment-aware substitution:** `{primary_sub}`. "
+                "The replacement stays in the same coaching category so the diagnosis is preserved."
+            )
+        elif primary_sub and not resolved_primary:
+            st.error(
+                f"The primary recommendation — **{preferred_primary}** — cannot be executed with the selected "
+                "practice area/equipment, and no same-category substitute is currently available. "
+                "Add the required facility/aid before generating this plan."
+            )
+
+        if secondary_sub and resolved_secondary:
+            st.caption(f"Secondary drill adjusted for today's setup: {secondary_sub}")
+        elif preferred_secondary and not resolved_secondary:
+            st.caption(
+                "The secondary drill is unavailable in today's environment, so Birdie Buddy will keep the session focused on the primary opportunity rather than prescribe unrelated work."
+            )
+
+        practice_mode = st.radio(
+            "Select Practice Mode:",
+            options=[
+                "Combination / Hybrid (AI Balanced)",
+                "Pure Grind Mode (100% Controlled Skill Work)",
+                "Pure Game Mode (100% Target / Transfer Work)",
+            ],
+            horizontal=False,
+        )
+
+        allocation_rationale = ""
+        if practice_mode == "Pure Grind Mode (100% Controlled Skill Work)":
+            grind_pct = 1.0
+            allocation_rationale = "You selected 100% controlled skill work."
+        elif practice_mode == "Pure Game Mode (100% Target / Transfer Work)":
+            grind_pct = 0.0
+            allocation_rationale = "You selected 100% transfer/target-pressure work."
+        else:
+            adaptive_grind_pct, allocation_rationale = _adaptive_hybrid_split(diag_for_plan)
+            st.info(
+                f"**AI-Balanced recommendation:** {int(adaptive_grind_pct*100)}% controlled skill work / "
+                f"{int((1-adaptive_grind_pct)*100)}% transfer & pressure.\n\n{allocation_rationale}"
+            )
+            user_override = st.checkbox("Override the AI practice split")
+            if user_override:
+                grind_pct = st.slider(
+                    "Controlled Skill Work Allocation (%)",
                     min_value=0,
                     max_value=100,
-                    value=int(bounded_grind_ratio * 100),
+                    value=int(adaptive_grind_pct * 100),
+                ) / 100.0
+                allocation_rationale += " The golfer manually overrode the suggested split."
+            else:
+                grind_pct = adaptive_grind_pct
+
+        game_pct = 1.0 - grind_pct
+        grind_balls = int(round(total_balls * grind_pct))
+        game_balls = total_balls - grind_balls
+        grind_time = int(round(total_time * grind_pct))
+        game_time = total_time - grind_time
+        sec_per_ball = int((total_time * 60) / total_balls) if total_balls > 0 else 0
+
+        can_generate = bool(practice_areas) and resolved_primary is not None
+        if not practice_areas:
+            st.warning("Select at least one practice area before generating the execution plan.")
+
+        if st.button(
+            "✅ Confirm & Generate Practice Execution Plan",
+            type="primary",
+            disabled=not can_generate,
+            use_container_width=True,
+        ):
+            st.session_state["confirmed_resources"] = {
+                "total_balls": total_balls,
+                "total_time": total_time,
+                "grind_balls": grind_balls,
+                "game_balls": game_balls,
+                "grind_time": grind_time,
+                "game_time": game_time,
+                "sec_per_ball": sec_per_ball,
+                "grind_pct": grind_pct,
+                "game_pct": game_pct,
+                "practice_mode": practice_mode,
+                "practice_areas": practice_areas,
+                "equipment": equipment,
+                "resolved_primary_drill": resolved_primary,
+                "resolved_secondary_drill": resolved_secondary,
+                "allocation_rationale": allocation_rationale,
+            }
+            st.session_state["show_execution_plan"] = True
+            st.rerun()
+
+        if "confirmed_resources" in st.session_state:
+            res_data = st.session_state["confirmed_resources"]
+            st.write("**Confirmed Practice Distribution:**")
+            st.progress(
+                res_data["grind_pct"],
+                text=(
+                    f"Controlled Skill Work: {int(res_data['grind_pct']*100)}% | "
+                    f"Transfer / Game Work: {int(res_data['game_pct']*100)}%"
+                ),
+            )
+            col_a, col_b, col_c = st.columns(3)
+            with col_a:
+                render_compact_metric(
+                    "Controlled Work",
+                    f"{res_data['grind_balls']} balls",
+                    subtext=f"{res_data['grind_time']} mins",
                 )
-                / 100.0
-            )
-        else:
-            grind_pct = bounded_grind_ratio
-
-    game_pct = 1.0 - grind_pct
-
-    grind_balls = int(total_balls * grind_pct)
-    game_balls = int(total_balls * game_pct)
-    grind_time = int(total_time * grind_pct)
-    game_time = int(total_time * game_pct)
-
-    sec_per_ball = int((total_time * 60) / total_balls) if total_balls > 0 else 0
-
-    if st.button("✅ Confirm Selection & Generate Execution Plan", type="primary"):
-        st.session_state["confirmed_resources"] = {
-            "total_balls": total_balls,
-            "total_time": total_time,
-            "grind_balls": grind_balls,
-            "game_balls": game_balls,
-            "grind_time": grind_time,
-            "game_time": game_time,
-            "sec_per_ball": sec_per_ball,
-            "grind_pct": grind_pct,
-            "game_pct": game_pct,
-            "practice_mode": practice_mode,
-        }
-        st.success(
-            "Resource constraints locked in! Practice execution plan generated"
-            " below."
-        )
-
-    if "confirmed_resources" in st.session_state:
-        res_data = st.session_state["confirmed_resources"]
-        st.write("**Confirmed Resource Distribution:**")
-        st.progress(
-            res_data["grind_pct"],
-            text=(
-                f"Grind Mode: {int(res_data['grind_pct']*100)}% | Game Mode:"
-                f" {int(res_data['game_pct']*100)}%"
-            ),
-        )
-
-        col_a, col_b, col_c = st.columns(3)
-        with col_a:
-            render_compact_metric(
-                "Grind Mode Split",
-                f"{res_data['grind_balls']} balls",
-                subtext=f"{res_data['grind_time']} mins",
-            )
-        with col_b:
-            render_compact_metric(
-                "Game Mode Split",
-                f"{res_data['game_balls']} balls",
-                subtext=f"{res_data['game_time']} mins",
-            )
-        with col_c:
-            render_compact_metric(
-                "Target Pace",
-                f"{res_data['sec_per_ball']} sec/ball",
-                subtext="Recommended tempo",
-            )
+            with col_b:
+                render_compact_metric(
+                    "Transfer / Game Work",
+                    f"{res_data['game_balls']} balls",
+                    subtext=f"{res_data['game_time']} mins",
+                )
+            with col_c:
+                render_compact_metric(
+                    "Target Pace",
+                    f"{res_data['sec_per_ball']} sec/ball",
+                    subtext="Session-average pace",
+                )
 
 # -------------------------------------------------------------
 # STEP 3: ADAPTIVE PRACTICE EXECUTION & SETUP GUIDE
 # -------------------------------------------------------------
-with st.container(border=True):
-    st.subheader("3. Adaptive Practice Execution & Setup Guide")
+if (
+    "diagnosis" in st.session_state
+    and "confirmed_resources" in st.session_state
+    and st.session_state.get("show_execution_plan", False)
+):
+    with st.container(border=True):
+        st.subheader("3. Adaptive Practice Execution & Setup Guide")
 
-    if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state:
-        diag = st.session_state["diagnosis"]
-        res = st.session_state["confirmed_resources"]
-        caddie = st.session_state.get("caddie_name", persona_display_name)
+        if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state:
+            diag = st.session_state["diagnosis"]
+            res = st.session_state["confirmed_resources"]
+            caddie = st.session_state.get("caddie_name", persona_display_name)
 
-        p_drill = diag.get("recommended_primary_drill", "Alignment Stick Gate Drill")
-        s_drill = diag.get("recommended_secondary_drill")
-        p_miss = diag.get("primary_miss", "your highest-ROI scoring opportunity")
-        s_miss = diag.get("secondary_miss")
-        rationale = diag.get("drill_rationale")
-        pep_talk = diag.get("caddie_drill_pep_talk")
+            p_drill = res.get("resolved_primary_drill") or diag.get("recommended_primary_drill", "Alignment Stick Gate Drill")
+            s_drill = res.get("resolved_secondary_drill")
+            p_miss = diag.get("primary_miss", "your highest-priority scoring opportunity")
+            s_miss = diag.get("secondary_miss")
+            rationale = diag.get("drill_rationale")
+            pep_talk = diag.get("caddie_drill_pep_talk")
 
-        c_balls = res["total_balls"]
-        c_time = res["total_time"]
-        p_mode = res.get("practice_mode", "Combination / Hybrid (AI Balanced)")
+            c_balls = res["total_balls"]
+            c_time = res["total_time"]
+            p_mode = res.get("practice_mode", "Combination / Hybrid (AI Balanced)")
 
-        is_pure_game = p_mode == "Pure Game Mode (100% Target Pressure)"
-        is_hybrid = p_mode == "Combination / Hybrid (AI Balanced)"
+            is_pure_game = p_mode == "Pure Game Mode (100% Target / Transfer Work)"
+            is_hybrid = p_mode == "Combination / Hybrid (AI Balanced)"
 
-        if is_pure_game:
-            st.info(
-                "🎮 **Pure Game Mode Active:** All drills converted into interactive"
-                " target-pressure games."
-            )
-            p_drill = GAME_MODE_DRILL_MAP.get(p_drill, p_drill)
-            if s_drill:
-                s_drill = GAME_MODE_DRILL_MAP.get(s_drill, s_drill)
-
-        p_complexity = DRILL_COMPLEXITY.get(p_drill, "Medium")
-        is_high_budget = c_balls >= 60 and c_time >= 45
-
-        active_drills = [p_drill]
-
-        high_complexity_added = None
-        if is_high_budget and not is_pure_game:
-            if p_complexity != "High":
-                if p_drill in DRILL_SCHEMATICS:
-                    if "Putting" in p_drill or "Putter" in p_drill:
-                        high_complexity_added = "Metal Yardstick Roll Drill"
-                    elif any(
-                        word in p_drill
-                        for word in ["Wedge", "Chip", "Sand", "Pitch", "Towel", "Anchor"]
-                    ):
-                        high_complexity_added = "Clock System Wedge Drill"
-                    elif any(
-                        word in p_drill
-                        for word in [
-                            "Breathing",
-                            "Acceptance",
-                            "Routine",
-                            "Anchoring",
-                            "Mantra",
-                        ]
-                    ):
-                        high_complexity_added = "Positive Box Pre-Shot Routine Drill"
-                    else:
-                        high_complexity_added = "Impact Bag Compression Drill"
-
-                if high_complexity_added and high_complexity_added not in active_drills:
-                    active_drills.append(high_complexity_added)
-
-        if c_balls >= 40 and c_time >= 30 and s_drill and s_drill not in active_drills:
-            active_drills.append(s_drill)
-
-        if is_hybrid:
-            if len(active_drills) == 1 and p_drill in GAME_MODE_DRILL_MAP:
-                game_pair = GAME_MODE_DRILL_MAP[p_drill]
-                if game_pair != p_drill:
-                    active_drills.append(game_pair)
-
-            for i in range(1, len(active_drills)):
-                active_drills[i] = GAME_MODE_DRILL_MAP.get(
-                    active_drills[i], active_drills[i]
-                )
-
-        if (c_balls < 40 or c_time < 30) and p_complexity == "High":
-            st.warning(
-                f"⚠️ **Low Resource Alert:** `{p_drill}` is High Complexity. Focus on"
-                f" basic feel keys with your limited budget ({c_balls} balls / {c_time}"
-                " mins)."
-            )
-
-        if pep_talk:
-            st.success(f"🗣️ **{caddie}'s Practice Strategy:** \"{pep_talk}\"")
-
-        summary_line = (
-            "💡 **Targeted Prescription:** Circuit optimized across"
-            f" {len(active_drills)} focus areas."
-        )
-        if rationale:
-            st.info(f"{summary_line}\n\n**Bang for Your Buck Rationale:** {rationale}")
-        else:
-            st.info(summary_line)
-
-        g_balls = res["grind_balls"]
-        g_time = res["grind_time"]
-        num_drills = len(active_drills)
-
-        alloc_balls = res["total_balls"] if is_pure_game else g_balls
-        alloc_time = res["total_time"] if is_pure_game else g_time
-
-        for idx, d_name in enumerate(active_drills):
-            schematic = DRILL_SCHEMATICS.get(
-                d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"]
-            )
-
-            if num_drills == 1:
-                weight = 1.0
-            elif num_drills == 2:
-                weight = 0.65 if idx == 0 else 0.35
-            else:
-                weight = 0.60 if idx == 0 else (0.40 / (num_drills - 1))
-
-            balls_per_drill = int(alloc_balls * weight)
-            time_per_drill = int(alloc_time * weight)
-
-            if is_pure_game or (is_hybrid and idx > 0):
-                label = (
-                    "🎮 Interactive Target Game (Addressing:"
-                    f" {p_miss if idx == 0 else (s_miss if s_miss else p_miss)})"
-                )
-            elif d_name == p_drill:
-                label = f"Primary Highest ROI Drill (Addressing: {p_miss})"
-            elif d_name == high_complexity_added:
-                label = "Advanced Mechanics / Routine Overhaul"
-            else:
-                label = (
-                    "Secondary Focus Drill (Addressing:"
-                    f" {s_miss if s_miss else 'Performance Polish'})"
-                )
-
-            with st.container(border=True):
-                st.markdown(f"### 🎯 Drill #{idx+1}: **{d_name}**")
-                st.markdown(f"🔥 **{label}**")
-                st.caption(
-                    f"⚡ `{balls_per_drill} Balls` | `{time_per_drill} Mins` |"
-                    f" `@~{res['sec_per_ball']}s/ball`"
-                )
-
-                st.markdown("**🎯 What This Drill Trains**")
-                render_indented_html(
-                    DRILL_PURPOSES.get(
-                        d_name,
-                        "Build the movement pattern targeted by this drill and make it repeatable under a normal pre-shot routine.",
-                    )
-                )
-
-                st.markdown("**🛠️ Range Equipment Needed**")
-                equip_items = re.split(r",\s*(?![^()]*\))", schematic["equipment"])
-                render_indented_ul(equip_items)
-
-                st.markdown("**📖 Step-by-Step Coaching Guide**")
-                render_instruction_steps(schematic["vivid_description"], d_name)
-
-                st.markdown("**📈 How to Progress the Drill**")
-                render_indented_html(
-                    CATEGORY_PROGRESSION.get(
-                        _drill_category(d_name), CATEGORY_PROGRESSION["general"]
-                    )
-                )
-
-                st.markdown("**🧠 Mental Analogy**")
-                render_indented_html(schematic["analogy"])
-
-                st.info(schematic["pro_tip"])
-
-        gm_balls = res["game_balls"]
-        gm_time = res["game_time"]
-        if gm_balls > 0 and gm_time > 0 and not is_pure_game:
-            st.markdown("---")
-            with st.container(border=True):
-                st.markdown(
-                    f"### ⛳ Drill #{len(active_drills)+1}: **Target Course Pressure"
-                    " Simulation**"
-                )
-                st.markdown(
-                    "🔥 **Final Phase: On-Course Pressure Transfer & Routine Integration**"
-                )
-                st.caption(
-                    f"⚡ `{gm_balls} Balls` | `{gm_time} Mins` |"
-                    f" `@~{res['sec_per_ball']}s/ball`"
-                )
-
-                st.markdown("**🛠️ Range Equipment Needed**")
-                render_indented_ul([
-                    "Full Golf Bag (All Clubs)",
-                    "Laser Rangefinder or Target Flags",
-                    "Pre-shot Routine Line",
-                ])
-
-                st.markdown("**🎯 What This Drill Trains**")
-                render_indented_html(
-                    "Transfer the technical and mental work from the session into realistic one-ball, one-decision course behavior."
-                )
-
-                st.markdown("**📖 Step-by-Step Coaching Guide**")
-                pressure_text = (
-                    "SETUP: Pick 3–5 different range targets that represent different on-course shots. "
-                    "Assign a club, target, and imaginary hole situation before each ball; do not hit the same club twice in a row unless the simulated hole calls for it. "
-                    "EXECUTION: Step completely away from the ball between reps. Go through your normal yardage/target decision, rehearsal, alignment, and pre-shot routine, then hit one ball only. "
-                    "After the shot, score the decision and execution before choosing the next scenario. "
-                    "SUCCESS: You commit to a clear target and club before every shot, complete the same routine each time, and produce a playable result without reverting to rapid-fire range habits. "
-                    "AVOID: Hitting mulligans, repeating the same club immediately after a poor shot, or changing the target after address. The point is to live with one decision and one result, just like on the course."
-                )
-                render_instruction_steps(pressure_text, "Target Course Pressure Simulation")
-
-                st.markdown("**📈 How to Progress the Drill**")
-                render_indented_html(
-                    "Start with 5 unscored simulated holes, then create a 9-shot or 18-shot game where each ball earns a simple result (good decision/playable shot, neutral, or penalty-level miss). Add consequences only after the routine stays consistent."
-                )
-
-                st.markdown("**🧠 Mental Analogy**")
-                render_indented_html(
-                    "Sunday Major Final Hole: Treat every single ball like a high-stakes"
-                    " tournament stroke on the course."
-                )
-
+            if is_pure_game:
                 st.info(
-                    "🏆 **Pro Tip:** Never hit two balls in a row with the same club or to"
-                    " the same target during this pressure phase."
+                    "🎮 **Pure Game Mode Active:** the available work is converted toward one-ball target/transfer reps."
+                )
+                p_drill = GAME_MODE_DRILL_MAP.get(p_drill, p_drill)
+                if s_drill:
+                    s_drill = GAME_MODE_DRILL_MAP.get(s_drill, s_drill)
+
+            p_complexity = DRILL_COMPLEXITY.get(p_drill, "Medium")
+            active_drills = [p_drill]
+            if c_balls >= 30 and c_time >= 30 and s_drill and s_drill not in active_drills:
+                active_drills.append(s_drill)
+
+            # More practice time deepens the highest-priority work; it does not automatically
+            # create extra swing changes. Hybrid transfer work is handled by the final pressure block.
+
+            if (c_balls < 40 or c_time < 30) and p_complexity == "High":
+                st.warning(
+                    f"⚠️ **Low Resource Alert:** `{p_drill}` is High Complexity. Focus on"
+                    f" basic feel keys with your limited budget ({c_balls} balls / {c_time}"
+                    " mins)."
                 )
 
-        with st.container(border=True):
-            st.markdown("### 📥 Take Your Plan to the Range")
-            export_card_text = build_export_card(
-                diag, res, active_drills, DRILL_SCHEMATICS, caddie
+            if pep_talk:
+                st.success(f"🗣️ **{caddie}'s Practice Strategy:** \"{pep_talk}\"")
+
+            summary_line = (
+                "💡 **Targeted Prescription:** Circuit optimized across"
+                f" {len(active_drills)} focus areas."
             )
-            st.download_button(
-                label="Download Printable Range Practice Card (.txt)",
-                data=export_card_text,
-                file_name="birdie_buddy_practice_plan.txt",
-                mime="text/plain",
-            )
+            if rationale:
+                st.info(f"{summary_line}\n\n**Bang for Your Buck Rationale:** {rationale}")
+            else:
+                st.info(summary_line)
 
-        # ---------------------------------------------------------
-        # END-OF-PRACTICE FEEDBACK — close the loop without requiring
-        # the golfer to begin another round first.
-        # ---------------------------------------------------------
-        _init_history()
-        _practice_rows = st.session_state.get("practice_history", [])
-        _current_log = _practice_rows[-1] if _practice_rows else None
+            g_balls = res["grind_balls"]
+            g_time = res["grind_time"]
+            num_drills = len(active_drills)
 
-        with st.container(border=True):
-            st.markdown("### ✅ Log This Practice Session")
-            st.caption(
-                "When you finish the plan, record how much you completed and whether "
-                "the prescribed work helped. Birdie Buddy will use this feedback in "
-                "your practice history and future progress tracking."
-            )
+            alloc_balls = res["total_balls"] if is_pure_game else g_balls
+            alloc_time = res["total_time"] if is_pure_game else g_time
 
-            if _current_log:
-                _logged_drill = _current_log.get(
-                    "Primary Drill", diag.get("recommended_primary_drill", "your primary drill")
-                )
-                st.markdown(f"**Primary practice focus:** `{_logged_drill}`")
+            drill_weights = _practice_drill_weights(diag, active_drills)
+            drill_ball_alloc = _allocate_integer(alloc_balls, drill_weights)
+            drill_time_alloc = _allocate_integer(alloc_time, drill_weights)
 
-                _completion_options = ["Not yet", "Yes, partially", "Yes, fully"]
-                _existing_completion = str(
-                    _current_log.get("Drill Completed?", "") or ""
-                ).strip()
-                # Backward compatibility with older wording used by previous builds.
-                _completion_aliases = {
-                    "Yes, a little": "Yes, partially",
-                    "Skipped": "Not yet",
-                }
-                _existing_completion = _completion_aliases.get(
-                    _existing_completion, _existing_completion
-                )
-                _completion_index = (
-                    _completion_options.index(_existing_completion)
-                    if _existing_completion in _completion_options
-                    else 0
+            for idx, d_name in enumerate(active_drills):
+                schematic = DRILL_SCHEMATICS.get(
+                    d_name, DRILL_SCHEMATICS["Alignment Stick Gate Drill"]
                 )
 
-                _existing_effectiveness = _current_log.get(
-                    "Fix Effectiveness (1-5)", ""
-                )
-                try:
-                    _effectiveness_default = int(float(_existing_effectiveness))
-                    _effectiveness_default = max(1, min(5, _effectiveness_default))
-                except (TypeError, ValueError):
-                    _effectiveness_default = 3
+                balls_per_drill = drill_ball_alloc[idx]
+                time_per_drill = drill_time_alloc[idx]
 
-                log_col1, log_col2 = st.columns(2)
-                with log_col1:
-                    practice_completed = st.selectbox(
-                        "How much of the practice plan did you complete?",
-                        _completion_options,
-                        index=_completion_index,
-                        key="end_practice_completed",
+                if is_pure_game:
+                    label = (
+                        "🎮 Interactive Target Game (Addressing:"
+                        f" {p_miss if idx == 0 else (s_miss if s_miss else p_miss)})"
                     )
-                with log_col2:
-                    practice_effectiveness = st.slider(
-                        "How effective did the practice feel?",
-                        min_value=1,
-                        max_value=5,
-                        value=_effectiveness_default,
-                        key="end_practice_effectiveness",
-                        help=(
-                            "1 = no noticeable benefit, 3 = some improvement, "
-                            "5 = clear improvement you would keep practicing."
-                        ),
-                        disabled=practice_completed == "Not yet",
+                elif d_name == p_drill:
+                    label = f"Primary Highest-Priority Drill (Addressing: {p_miss})"
+                else:
+                    label = (
+                        "Secondary Focus Drill (Addressing:"
+                        f" {s_miss if s_miss else 'Performance Polish'})"
                     )
 
-                existing_saved = bool(
-                    str(_current_log.get("Drill Completed?", "")).strip()
-                )
-                button_label = (
-                    "💾 Update Practice Log"
-                    if existing_saved
-                    else "💾 Log Practice & Effectiveness"
-                )
-
-                if st.button(
-                    button_label,
-                    type="primary",
-                    use_container_width=True,
-                    key="log_practice_feedback_btn",
-                ):
-                    effectiveness_to_save = (
-                        "" if practice_completed == "Not yet" else practice_effectiveness
+                with st.container(border=True):
+                    st.markdown(f"### 🎯 Drill #{idx+1}: **{d_name}**")
+                    st.markdown(f"🔥 **{label}**")
+                    st.caption(
+                        f"⚡ `{balls_per_drill} Balls` | `{time_per_drill} Mins` |"
+                        f" `@~{res['sec_per_ball']}s/ball`"
                     )
-                    update_last_session_feedback(
-                        practice_completed, effectiveness_to_save
-                    )
-                    st.session_state["practice_feedback_saved"] = True
-                    st.rerun()
 
-                if existing_saved:
-                    saved_completion = _current_log.get("Drill Completed?", "")
-                    saved_effectiveness = _current_log.get("Fix Effectiveness (1-5)", "")
-                    if saved_effectiveness not in (None, ""):
-                        st.success(
-                            f"Practice logged: **{saved_completion}** • "
-                            f"Effectiveness **{saved_effectiveness}/5**"
+                    st.markdown("**🎯 What This Drill Trains**")
+                    render_indented_html(
+                        DRILL_PURPOSES.get(
+                            d_name,
+                            "Build the movement pattern targeted by this drill and make it repeatable under a normal pre-shot routine.",
                         )
-                    else:
-                        st.info(f"Practice status logged: **{saved_completion}**")
-            else:
-                st.info(
-                    "Complete the round diagnosis first so Birdie Buddy has a "
-                    "practice session to attach this feedback to."
+                    )
+
+                    st.markdown("**📏 Objective Pre/Post Test**")
+                    kpi = get_drill_kpi(d_name)
+                    st.markdown(f"**{kpi['name']}** — {kpi['test']}")
+                    st.caption(
+                        f"Success = {kpi['success']}  •  Pass target: {kpi['target']}/10. "
+                        "Run this 10-rep test before the drill and repeat the same test after practice."
+                    )
+
+                    st.markdown("**🛠️ Range Equipment Needed**")
+                    equip_items = re.split(r",\s*(?![^()]*\))", schematic["equipment"])
+                    render_indented_ul(equip_items)
+
+                    st.markdown("**📖 Step-by-Step Coaching Guide**")
+                    render_instruction_steps(schematic["vivid_description"], d_name)
+
+                    st.markdown("**📈 How to Progress the Drill**")
+                    render_indented_html(
+                        CATEGORY_PROGRESSION.get(
+                            _drill_category(d_name), CATEGORY_PROGRESSION["general"]
+                        )
+                    )
+
+                    st.markdown("**🧠 Mental Analogy**")
+                    render_indented_html(schematic["analogy"])
+
+                    st.info(schematic["pro_tip"])
+
+            gm_balls = res["game_balls"]
+            gm_time = res["game_time"]
+            if gm_balls > 0 and gm_time > 0 and not is_pure_game:
+                st.markdown("---")
+                with st.container(border=True):
+                    st.markdown(
+                        f"### ⛳ Drill #{len(active_drills)+1}: **Target Course Pressure"
+                        " Simulation**"
+                    )
+                    st.markdown(
+                        "🔥 **Final Phase: On-Course Pressure Transfer & Routine Integration**"
+                    )
+                    st.caption(
+                        f"⚡ `{gm_balls} Balls` | `{gm_time} Mins` |"
+                        f" `@~{res['sec_per_ball']}s/ball`"
+                    )
+
+                    st.markdown("**📏 Objective Transfer Test**")
+                    st.markdown("**Decision + routine transfer** — score 10 one-ball scenarios.")
+                    st.caption(
+                        "Success = a clear club/target decision, full routine, committed swing, and a playable outcome. "
+                        "Pass target: 7/10. Do not hit a mulligan after a miss."
+                    )
+
+                    st.markdown("**🛠️ Range Equipment Needed**")
+                    render_indented_ul([
+                        "Full Golf Bag (All Clubs)",
+                        "Laser Rangefinder or Target Flags",
+                        "Pre-shot Routine Line",
+                    ])
+
+                    st.markdown("**🎯 What This Drill Trains**")
+                    render_indented_html(
+                        "Transfer the technical and mental work from the session into realistic one-ball, one-decision course behavior."
+                    )
+
+                    st.markdown("**📖 Step-by-Step Coaching Guide**")
+                    pressure_text = (
+                        "SETUP: Pick 3–5 different range targets that represent different on-course shots. "
+                        "Assign a club, target, and imaginary hole situation before each ball; do not hit the same club twice in a row unless the simulated hole calls for it. "
+                        "EXECUTION: Step completely away from the ball between reps. Go through your normal yardage/target decision, rehearsal, alignment, and pre-shot routine, then hit one ball only. "
+                        "After the shot, score the decision and execution before choosing the next scenario. "
+                        "SUCCESS: You commit to a clear target and club before every shot, complete the same routine each time, and produce a playable result without reverting to rapid-fire range habits. "
+                        "AVOID: Hitting mulligans, repeating the same club immediately after a poor shot, or changing the target after address. The point is to live with one decision and one result, just like on the course."
+                    )
+                    render_instruction_steps(pressure_text, "Target Course Pressure Simulation")
+
+                    st.markdown("**📈 How to Progress the Drill**")
+                    render_indented_html(
+                        "Start with 5 unscored simulated holes, then create a 9-shot or 18-shot game where each ball earns a simple result (good decision/playable shot, neutral, or penalty-level miss). Add consequences only after the routine stays consistent."
+                    )
+
+                    st.markdown("**🧠 Mental Analogy**")
+                    render_indented_html(
+                        "Sunday Major Final Hole: Treat every single ball like a high-stakes"
+                        " tournament stroke on the course."
+                    )
+
+                    st.info(
+                        "🏆 **Pro Tip:** Never hit two balls in a row with the same club or to"
+                        " the same target during this pressure phase."
+                    )
+
+            with st.container(border=True):
+                st.markdown("### 📥 Take Your Plan to the Range")
+                export_card_text = build_export_card(
+                    diag, res, active_drills, DRILL_SCHEMATICS, caddie
+                )
+                st.download_button(
+                    label="Download Printable Range Practice Card (.txt)",
+                    data=export_card_text,
+                    file_name="birdie_buddy_practice_plan.txt",
+                    mime="text/plain",
                 )
 
-    elif "diagnosis" in st.session_state:
-        st.warning(
-            "👈 Please click **'✅ Confirm Selection & Generate Execution Plan'** in"
-            " Section 2 to generate your plan."
-        )
-    else:
-        st.caption(
-            "Run a full-round diagnosis in Section 1 and confirm resources in"
-            " Section 2 to get started!"
-        )
+            # ---------------------------------------------------------
+            # END-OF-PRACTICE FEEDBACK — close the loop without requiring
+            # the golfer to begin another round first.
+            # ---------------------------------------------------------
+            _init_history()
+            _practice_rows = st.session_state.get("practice_history", [])
+            _current_log = _practice_rows[-1] if _practice_rows else None
+
+            with st.container(border=True):
+                st.markdown("### ✅ Log This Practice Session")
+                st.caption(
+                    "When you finish the plan, record how much you completed and whether "
+                    "the prescribed work helped. Birdie Buddy will use this feedback in "
+                    "your practice history and future progress tracking."
+                )
+
+                if _current_log:
+                    _logged_drill = (
+                        res.get("resolved_primary_drill")
+                        or _current_log.get("Primary Drill")
+                        or diag.get("recommended_primary_drill", "your primary drill")
+                    )
+                    st.markdown(f"**Primary practice focus:** `{_logged_drill}`")
+                    primary_kpi = get_drill_kpi(_logged_drill)
+                    st.markdown(
+                        f"**Objective test:** {primary_kpi['name']} — {primary_kpi['test']}"
+                    )
+                    st.caption(
+                        f"Count a success when: {primary_kpi['success']} Pass target: {primary_kpi['target']}/10."
+                    )
+
+                    _completion_options = ["Not yet", "Yes, partially", "Yes, fully"]
+                    _existing_completion = str(
+                        _current_log.get("Drill Completed?", "") or ""
+                    ).strip()
+                    # Backward compatibility with older wording used by previous builds.
+                    _completion_aliases = {
+                        "Yes, a little": "Yes, partially",
+                        "Skipped": "Not yet",
+                    }
+                    _existing_completion = _completion_aliases.get(
+                        _existing_completion, _existing_completion
+                    )
+                    _completion_index = (
+                        _completion_options.index(_existing_completion)
+                        if _existing_completion in _completion_options
+                        else 0
+                    )
+
+                    _existing_effectiveness = _current_log.get(
+                        "Fix Effectiveness (1-5)", ""
+                    )
+                    try:
+                        _effectiveness_default = int(float(_existing_effectiveness))
+                        _effectiveness_default = max(1, min(5, _effectiveness_default))
+                    except (TypeError, ValueError):
+                        _effectiveness_default = 3
+
+                    log_col1, log_col2 = st.columns(2)
+                    with log_col1:
+                        practice_completed = st.selectbox(
+                            "How much of the practice plan did you complete?",
+                            _completion_options,
+                            index=_completion_index,
+                            key="end_practice_completed",
+                        )
+                    with log_col2:
+                        practice_effectiveness = st.slider(
+                            "How effective did the practice feel?",
+                            min_value=1,
+                            max_value=5,
+                            value=_effectiveness_default,
+                            key="end_practice_effectiveness",
+                            help=(
+                                "1 = no noticeable benefit, 3 = some improvement, "
+                                "5 = clear improvement you would keep practicing."
+                            ),
+                            disabled=practice_completed == "Not yet",
+                        )
+
+                    def _history_int(key, default=0):
+                        try:
+                            raw = _current_log.get(key, "")
+                            if raw in (None, "", "N/A"):
+                                return default
+                            return max(0, min(10, int(float(raw))))
+                        except Exception:
+                            return default
+
+                    existing_pre = _current_log.get("Baseline KPI (10)", "")
+                    existing_post = _current_log.get("Post KPI (10)", "")
+                    existing_objective = (
+                        existing_pre not in (None, "", "N/A")
+                        and existing_post not in (None, "", "N/A")
+                    )
+                    objective_test_done = st.checkbox(
+                        "I completed the objective pre/post test",
+                        value=existing_objective,
+                        disabled=practice_completed == "Not yet",
+                        help="Leave this unchecked if you only want to log completion/effectiveness. Birdie Buddy will not treat a missing test as a zero.",
+                    )
+
+                    baseline_kpi = post_kpi = None
+                    if objective_test_done and practice_completed != "Not yet":
+                        kpi_col1, kpi_col2 = st.columns(2)
+                        with kpi_col1:
+                            baseline_kpi = st.number_input(
+                                "Pre-test successes (out of 10)",
+                                min_value=0, max_value=10,
+                                value=_history_int("Baseline KPI (10)", 0),
+                                step=1,
+                                help="Run the exact 10-rep objective test shown on the primary drill card before practice.",
+                            )
+                        with kpi_col2:
+                            post_kpi = st.number_input(
+                                "Post-test successes (out of 10)",
+                                min_value=0, max_value=10,
+                                value=_history_int("Post KPI (10)", 0),
+                                step=1,
+                                help="Repeat the same test after practice under the same conditions.",
+                            )
+                        gain = int(post_kpi) - int(baseline_kpi)
+                        st.caption(
+                            f"Objective change: **{gain:+d}/10**. Subjective effectiveness and objective change are both saved; neither replaces the other."
+                        )
+
+                    existing_saved = bool(
+                        str(_current_log.get("Drill Completed?", "")).strip()
+                    )
+                    button_label = (
+                        "💾 Update Practice Log"
+                        if existing_saved
+                        else "💾 Log Practice & Effectiveness"
+                    )
+
+                    if st.button(
+                        button_label,
+                        type="primary",
+                        use_container_width=True,
+                        key="log_practice_feedback_btn",
+                    ):
+                        effectiveness_to_save = (
+                            "" if practice_completed == "Not yet" else practice_effectiveness
+                        )
+                        update_last_session_feedback(
+                            practice_completed,
+                            effectiveness_to_save,
+                            baseline_kpi=(baseline_kpi if objective_test_done else ""),
+                            post_kpi=(post_kpi if objective_test_done else ""),
+                            practice_environment="; ".join(res.get("practice_areas", [])),
+                            available_equipment="; ".join(res.get("equipment", [])),
+                            practice_allocation=(
+                                f"{int(res.get('grind_pct', 0)*100)}% controlled / "
+                                f"{int(res.get('game_pct', 0)*100)}% transfer"
+                            ),
+                            actual_primary_drill=res.get("resolved_primary_drill") or diag.get("recommended_primary_drill", ""),
+                        )
+                        st.session_state["practice_feedback_saved"] = True
+                        st.rerun()
+
+                    if existing_saved:
+                        saved_completion = _current_log.get("Drill Completed?", "")
+                        saved_effectiveness = _current_log.get("Fix Effectiveness (1-5)", "")
+                        if saved_effectiveness not in (None, ""):
+                            objective_text = ""
+                            try:
+                                saved_gain = _current_log.get("Objective Gain", "")
+                                if saved_gain not in (None, "", "N/A"):
+                                    objective_text = f" • Objective change **{int(float(saved_gain)):+d}/10**"
+                            except Exception:
+                                objective_text = ""
+                            st.success(
+                                f"Practice logged: **{saved_completion}** • "
+                                f"Effectiveness **{saved_effectiveness}/5**{objective_text}"
+                            )
+                        else:
+                            st.info(f"Practice status logged: **{saved_completion}**")
+                else:
+                    st.info(
+                        "Complete the round diagnosis first so Birdie Buddy has a "
+                        "practice session to attach this feedback to."
+                    )
+
+        elif "diagnosis" in st.session_state:
+            st.warning(
+                "👈 Please click **'✅ Confirm Selection & Generate Execution Plan'** in"
+                " Section 2 to generate your plan."
+            )
+        else:
+            st.caption(
+                "Run a full-round diagnosis in Section 1 and confirm resources in"
+                " Section 2 to get started!"
+            )
 
 
 # -------------------------------------------------------------
@@ -4715,4 +4714,3 @@ with st.container(border=True):
 # -------------------------------------------------------------
 _progress_df = load_history_df()
 render_progress_trends(_progress_df)
-
