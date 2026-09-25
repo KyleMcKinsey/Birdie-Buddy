@@ -1,6 +1,7 @@
 from datetime import datetime
 import base64
 import hashlib
+import html
 import io
 import json
 import os
@@ -859,6 +860,402 @@ def render_compact_metric(label, value, subtext=None, delta=None, good_when_lowe
         unsafe_allow_html=True,
     )
 
+
+
+
+def _safe_html(value):
+    return html.escape(str(value if value is not None else ""))
+
+
+def _benchmark_status(actual, benchmark, good_when_lower=False, soft_context=False):
+    """Return accessible status metadata for a metric vs a benchmark."""
+    if actual is None:
+        return {"label": "Not tracked", "icon": "○", "color": "#8b919d"}
+    if benchmark is None:
+        return {"label": "Tracked", "icon": "●", "color": "#8b919d"}
+
+    actual = float(actual)
+    benchmark = float(benchmark)
+    if good_when_lower:
+        good = actual <= benchmark
+        tolerance = max(0.5, abs(benchmark) * 0.12)
+        near = actual <= benchmark + tolerance
+    else:
+        good = actual >= benchmark
+        tolerance = 5.0 if max(abs(actual), abs(benchmark)) <= 100 else max(0.5, abs(benchmark) * 0.08)
+        near = actual >= benchmark - tolerance
+
+    if good:
+        return {"label": "At / better than peer", "icon": "✓", "color": "#2e8b57"}
+    if near:
+        return {"label": "Near peer", "icon": "~", "color": "#c48a18"}
+    if soft_context:
+        return {"label": "Context flag", "icon": "!", "color": "#c48a18"}
+    return {"label": "Needs attention", "icon": "!", "color": "#c84a46"}
+
+
+def render_comparison_metric_card(
+    label,
+    actual_value,
+    actual_display,
+    benchmark_value=None,
+    benchmark_display=None,
+    *,
+    good_when_lower=False,
+    scale_max=None,
+    status_override=None,
+    soft_context=False,
+    note=None,
+):
+    """Compact graphical actual-vs-benchmark card with an explicit benchmark marker."""
+    if status_override is None:
+        status = _benchmark_status(
+            actual_value, benchmark_value,
+            good_when_lower=good_when_lower,
+            soft_context=soft_context,
+        )
+    else:
+        status = status_override
+
+    if actual_value is None:
+        actual_pct = 0.0
+    else:
+        if scale_max is None:
+            candidates = [abs(float(actual_value))]
+            if benchmark_value is not None:
+                candidates.append(abs(float(benchmark_value)))
+            scale_max = max(1.0, max(candidates) * 1.2)
+        actual_pct = max(0.0, min(100.0, float(actual_value) / float(scale_max) * 100.0))
+
+    marker_pct = None
+    if benchmark_value is not None and scale_max:
+        marker_pct = max(0.0, min(100.0, float(benchmark_value) / float(scale_max) * 100.0))
+
+    marker_html = ""
+    if marker_pct is not None:
+        marker_html = (
+            f"<div style='position:absolute;left:{marker_pct:.1f}%;top:-3px;bottom:-3px;"
+            "width:2px;background:#d8dde6;border-radius:2px;'></div>"
+        )
+
+    benchmark_html = (
+        f"Peer benchmark: {_safe_html(benchmark_display)}"
+        if benchmark_display not in (None, "")
+        else "No peer benchmark"
+    )
+    note_html = (
+        f"<div style='font-size:0.72rem;color:#8b919d;margin-top:5px;line-height:1.25;'>"
+        f"{_safe_html(note)}</div>"
+        if note else ""
+    )
+
+    st.markdown(
+        "<div style='border:1px solid rgba(128,128,128,.22);border-radius:10px;"
+        "padding:12px 12px 10px 12px;margin-bottom:10px;min-height:118px;'>"
+        f"<div style='font-size:.74rem;color:#8b919d;margin-bottom:3px;'>{_safe_html(label)}</div>"
+        "<div style='display:flex;align-items:baseline;justify-content:space-between;gap:8px;'>"
+        f"<div style='font-size:1.16rem;font-weight:700;line-height:1.15;'>{_safe_html(actual_display)}</div>"
+        f"<div style='font-size:.72rem;font-weight:650;color:{status['color']};white-space:nowrap;'>"
+        f"{status['icon']} {_safe_html(status['label'])}</div></div>"
+        "<div style='position:relative;height:9px;background:rgba(128,128,128,.18);"
+        "border-radius:999px;margin-top:10px;overflow:visible;'>"
+        f"<div style='height:9px;width:{actual_pct:.1f}%;background:{status['color']};"
+        "border-radius:999px;opacity:.88;'></div>"
+        f"{marker_html}</div>"
+        f"<div style='font-size:.70rem;color:#8b919d;margin-top:6px;'>{benchmark_html}</div>"
+        f"{note_html}</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def render_round_performance_snapshot():
+    """Show tracked round stats against handicap-relative benchmarks where appropriate."""
+    holes = int(st.session_state.get("round_holes_played") or 18)
+    fw_opps = int(st.session_state.get("round_fairway_opportunities") or max(1, round(holes * 14 / 18)))
+    gir_opps = int(st.session_state.get("round_gir_opportunities") or holes)
+    hcp = st.session_state.get("round_handicap")
+    has_hcp = hcp not in (None, "", "N/A")
+
+    fairways = st.session_state.get("round_fairways_hit")
+    gir = st.session_state.get("round_gir")
+    putts = st.session_state.get("round_putts")
+    penalties = st.session_state.get("round_penalty_strokes")
+    three_putts = st.session_state.get("round_three_putts")
+    failed = st.session_state.get("round_failed_up_downs")
+    scramble_opps = st.session_state.get("round_scrambling_opportunities")
+
+    tracked_values = [fairways, gir, putts, penalties, three_putts, failed, scramble_opps]
+    if not any(value is not None for value in tracked_values):
+        return
+
+    fir_pct = (float(fairways) / fw_opps * 100.0) if fairways is not None and fw_opps else None
+    gir_pct = (float(gir) / gir_opps * 100.0) if gir is not None and gir_opps else None
+    ud_pct = None
+    if failed is not None and scramble_opps not in (None, 0):
+        opps = max(1, int(scramble_opps))
+        ud_pct = max(0.0, min(100.0, (opps - min(opps, int(failed))) / opps * 100.0))
+
+    fir_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["fir_pct"]) if has_hcp else None
+    gir_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["gir_pct"]) if has_hcp else None
+    ud_bench = _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["up_down_pct"]) if has_hcp else None
+    putt_bench = (
+        _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["putts_round"]) * holes / 18.0
+        if has_hcp else None
+    )
+    penalty_bench = (
+        _interp_handicap_benchmark(hcp, HANDICAP_BENCHMARKS["penalty_strokes"]) * holes / 18.0
+        if has_hcp else None
+    )
+
+    st.markdown("#### Round Performance Snapshot")
+    st.caption(
+        "Benchmarks are handicap-relative when available. FIR and total putts are context signals; direct scoring events and repeated performance gaps carry more diagnostic weight."
+    )
+
+    row1 = st.columns(3)
+    with row1[0]:
+        render_comparison_metric_card(
+            "Fairways Hit",
+            fir_pct,
+            "Not tracked" if fir_pct is None else f"{int(fairways)}/{fw_opps} · {fir_pct:.0f}%",
+            fir_bench,
+            None if fir_bench is None else f"{fir_bench:.0f}%",
+            scale_max=100,
+            soft_context=True,
+            note="Accuracy context only; misses matter most when they create trouble.",
+        )
+    with row1[1]:
+        render_comparison_metric_card(
+            "Greens in Regulation",
+            gir_pct,
+            "Not tracked" if gir_pct is None else f"{int(gir)}/{gir_opps} · {gir_pct:.0f}%",
+            gir_bench,
+            None if gir_bench is None else f"{gir_bench:.0f}%",
+            scale_max=100,
+        )
+    with row1[2]:
+        putt_scale = max(1.0, float(putts or 0), float(putt_bench or 0), 45.0 * holes / 18.0)
+        render_comparison_metric_card(
+            "Total Putts",
+            putts,
+            "Not tracked" if putts is None else str(int(putts)),
+            putt_bench,
+            None if putt_bench is None else f"{putt_bench:.1f}",
+            good_when_lower=True,
+            scale_max=putt_scale,
+            soft_context=True,
+            note="Context only; GIR and first-putt distance affect the total.",
+        )
+
+    row2 = st.columns(3)
+    with row2[0]:
+        tp_status = None
+        if three_putts is not None:
+            if int(three_putts) == 0:
+                tp_status = {"label": "Clean", "icon": "✓", "color": "#2e8b57"}
+            elif int(three_putts) == 1:
+                tp_status = {"label": "Costly event", "icon": "~", "color": "#c48a18"}
+            else:
+                tp_status = {"label": "Needs attention", "icon": "!", "color": "#c84a46"}
+        render_comparison_metric_card(
+            "3-Putts",
+            three_putts,
+            "Not tracked" if three_putts is None else str(int(three_putts)),
+            None,
+            None,
+            good_when_lower=True,
+            scale_max=max(3, round(holes / 6)),
+            status_override=tp_status,
+            note="Direct scoring event; stronger putting signal than raw total putts.",
+        )
+    with row2[1]:
+        penalty_scale = max(2.0, float(penalties or 0), float(penalty_bench or 0), 5.0 * holes / 18.0)
+        penalty_status = None
+        if penalties is not None:
+            if float(penalties) <= 0:
+                penalty_status = {"label": "Clean", "icon": "✓", "color": "#2e8b57"}
+            elif float(penalties) <= 1:
+                penalty_status = {"label": "Direct cost", "icon": "~", "color": "#c48a18"}
+            else:
+                penalty_status = {"label": "Needs attention", "icon": "!", "color": "#c84a46"}
+        render_comparison_metric_card(
+            "Penalty Strokes",
+            penalties,
+            "Not tracked" if penalties is None else str(int(penalties)),
+            penalty_bench,
+            None if penalty_bench is None else f"{penalty_bench:.1f}",
+            good_when_lower=True,
+            scale_max=penalty_scale,
+            status_override=penalty_status,
+            note="Direct score cost; decision quality and execution are attributed separately.",
+        )
+    with row2[2]:
+        render_comparison_metric_card(
+            "Up & Down",
+            ud_pct,
+            "Not tracked" if ud_pct is None else f"{ud_pct:.0f}%",
+            ud_bench,
+            None if ud_bench is None else f"{ud_bench:.0f}%",
+            scale_max=100,
+            note=(
+                None if ud_pct is None
+                else f"{int(scramble_opps) - int(failed)}/{int(scramble_opps)} successful"
+            ),
+        )
+
+
+def _format_stage_number(value):
+    if not isinstance(value, (int, float)):
+        return "—"
+    if float(value) <= 0:
+        return "0"
+    return _format_stroke_estimate(float(value), include_word=False)
+
+
+def render_value_chain_opportunity_view(stage_summary, diag):
+    """Graphical five-stage priority view with direct-cost and peer-gap chips."""
+    values = stage_summary.get("values", {})
+    direct = stage_summary.get("direct_by_stage", {})
+    peer = stage_summary.get("peer_by_stage", {})
+    primary = diag.get("primary_miss_stage")
+    secondary = diag.get("secondary_miss_stage")
+
+    numeric_values = [
+        float(v) for v in values.values()
+        if isinstance(v, (int, float)) and float(v) > 0
+    ]
+    max_numeric = max(numeric_values) if numeric_values else 1.0
+
+    st.markdown("#### Value Chain Opportunity View")
+    st.caption(
+        "Longer bar = higher practice priority for this round. Direct score cost and handicap-relative peer gap remain separate beneath each stage."
+    )
+
+    for stage, key, icon, short_name in VALUE_CHAIN_STAGES:
+        raw = float(values.get(stage, 0) or 0)
+        if stage == primary:
+            strength = 100
+            role = "#1 Priority"
+        elif stage == secondary:
+            strength = max(72, int(round(raw / max_numeric * 60)) if max_numeric else 72)
+            role = "#2 Priority"
+        elif raw > 0:
+            strength = min(62, max(14, int(round(raw / max_numeric * 58))))
+            role = "Modeled opportunity"
+        else:
+            strength = 8
+            role = "Lower current priority"
+
+        if strength >= 85:
+            color = "#c84a46"
+        elif strength >= 65:
+            color = "#d9822b"
+        elif strength >= 30:
+            color = "#c7a33d"
+        else:
+            color = "#3f8f6b"
+
+        direct_text = _format_stage_number(direct.get(stage))
+        peer_text = _format_stage_number(peer.get(stage))
+        qualitative = not stage_summary.get("has_numeric", {}).get(stage, False)
+        qualifier = "Qualitative evidence" if qualitative and stage in {primary, secondary} else ""
+
+        st.markdown(
+            "<div style='border:1px solid rgba(128,128,128,.20);border-radius:10px;"
+            "padding:10px 12px;margin-bottom:8px;'>"
+            "<div style='display:flex;justify-content:space-between;gap:12px;align-items:center;'>"
+            f"<div style='font-weight:650;font-size:.90rem;'>{_safe_html(icon)} {_safe_html(short_name)}</div>"
+            f"<div style='font-size:.70rem;font-weight:700;color:{color};'>{_safe_html(role)}</div>"
+            "</div>"
+            "<div style='height:9px;background:rgba(128,128,128,.16);border-radius:999px;margin:8px 0 7px;'>"
+            f"<div style='height:9px;width:{strength}%;background:{color};border-radius:999px;'></div>"
+            "</div>"
+            "<div style='display:flex;flex-wrap:wrap;gap:6px;'>"
+            f"<span style='font-size:.70rem;padding:3px 7px;border-radius:999px;background:rgba(200,74,70,.10);'>"
+            f"Direct cost: {_safe_html(direct_text)}</span>"
+            f"<span style='font-size:.70rem;padding:3px 7px;border-radius:999px;background:rgba(79,112,179,.12);'>"
+            f"Peer gap: {_safe_html(peer_text)}</span>"
+            + (
+                f"<span style='font-size:.70rem;padding:3px 7px;border-radius:999px;background:rgba(128,128,128,.12);'>"
+                f"{_safe_html(qualifier)}</span>" if qualifier else ""
+            )
+            + "</div></div>",
+            unsafe_allow_html=True,
+        )
+
+
+def render_priority_chips(direct_text, peer_text, priority_text, confidence_text):
+    chips = [
+        ("Direct cost", direct_text, "rgba(200,74,70,.10)"),
+        ("Peer gap", peer_text, "rgba(79,112,179,.12)"),
+        ("Priority", priority_text, "rgba(217,130,43,.12)"),
+        ("Confidence", confidence_text, "rgba(63,143,107,.12)"),
+    ]
+    html_bits = []
+    for label, value, bg in chips:
+        html_bits.append(
+            f"<div style='padding:7px 9px;border-radius:9px;background:{bg};min-width:105px;flex:1;'>"
+            f"<div style='font-size:.67rem;color:#8b919d;margin-bottom:2px;'>{_safe_html(label)}</div>"
+            f"<div style='font-size:.86rem;font-weight:700;line-height:1.15;'>{_safe_html(value)}</div></div>"
+        )
+    st.markdown(
+        "<div style='display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 10px;'>"
+        + "".join(html_bits) + "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def render_scoring_evidence_bars(roi_data):
+    direct = roi_data.get("total_direct_score_cost", 0)
+    peer = roi_data.get("total_peer_gap", 0) if roi_data.get("has_handicap_benchmark") else None
+    values = [float(v) for v in (direct, peer) if isinstance(v, (int, float))]
+    scale = max([1.0] + values)
+
+    rows = [
+        ("Observed Direct Score Cost", direct, "#c84a46", roi_data.get("direct_cost_display", "No direct events captured")),
+        ("Handicap-Relative Peer Gap", peer, "#4f70b3", roi_data.get("peer_gap_display", "No handicap benchmark")),
+    ]
+    for label, value, color, detail in rows:
+        if value is None:
+            display = "Unavailable"
+            width = 0
+        else:
+            display = _format_stroke_estimate(value) if label.startswith("Handicap") else f"{float(value):g} stroke(s)"
+            width = max(0.0, min(100.0, float(value) / scale * 100.0))
+        st.markdown(
+            "<div style='margin-bottom:11px;'>"
+            "<div style='display:flex;justify-content:space-between;gap:8px;margin-bottom:5px;'>"
+            f"<span style='font-size:.76rem;color:#8b919d;'>{_safe_html(label)}</span>"
+            f"<span style='font-size:.84rem;font-weight:700;'>{_safe_html(display)}</span></div>"
+            "<div style='height:10px;background:rgba(128,128,128,.16);border-radius:999px;'>"
+            f"<div style='height:10px;width:{width:.1f}%;background:{color};border-radius:999px;'></div></div>"
+            f"<div style='font-size:.70rem;color:#8b919d;margin-top:4px;'>{_safe_html(detail)}</div>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+
+def render_practice_allocation_bar(controlled_pct, rationale=None, compact=False):
+    controlled = max(0, min(100, int(round(float(controlled_pct) * 100))))
+    transfer = 100 - controlled
+    height = 12 if compact else 16
+    st.markdown(
+        "<div style='margin:6px 0 8px;'>"
+        "<div style='display:flex;justify-content:space-between;gap:8px;margin-bottom:5px;font-size:.76rem;'>"
+        f"<span><strong>Controlled work</strong> · {controlled}%</span>"
+        f"<span><strong>Transfer / game</strong> · {transfer}%</span></div>"
+        f"<div style='height:{height}px;display:flex;border-radius:999px;overflow:hidden;"
+        "background:rgba(128,128,128,.15);'>"
+        f"<div style='width:{controlled}%;background:#4f70b3;'></div>"
+        f"<div style='width:{transfer}%;background:#3f8f6b;'></div>"
+        "</div>"
+        + (
+            f"<div style='font-size:.72rem;color:#8b919d;margin-top:6px;line-height:1.3;'>"
+            f"{_safe_html(rationale)}</div>" if rationale else ""
+        )
+        + "</div>",
+        unsafe_allow_html=True,
+    )
 
 def _short_progress_stage(stage):
     """Convert the full Value Chain stage name into a clean dashboard label."""
@@ -3163,6 +3560,8 @@ def build_value_chain_roi_summary(roi_data, diag):
     peer = roi_data.get("peer_gap_strokes", {}) if roi_data else {}
     direct = roi_data.get("direct_score_cost", {}) if roi_data else {}
     stage_by_key = {key: stage for stage, key, _, _ in VALUE_CHAIN_STAGES}
+    direct_by_stage = {stage: None for stage, _, _, _ in VALUE_CHAIN_STAGES}
+    peer_by_stage = {stage: None for stage, _, _, _ in VALUE_CHAIN_STAGES}
 
     def add_value(stage, value, label):
         if isinstance(value, (int, float)):
@@ -3207,6 +3606,29 @@ def build_value_chain_roi_summary(roi_data, diag):
         elif penalty_value > 0:
             unattributed_penalty = float(penalty_value)
 
+    # Preserve the two concepts separately for graphical display. These are not
+    # summed together when they represent the same event; they answer different
+    # questions: what cost strokes today vs what is weak relative to peers.
+    def add_stage_metric(target, stage, value, include_zero=False):
+        if not isinstance(value, (int, float)):
+            return
+        numeric = max(0.0, float(value))
+        if numeric <= 0 and not include_zero:
+            return
+        if target[stage] is None:
+            target[stage] = 0.0
+        target[stage] += numeric
+
+    add_stage_metric(peer_by_stage, stage_by_key["approach"], peer.get("Approach / GIR"), include_zero=True)
+    add_stage_metric(peer_by_stage, stage_by_key["scoring_scrambling"], peer.get("Short Game / Scrambling"), include_zero=True)
+    add_stage_metric(peer_by_stage, stage_by_key["scoring_scrambling"], peer.get("Putting"), include_zero=True)
+    add_stage_metric(peer_by_stage, stage_by_key["off_the_tee"], peer.get("Driving / FIR"), include_zero=True)
+    add_stage_metric(direct_by_stage, stage_by_key["scoring_scrambling"], direct.get("Putting"))
+
+    if penalty_stage:
+        add_stage_metric(direct_by_stage, penalty_stage, direct.get("Penalty / Trouble"))
+        add_stage_metric(peer_by_stage, penalty_stage, peer.get("Penalty / Trouble"), include_zero=True)
+
     primary_stage = (diag or {}).get("primary_miss_stage") or (diag or {}).get("value_chain_analysis", {}).get("primary_leak_stage")
     secondary_stage = (diag or {}).get("secondary_miss_stage")
 
@@ -3225,6 +3647,8 @@ def build_value_chain_roi_summary(roi_data, diag):
         "has_numeric": has_numeric,
         "evidence": evidence,
         "rows": rows,
+        "direct_by_stage": direct_by_stage,
+        "peer_by_stage": peer_by_stage,
         "unattributed_penalty": unattributed_penalty,
     }
 
@@ -4713,17 +5137,12 @@ def render_practice_setup_summary_card(key_suffix, allow_change=True):
 
     with st.container(border=True):
         st.markdown("##### ✅ Practice Setup")
-        c1, c2, c3 = st.columns(3)
+        c1, c2 = st.columns(2)
         with c1:
             render_compact_metric("Time", f"{res.get('total_time', '—')} min")
         with c2:
             render_compact_metric("Balls", res.get("total_balls", "—"))
-        with c3:
-            render_compact_metric(
-                "Allocation",
-                f"{controlled}% / {transfer}%",
-                subtext="Controlled / Transfer",
-            )
+        render_practice_allocation_bar(float(res.get("grind_pct", 0)), compact=True)
         st.caption(f"Practice area: {areas}")
 
         if allow_change and st.button(
@@ -5814,6 +6233,8 @@ if show_step1:
                     refresh_persona_copy=True,
                 )
 
+            render_round_performance_snapshot()
+
             primary_stage = diag.get("primary_miss_stage") or vc.get("primary_leak_stage", "Highest-ROI Focus")
             primary_title = diag.get("primary_miss", "Primary scoring opportunity")
             primary_persona = diag.get("primary_miss_persona", primary_title)
@@ -5834,7 +6255,7 @@ if show_step1:
             def _render_priority_card(
                 rank, stage, title, persona_line, modeled_metric, priority_label,
                 confidence_label, evidence, why_it_matters, practice_focus,
-                subtype=None, accent="warning"
+                direct_metric="—", peer_metric="—", subtype=None, accent="warning"
             ):
                 medal = "🥇" if rank == 1 else "🥈"
                 with st.container(border=True):
@@ -5847,13 +6268,12 @@ if show_step1:
                     else:
                         st.info(callout)
 
-                    m1, m2, m3 = st.columns(3)
-                    with m1:
-                        render_compact_metric("Modeled Scoring Opportunity", modeled_metric)
-                    with m2:
-                        render_compact_metric("Practice Priority", priority_label or "N/A")
-                    with m3:
-                        render_compact_metric("AI Confidence", confidence_label)
+                    render_priority_chips(
+                        direct_metric,
+                        peer_metric,
+                        priority_label or "N/A",
+                        confidence_label,
+                    )
 
                     if subtype and subtype != "null":
                         st.caption(f"🗺️ **Course-management subtype:** {subtype}")
@@ -5868,6 +6288,8 @@ if show_step1:
             subtype = diag.get("course_management_subtype")
             roi_evidence = diag.get("roi_evidence") or vc.get("leak_rationale")
             primary_causes = diag.get("primary_cause_breakdown")
+            primary_direct = _format_stage_number(stage_summary.get("direct_by_stage", {}).get(primary_stage))
+            primary_peer = _format_stage_number(stage_summary.get("peer_by_stage", {}).get(primary_stage))
 
             _render_priority_card(
                 rank=1,
@@ -5880,6 +6302,8 @@ if show_step1:
                 evidence=roi_evidence,
                 why_it_matters=primary_causes,
                 practice_focus=diag.get("recommended_primary_drill"),
+                direct_metric=primary_direct,
+                peer_metric=primary_peer,
                 subtype=subtype if primary_stage == "Course Management / Strategic Decision-Making" else None,
                 accent="warning",
             )
@@ -5900,6 +6324,8 @@ if show_step1:
                 secondary_evidence = diag.get("secondary_roi_evidence")
                 if not secondary_evidence:
                     secondary_evidence = diag.get("secondary_cause_breakdown")
+                secondary_direct = _format_stage_number(stage_summary.get("direct_by_stage", {}).get(secondary_stage))
+                secondary_peer = _format_stage_number(stage_summary.get("peer_by_stage", {}).get(secondary_stage))
 
                 _render_priority_card(
                     rank=2,
@@ -5912,38 +6338,35 @@ if show_step1:
                     evidence=secondary_evidence,
                     why_it_matters=diag.get("secondary_cause_breakdown"),
                     practice_focus=diag.get("recommended_secondary_drill"),
+                    direct_metric=secondary_direct,
+                    peer_metric=secondary_peer,
                     subtype=subtype if secondary_stage == "Course Management / Strategic Decision-Making" else None,
                     accent="info",
                 )
 
             with st.container(border=True):
-                st.markdown("#### Scoring Evidence: Direct Cost vs Peer Gap")
-                dc1, dc2 = st.columns(2)
-                with dc1:
-                    direct_total = roi_data.get("total_direct_score_cost", 0)
-                    direct_text = f"{direct_total:g} stroke(s)" if isinstance(direct_total, (int, float)) else str(direct_total)
-                    render_compact_metric("Observed Direct Score Cost", direct_text, subtext=roi_data.get("direct_cost_display", "No direct events captured"))
-                with dc2:
-                    peer_text = _format_stroke_estimate(roi_data.get("total_peer_gap", 0)) if roi_data.get("has_handicap_benchmark") else "Unavailable"
-                    render_compact_metric("Handicap-Relative Peer Gap", peer_text, subtext=roi_data.get("peer_gap_display", "No handicap benchmark"))
+                st.markdown("#### Scoring Evidence")
+                render_scoring_evidence_bars(roi_data)
 
             if diag.get("decision_quality") and diag.get("decision_quality") != "Not applicable":
                 st.caption(f"🧭 **Decision quality:** {diag.get('decision_quality')}")
             if diag.get("mechanical_evidence_level"):
                 st.caption(f"🔬 **Mechanical evidence:** {diag.get('mechanical_evidence_level')}")
 
-            st.markdown("#### Five-Stage ROI Snapshot")
-            snapshot_df = pd.DataFrame(stage_summary["rows"])
-            st.dataframe(
-                snapshot_df,
-                hide_index=True,
-                use_container_width=True,
-                column_config={
-                    "Stage": st.column_config.TextColumn("Value Chain Stage"),
-                    "Modeled Strokes": st.column_config.TextColumn("Approx. Opportunity"),
-                    "Role": st.column_config.TextColumn("Current Focus"),
-                },
-            )
+            render_value_chain_opportunity_view(stage_summary, diag)
+
+            with st.expander("View Value Chain numerical table", expanded=False):
+                snapshot_df = pd.DataFrame(stage_summary["rows"])
+                st.dataframe(
+                    snapshot_df,
+                    hide_index=True,
+                    use_container_width=True,
+                    column_config={
+                        "Stage": st.column_config.TextColumn("Value Chain Stage"),
+                        "Modeled Strokes": st.column_config.TextColumn("Approx. Opportunity"),
+                        "Role": st.column_config.TextColumn("Current Focus"),
+                    },
+                )
 
             if not roi_data.get("has_handicap_benchmark", False):
                 st.caption(
@@ -6113,12 +6536,6 @@ if (
             allocation_rationale = "You selected 100% transfer/target-pressure work."
         else:
             adaptive_grind_pct, allocation_rationale = _adaptive_hybrid_split(diag_for_plan)
-            st.info(
-                f"**AI-Balanced recommendation**\n\n"
-                f"**Controlled skill work:** {int(adaptive_grind_pct*100)}%\n\n"
-                f"**Transfer & pressure:** {int((1-adaptive_grind_pct)*100)}%\n\n"
-                f"**Why:** {allocation_rationale}"
-            )
             user_override = st.checkbox("Override the AI practice split")
             if user_override:
                 grind_pct = st.slider(
@@ -6137,6 +6554,12 @@ if (
         grind_time = int(round(total_time * grind_pct))
         game_time = total_time - grind_time
         sec_per_ball = int((total_time * 60) / total_balls) if total_balls > 0 else 0
+
+        st.markdown("#### Practice Allocation")
+        render_practice_allocation_bar(
+            grind_pct,
+            rationale=allocation_rationale,
+        )
 
         can_generate = bool(practice_areas) and resolved_primary is not None
         if not practice_areas:
