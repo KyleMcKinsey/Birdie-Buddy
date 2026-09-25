@@ -5666,11 +5666,6 @@ with st.container(border=True):
             with dc2:
                 peer_text = _format_stroke_estimate(roi_data.get("total_peer_gap", 0)) if roi_data.get("has_handicap_benchmark") else "Unavailable"
                 render_compact_metric("Handicap-Relative Peer Gap", peer_text, subtext=roi_data.get("peer_gap_display", "No handicap benchmark"))
-            render_scannable_rows([
-                ("Direct cost", "What visibly added strokes this round."),
-                ("Peer gap", "Where performance fell below a similar-handicap benchmark."),
-                ("How Birdie Buddy uses them", "Both matter. One does not erase the other."),
-            ], margin_left=0, compact=True)
 
         if diag.get("decision_quality") and diag.get("decision_quality") != "Not applicable":
             st.caption(f"🧭 **Decision quality:** {diag.get('decision_quality')}")
