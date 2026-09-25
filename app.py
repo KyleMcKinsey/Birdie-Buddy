@@ -236,12 +236,58 @@ def clear_history_csv():
 
 
 # --- HELPER FUNCTIONS FOR CLEAN UI & EXPORTS ---
+def _scannable_html_text(content: str, min_length: int = 150):
+    """Add breathing room to long instructional prose without changing its wording."""
+    text = str(content or "").strip()
+    if len(text) < min_length:
+        return text
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9])", text) if s.strip()]
+    if len(sentences) <= 1:
+        return text
+    return "<br><br>".join(sentences)
+
+
 def render_indented_html(content: str, margin_left: int = 24):
+    content_html = _scannable_html_text(content)
     st.markdown(
         f"<div style='margin-left: {margin_left}px; margin-top: 4px;"
-        f" margin-bottom: 16px;'>{content}</div>",
+        f" margin-bottom: 16px; line-height:1.6;'>{content_html}</div>",
         unsafe_allow_html=True,
     )
+
+
+def render_scannable_rows(rows, margin_left: int = 0, compact: bool = False):
+    """Render short labeled coaching facts as separate visual rows instead of a text wall."""
+    gap = 7 if compact else 10
+    blocks = []
+    for label, value in rows:
+        if value in (None, ""):
+            continue
+        blocks.append(
+            f"<div style='margin-bottom:{gap}px; line-height:1.5;'>"
+            f"<strong>{label}:</strong><br>"
+            f"<span style='color:#aeb4bf;'>{value}</span>"
+            "</div>"
+        )
+    if not blocks:
+        return
+    st.markdown(
+        f"<div style='margin-left:{margin_left}px; margin-top:6px; margin-bottom:12px;'>"
+        f"{''.join(blocks)}</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def render_progression_steps(content: str, margin_left: int = 24):
+    """Turn arrow-separated progression text into short numbered steps."""
+    text = str(content or "").strip()
+    text = re.sub(r"^Progression:\s*", "", text, flags=re.IGNORECASE)
+    parts = [part.strip() for part in re.split(r"\s*→\s*", text) if part.strip()]
+    if len(parts) <= 1:
+        render_indented_html(text, margin_left=margin_left)
+        return
+    rows = [(f"Step {idx}", part) for idx, part in enumerate(parts, start=1)]
+    render_scannable_rows(rows, margin_left=margin_left, compact=True)
 
 
 def _drill_category(drill_name: str) -> str:
@@ -694,13 +740,15 @@ def render_instruction_steps(content: str, drill_name: str = "", margin_left: in
         end = matches[idx + 1].start() if idx + 1 < len(matches) else len(content)
         body = content[start:end].strip()
         extra = addons.get(label, "")
+        body_html = _scannable_html_text(body, min_length=125)
+        extra_html = _scannable_html_text(extra, min_length=125)
         blocks.append(
             "<div style='margin-bottom:18px; padding-bottom:16px; "
             "border-bottom:1px solid rgba(128,128,128,0.20);'>"
-            f"<div style='font-weight:700; margin-bottom:6px;'>{icons[label]} {titles[label]}</div>"
-            f"<div style='line-height:1.68;'>{body}</div>"
-            f"<div style='line-height:1.62; margin-top:8px; color:#aeb4bf;'>"
-            f"<strong>Coach detail:</strong> {extra}</div>"
+            f"<div style='font-weight:700; margin-bottom:8px;'>{icons[label]} {titles[label]}</div>"
+            f"<div style='line-height:1.68;'>{body_html}</div>"
+            f"<div style='line-height:1.62; margin-top:12px; color:#aeb4bf;'>"
+            f"<strong>Coach detail:</strong><br>{extra_html}</div>"
             "</div>"
         )
 
@@ -4518,7 +4566,11 @@ with st.container(border=True):
             with dc2:
                 peer_text = _format_stroke_estimate(roi_data.get("total_peer_gap", 0)) if roi_data.get("has_handicap_benchmark") else "Unavailable"
                 render_compact_metric("Handicap-Relative Peer Gap", peer_text, subtext=roi_data.get("peer_gap_display", "No handicap benchmark"))
-            st.caption("Direct cost answers what visibly added strokes this round. Peer gap answers where performance fell below a similar-handicap benchmark. Birdie Buddy uses both rather than letting one erase the other.")
+            render_scannable_rows([
+                ("Direct cost", "What visibly added strokes this round."),
+                ("Peer gap", "Where performance fell below a similar-handicap benchmark."),
+                ("How Birdie Buddy uses them", "Both matter. One does not erase the other."),
+            ], margin_left=0, compact=True)
 
         if diag.get("decision_quality") and diag.get("decision_quality") != "Not applicable":
             st.caption(f"🧭 **Decision quality:** {diag.get('decision_quality')}")
@@ -4685,8 +4737,10 @@ if "diagnosis" in st.session_state and st.session_state.get("show_practice_build
         else:
             adaptive_grind_pct, allocation_rationale = _adaptive_hybrid_split(diag_for_plan)
             st.info(
-                f"**AI-Balanced recommendation:** {int(adaptive_grind_pct*100)}% controlled skill work / "
-                f"{int((1-adaptive_grind_pct)*100)}% transfer & pressure.\n\n{allocation_rationale}"
+                f"**AI-Balanced recommendation**\n\n"
+                f"**Controlled skill work:** {int(adaptive_grind_pct*100)}%\n\n"
+                f"**Transfer & pressure:** {int((1-adaptive_grind_pct)*100)}%\n\n"
+                f"**Why:** {allocation_rationale}"
             )
             user_override = st.checkbox("Override the AI practice split")
             if user_override:
@@ -4887,11 +4941,13 @@ if (
 
                     st.markdown("**📏 Objective Pre/Post Test**")
                     kpi = get_drill_kpi(d_name)
-                    st.markdown(f"**{kpi['name']}** — {kpi['test']}")
-                    st.caption(
-                        f"Success = {kpi['success']}  •  Pass target: {kpi['target']}/10. "
-                        "Run this 10-rep test before the drill and repeat the same test after practice."
-                    )
+                    st.markdown(f"**{kpi['name']}**")
+                    render_scannable_rows([
+                        ("Test", kpi["test"]),
+                        ("Success", kpi["success"]),
+                        ("Pass target", f"{kpi['target']}/10"),
+                        ("When to test", "Run the same 10-rep test before the drill and again after practice."),
+                    ], margin_left=18, compact=True)
 
                     st.markdown("**🛠️ Range Equipment Needed**")
                     equip_items = re.split(r",\s*(?![^()]*\))", schematic["equipment"])
@@ -4901,7 +4957,7 @@ if (
                     render_instruction_steps(schematic["vivid_description"], d_name)
 
                     st.markdown("**📈 How to Progress the Drill**")
-                    render_indented_html(
+                    render_progression_steps(
                         CATEGORY_PROGRESSION.get(
                             _drill_category(d_name), CATEGORY_PROGRESSION["general"]
                         )
@@ -4930,11 +4986,13 @@ if (
                     )
 
                     st.markdown("**📏 Objective Transfer Test**")
-                    st.markdown("**Decision + routine transfer** — score 10 one-ball scenarios.")
-                    st.caption(
-                        "Success = a clear club/target decision, full routine, committed swing, and a playable outcome. "
-                        "Pass target: 7/10. Do not hit a mulligan after a miss."
-                    )
+                    st.markdown("**Decision + routine transfer**")
+                    render_scannable_rows([
+                        ("Test", "Score 10 one-ball scenarios."),
+                        ("Success", "Make a clear club/target decision, complete the full routine, commit to the swing, and produce a playable outcome."),
+                        ("Pass target", "7/10"),
+                        ("Rule", "No mulligans after a miss."),
+                    ], margin_left=18, compact=True)
 
                     st.markdown("**🛠️ Range Equipment Needed**")
                     render_indented_ul([
@@ -4960,9 +5018,11 @@ if (
                     render_instruction_steps(pressure_text, "Target Course Pressure Simulation")
 
                     st.markdown("**📈 How to Progress the Drill**")
-                    render_indented_html(
-                        "Start with 5 unscored simulated holes, then create a 9-shot or 18-shot game where each ball earns a simple result (good decision/playable shot, neutral, or penalty-level miss). Add consequences only after the routine stays consistent."
-                    )
+                    render_scannable_rows([
+                        ("Step 1", "Start with 5 unscored simulated holes and focus only on decision quality and routine completion."),
+                        ("Step 2", "Move to a 9-shot or 18-shot game where every ball receives a simple result: good/playable, neutral, or penalty-level miss."),
+                        ("Step 3", "Add consequences or reset rules only after the routine stays consistent."),
+                    ], margin_left=24, compact=True)
 
                     st.markdown("**🧠 Mental Analogy**")
                     render_indented_html(
@@ -4997,10 +5057,11 @@ if (
 
             with st.container(border=True):
                 st.markdown("### ✅ Log This Practice Session")
-                st.caption(
-                    "When you finish the plan, record how much you completed and whether "
-                    "the prescribed work helped. Birdie Buddy will use this feedback in "
-                    "your practice history and future progress tracking."
+                st.markdown(
+                    "When you finish the plan, record two things:\n\n"
+                    "- **How much you completed**\n"
+                    "- **How effective it felt**\n\n"
+                    "Birdie Buddy uses this feedback in your practice history and future coaching."
                 )
 
                 if _current_log:
@@ -5011,12 +5072,12 @@ if (
                     )
                     st.markdown(f"**Primary practice focus:** `{_logged_drill}`")
                     primary_kpi = get_drill_kpi(_logged_drill)
-                    st.markdown(
-                        f"**Objective test:** {primary_kpi['name']} — {primary_kpi['test']}"
-                    )
-                    st.caption(
-                        f"Count a success when: {primary_kpi['success']} Pass target: {primary_kpi['target']}/10."
-                    )
+                    st.markdown(f"**Objective test:** {primary_kpi['name']}")
+                    render_scannable_rows([
+                        ("Test", primary_kpi["test"]),
+                        ("Success", primary_kpi["success"]),
+                        ("Pass target", f"{primary_kpi['target']}/10"),
+                    ], margin_left=18, compact=True)
 
                     _completion_options = ["Not yet", "Yes, partially", "Yes, fully"]
                     _existing_completion = str(
@@ -5109,9 +5170,10 @@ if (
                                 help="Repeat the same test after practice under the same conditions.",
                             )
                         gain = int(post_kpi) - int(baseline_kpi)
-                        st.caption(
-                            f"Objective change: **{gain:+d}/10**. Subjective effectiveness and objective change are both saved; neither replaces the other."
-                        )
+                        render_scannable_rows([
+                            ("Objective change", f"{gain:+d}/10"),
+                            ("Interpretation", "Subjective effectiveness and objective change are both saved. Neither replaces the other."),
+                        ], margin_left=0, compact=True)
 
                     existing_saved = bool(
                         str(_current_log.get("Drill Completed?", "")).strip()
@@ -5151,17 +5213,18 @@ if (
                         saved_completion = _current_log.get("Drill Completed?", "")
                         saved_effectiveness = _current_log.get("Fix Effectiveness (1-5)", "")
                         if saved_effectiveness not in (None, ""):
-                            objective_text = ""
+                            saved_rows = [
+                                ("Completion", saved_completion),
+                                ("Effectiveness", f"{saved_effectiveness}/5"),
+                            ]
                             try:
                                 saved_gain = _current_log.get("Objective Gain", "")
                                 if saved_gain not in (None, "", "N/A"):
-                                    objective_text = f" • Objective change **{int(float(saved_gain)):+d}/10**"
+                                    saved_rows.append(("Objective change", f"{int(float(saved_gain)):+d}/10"))
                             except Exception:
-                                objective_text = ""
-                            st.success(
-                                f"Practice logged: **{saved_completion}** • "
-                                f"Effectiveness **{saved_effectiveness}/5**{objective_text}"
-                            )
+                                pass
+                            st.success("Practice logged")
+                            render_scannable_rows(saved_rows, margin_left=18, compact=True)
                         else:
                             st.info(f"Practice status logged: **{saved_completion}**")
                 else:
