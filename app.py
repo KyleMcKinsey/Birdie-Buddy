@@ -341,7 +341,7 @@ def render_indented_html(content: str, margin_left: int = 24):
 
 def render_scannable_rows(rows, margin_left: int = 0, compact: bool = False):
     """Render short labeled coaching facts as separate visual rows instead of a text wall."""
-    gap = 7 if compact else 10
+    gap = 4 if compact else 9
     blocks = []
     for label, value in rows:
         if value in (None, ""):
@@ -355,8 +355,46 @@ def render_scannable_rows(rows, margin_left: int = 0, compact: bool = False):
     if not blocks:
         return
     st.markdown(
-        f"<div style='margin-left:{margin_left}px; margin-top:6px; margin-bottom:12px;'>"
+        f"<div style='margin-left:{margin_left}px; margin-top:4px; margin-bottom:8px;'>"
         f"{''.join(blocks)}</div>",
+        unsafe_allow_html=True,
+    )
+
+
+
+def render_inline_facts(items, compact=True):
+    """Render short label/value facts as wrapping chips instead of stacked rows."""
+    chips = []
+    for label, value in items:
+        if value in (None, "", "N/A"):
+            continue
+        label_html = html.escape(str(label))
+        value_html = html.escape(str(value))
+        chips.append(
+            "<span style='display:inline-flex;align-items:center;gap:4px;"
+            "padding:4px 8px;border-radius:999px;"
+            "background:rgba(100,116,139,.12);"
+            "border:1px solid rgba(148,163,184,.18);"
+            f"font-size:{'.72rem' if compact else '.78rem'};"
+            "line-height:1.2;'>"
+            f"<strong>{label_html}:</strong> {value_html}</span>"
+        )
+    if chips:
+        st.markdown(
+            "<div style='display:flex;flex-wrap:wrap;gap:6px;"
+            "margin:4px 0 8px 0;'>"
+            + "".join(chips)
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+
+
+def render_micro_note(text, icon="ℹ️"):
+    """One-line muted methodology/context note."""
+    st.markdown(
+        "<div style='font-size:.72rem;line-height:1.35;color:#8f98a8;"
+        "margin:4px 0 7px 0;'>"
+        f"{html.escape(icon)} {html.escape(str(text))}</div>",
         unsafe_allow_html=True,
     )
 
@@ -1675,9 +1713,8 @@ def render_value_chain_opportunity_view(stage_summary, diag):
     }
 
     st.markdown("#### Practice Priority Map")
-    st.caption(
-        "Bar length shows relative coaching priority, not measured Strokes Gained. "
-        "Each stage includes only the context that helps explain its ranking."
+    render_micro_note(
+        "Bars show relative practice priority, not measured Strokes Gained."
     )
 
     for stage, key, icon, short_name in VALUE_CHAIN_STAGES:
@@ -6889,9 +6926,9 @@ if show_step1:
         # --- STEP 1A: STORY, MANUAL STATS, OR SCORECARD UPLOAD ---
         if st.session_state["diag_step"] == 1:
             st.markdown("### 📝 Add Your Round")
-            st.caption(
-                "Describe the round yourself, enter tracked stats, or upload a scorecard/app screenshot. "
-                "Birdie Buddy will use the information available and ask only the clarifying questions it still needs."
+            render_micro_note(
+                "Describe the round, enter tracked stats, or upload a scorecard. "
+                "Follow-ups fill only the remaining gaps."
             )
 
             intake_mode = st.radio(
@@ -7626,10 +7663,7 @@ if show_step1:
             qs = st.session_state.get("followup_questions", {})
 
             st.markdown("### 🔎 Quick Diagnostic Follow-Ups")
-            st.caption(
-                "Answer only the clarifications Birdie Buddy still needs. The number of questions adapts to "
-                "how much the story, scorecard, and tracked stats already explain."
-            )
+            render_micro_note("Only unresolved diagnostic gaps appear here.")
 
             question_items = _normalize_followup_questions(qs)
             selected_answers = []
@@ -7637,13 +7671,13 @@ if show_step1:
                 with st.container(border=True):
                     st.caption(f"QUESTION {idx} · {item['focus']}")
                     st.markdown(f"**{item['question']}**")
-                    st.caption(f"Why we're asking: {item['why']}")
                     answer = st.radio(
                         f"Q{idx} Choice:",
                         options=item["options"],
                         index=None,
                         key=f"followup_answer_{idx}",
                         label_visibility="collapsed",
+                        help=item.get("why", ""),
                     )
                     selected_answers.append(answer)
 
@@ -8306,10 +8340,7 @@ if (
 
     with st.container(border=True):
         st.subheader("4. Build Today’s Practice Plan")
-        st.caption(
-            "Birdie Buddy now allocates controlled skill work vs transfer work from the diagnosis, "
-            "practice history, and the facilities/equipment you actually have today."
-        )
+        render_micro_note("Set today's available practice assets and constraints.")
 
         diag_for_plan = st.session_state["diagnosis"]
         preferred_primary = diag_for_plan.get("recommended_primary_drill")
@@ -8323,10 +8354,7 @@ if (
         existing_balls = max(10, min(300, existing_balls))
 
         st.markdown("#### Available Practice Assets")
-        st.caption(
-            "Birdie Buddy treats your available time and practice balls as scarce assets, "
-            "then allocates them toward the highest expected scoring return."
-        )
+        render_micro_note("Allocate two scarce assets: time + practice balls.")
 
         col_input_a, col_input_b = st.columns(2)
         with col_input_a:
@@ -8383,8 +8411,7 @@ if (
 
         if primary_sub and resolved_primary:
             st.info(
-                f"🛠️ **Environment-aware substitution:** `{primary_sub}`. "
-                "The replacement stays in the same coaching category so the diagnosis is preserved."
+                f"🛠️ **Setup adjustment:** `{primary_sub}` — same coaching category, compatible with today's setup."
             )
         elif primary_sub and not resolved_primary:
             st.error(
@@ -8396,8 +8423,8 @@ if (
         if secondary_sub and resolved_secondary:
             st.caption(f"Secondary drill adjusted for today's setup: {secondary_sub}")
         elif preferred_secondary and not resolved_secondary:
-            st.caption(
-                "The secondary drill is unavailable in today's environment, so Birdie Buddy will keep the session focused on the primary opportunity rather than prescribe unrelated work."
+            render_micro_note(
+                "Secondary drill unavailable in this setup; the plan stays focused on the primary opportunity."
             )
 
         practice_mode = st.radio(
@@ -8881,11 +8908,8 @@ if (
 
             with st.container(border=True):
                 st.markdown("### ✅ Log This Practice Session")
-                st.markdown(
-                    "When you finish the plan, record two things:\n\n"
-                    "- **How much you completed**\n"
-                    "- **How effective it felt**\n\n"
-                    "Birdie Buddy uses this feedback in your practice history and future coaching."
+                render_micro_note(
+                    "Record completion and effectiveness; objective results are optional but improve future allocation."
                 )
 
                 if _current_log:
@@ -8894,14 +8918,17 @@ if (
                         or _current_log.get("Primary Drill")
                         or diag.get("recommended_primary_drill", "your primary drill")
                     )
-                    st.markdown(f"**Primary practice focus:** `{_logged_drill}`")
                     primary_kpi = get_drill_kpi(_logged_drill)
-                    st.markdown(f"**Objective test:** {primary_kpi['name']}")
-                    render_scannable_rows([
-                        ("Test", primary_kpi["test"]),
-                        ("Success", primary_kpi["success"]),
-                        ("Pass target", f"{primary_kpi['target']}/10"),
-                    ], margin_left=18, compact=True)
+                    render_inline_facts([
+                        ("Primary focus", _logged_drill),
+                        ("Objective", primary_kpi["name"]),
+                        ("Pass", f"{primary_kpi['target']}/10"),
+                    ])
+                    with st.expander("Review 10-rep test instructions", expanded=False):
+                        render_scannable_rows([
+                            ("Test", primary_kpi["test"]),
+                            ("Success", primary_kpi["success"]),
+                        ], margin_left=0, compact=True)
 
                     _completion_options = ["Not yet", "Yes, partially", "Yes, fully"]
                     _existing_completion = str(
@@ -8971,7 +8998,7 @@ if (
                         "I completed the objective pre/post test",
                         value=existing_objective,
                         disabled=practice_completed == "Not yet",
-                        help="Leave this unchecked if you only want to log completion/effectiveness. Birdie Buddy will not treat a missing test as a zero.",
+                        help="Optional. If unchecked, the test stays missing rather than becoming 0.",
                     )
 
                     baseline_kpi = post_kpi = None
@@ -8994,10 +9021,14 @@ if (
                                 help="Repeat the same test after practice under the same conditions.",
                             )
                         gain = int(post_kpi) - int(baseline_kpi)
-                        render_scannable_rows([
-                            ("Objective change", f"{gain:+d}/10"),
-                            ("Interpretation", "This 10-rep result is a useful signal, not a verdict. Birdie Buddy makes larger practice changes only when the pattern repeats across completed sessions."),
-                        ], margin_left=0, compact=True)
+                        render_inline_facts([
+                            ("Pre", f"{int(baseline_kpi)}/10"),
+                            ("Post", f"{int(post_kpi)}/10"),
+                            ("Change", f"{gain:+d}/10"),
+                        ])
+                        render_micro_note(
+                            "Single-session change is an early signal; larger reallocations require repeated completed sessions."
+                        )
 
                     transfer_decision_score = None
                     transfer_routine_score = None
@@ -9051,8 +9082,8 @@ if (
                                     value=_history_int("Transfer Playable Outcomes (10)", 0),
                                     step=1,
                                 )
-                            st.caption(
-                                "Interpret these independently: decision = strategy, routine = process, playable outcome = execution/result."
+                            render_micro_note(
+                                "Decision = strategy · Routine = process · Playable outcome = execution/result"
                             )
 
                     existing_saved = bool(
@@ -9118,7 +9149,7 @@ if (
                                     except Exception:
                                         pass
                             st.success("Practice logged")
-                            render_scannable_rows(saved_rows, margin_left=18, compact=True)
+                            render_inline_facts(saved_rows)
                             if str(saved_completion).strip() != "Not yet":
                                 render_practice_voice_debrief(
                                     st.session_state.get("caddie_persona_key", selected_persona_key),
