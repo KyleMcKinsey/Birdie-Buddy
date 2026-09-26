@@ -2149,11 +2149,8 @@ def render_progress_trends(df_history):
         focus_tag = "First diagnosed focus"
 
     with st.container(border=True):
-        st.markdown("### 📈 Progress & Trends")
-        st.caption(
-            "Progress is normalized when possible so nine-hole and eighteen-hole rounds "
-            "are not compared as if raw scores meant the same thing."
-        )
+        st.markdown("#### Dashboard Overview")
+        render_micro_note("Scoring trends are normalized when enough course/round context is available.")
 
         m1, m2, m3 = st.columns(3)
         with m1:
@@ -6866,6 +6863,109 @@ def render_practice_setup_summary_card(key_suffix, allow_change=True):
             st.rerun()
 
 
+
+def render_workflow_dashboard(key_suffix="workflow"):
+    """Compact status strip for completed workflow steps.
+
+    Replaces stacked summary cards with a dashboard-like row. Detailed editing
+    remains available in one collapsed control area.
+    """
+    cards = []
+
+    if st.session_state.get("user_round_story") is not None or st.session_state.get("round_score") is not None:
+        score = _fmt_stat(st.session_state.get("round_score"))
+        holes = _fmt_stat(st.session_state.get("round_holes_played"))
+        course = str(st.session_state.get("round_course_name", "") or "").strip()
+        subtitle = f"{score} strokes · {holes} holes"
+        if course:
+            subtitle += f" · {course}"
+        cards.append(("ROUND", "⛳", subtitle, "#60a5fa"))
+
+    questions = _normalize_followup_questions(st.session_state.get("followup_questions", {}))
+    if questions:
+        answered = sum(
+            st.session_state.get(f"followup_answer_{idx}") is not None
+            for idx in range(1, len(questions) + 1)
+        )
+        cards.append(
+            ("CLARIFICATIONS", "🔎", f"{answered}/{len(questions)} answered", "#a78bfa")
+        )
+
+    diag = st.session_state.get("diagnosis", {})
+    if diag:
+        stage = _short_progress_stage(diag.get("primary_miss_stage", ""))
+        primary = str(diag.get("primary_miss", "") or "").strip()
+        value = f"{stage}"
+        if primary and primary.lower() not in stage.lower():
+            value += f" · {primary}"
+        cards.append(("DIAGNOSIS", "🎯", value, "#f59e0b"))
+
+    res = st.session_state.get("confirmed_resources", {})
+    if res:
+        cards.append(
+            (
+                "PRACTICE ASSETS",
+                "🧰",
+                f"{res.get('total_time', '—')} min · ≈{res.get('total_balls', '—')} balls",
+                "#34d399",
+            )
+        )
+
+    if not cards:
+        return
+
+    st.markdown(
+        "<div style='font-size:.68rem;font-weight:800;letter-spacing:.08em;"
+        "text-transform:uppercase;color:#7f8998;margin:3px 0 6px;'>Workflow Dashboard</div>",
+        unsafe_allow_html=True,
+    )
+    cols = st.columns(len(cards))
+    for col, (label, icon, value, accent) in zip(cols, cards):
+        with col:
+            st.markdown(
+                "<div style='min-height:68px;padding:9px 10px;border-radius:10px;"
+                "background:rgba(100,116,139,.075);border:1px solid rgba(148,163,184,.18);"
+                f"border-top:3px solid {accent};'>"
+                f"<div style='font-size:.64rem;font-weight:800;letter-spacing:.07em;"
+                f"text-transform:uppercase;color:#8e98a8;'>{icon} {_safe_html(label)}</div>"
+                f"<div style='font-size:.82rem;font-weight:650;line-height:1.25;margin-top:5px;'>"
+                f"{_safe_html(value)}</div></div>",
+                unsafe_allow_html=True,
+            )
+
+    action_specs = []
+    if st.session_state.get("round_intake_source"):
+        action_specs.append(("✏️ Round", "round"))
+    if questions:
+        action_specs.append(("✏️ Clarifications", "followups"))
+    if diag:
+        action_specs.append(("👁️ Diagnosis", "diagnosis"))
+    if res:
+        action_specs.append(("⚙️ Practice Setup", "practice"))
+
+    if action_specs:
+        with st.expander("Review / edit completed steps", expanded=False):
+            action_cols = st.columns(len(action_specs))
+            for col, (label, action) in zip(action_cols, action_specs):
+                with col:
+                    if st.button(
+                        label,
+                        key=f"workflow_action_{key_suffix}_{action}",
+                        use_container_width=True,
+                    ):
+                        if action == "round":
+                            _edit_round_from_current()
+                        elif action == "followups":
+                            _edit_followups_from_current()
+                        elif action == "diagnosis":
+                            st.session_state["workflow_review_mode"] = "diagnosis"
+                        elif action == "practice":
+                            st.session_state["show_practice_builder"] = True
+                            st.session_state["show_execution_plan"] = False
+                            st.session_state.pop("workflow_review_mode", None)
+                        st.rerun()
+
+
 # -------------------------------------------------------------
 # STEP 1: HYBRID STORY + MULTI-CHOICE DIAGNOSTIC
 # -------------------------------------------------------------
@@ -6988,7 +7088,7 @@ if show_step1:
                 )
 
                 if stats_tracked:
-                    st.markdown("##### 🔢 Round Numbers")
+                    st.markdown("#### Round Numbers")
                     cov1, cov2, cov3 = st.columns(3)
                     with cov1:
                         holes_played = st.number_input("Holes Played", min_value=1, max_value=36, value=18, step=1, help="Use 9 for a nine-hole round or the actual number completed.")
@@ -7039,8 +7139,7 @@ if show_step1:
                         else:
                             st.caption("Handicap: not provided")
 
-                    st.markdown("##### 🎯 Scoring Events")
-                    st.caption("High-value signals that help expose hidden scoring opportunities.")
+                    st.markdown("#### Scoring Events")
                     col_e1, col_e2, col_e3, col_e4 = st.columns(4)
                     with col_e1:
                         ob_lost_balls = st.number_input(
@@ -7063,16 +7162,11 @@ if show_step1:
                             help="Scrambling Opportunities: holes where you missed the green and had a realistic up-and-down opportunity.",
                         )
                 else:
-                    st.caption(
-                        "Turn this on if you tracked round stats. This keeps an actual 0 (for example, 0 GIR or 0 penalties) separate from 'not tracked'."
-                    )
+                    render_micro_note("Enable tracked stats only when zeros are real recorded zeros.")
 
             else:
                 st.markdown("##### 📷 Upload a Scorecard or Tracking Screenshot")
-                st.caption(
-                    "Upload a clear photo of a paper scorecard or a screenshot from a golf app such as 18Birdies. "
-                    "The AI will read visible totals, hole-by-hole stats, miss directions, and other tracked data when available."
-                )
+                render_micro_note("Upload a clear scorecard/app screenshot; only visibly supported data is extracted.")
                 scorecard_file = st.file_uploader(
                     "Scorecard image",
                     type=["png", "jpg", "jpeg", "webp"],
@@ -7649,16 +7743,16 @@ if show_step1:
 
         # --- STEP 1B: TARGETED MULTI-CHOICE DECISION TREE ---
         elif st.session_state["diag_step"] == 2:
-            render_round_summary_card("followups")
+            render_workflow_dashboard("followups")
             if st.session_state.get("round_intake_source") == "📷 Upload Scorecard":
-                st.info("📷 **Scorecard-based diagnosis:** Birdie Buddy is using the reviewed stats and visible scorecard patterns below.")
+                render_micro_note("Scorecard-based diagnosis · reviewed stats + visible scorecard evidence")
                 story_note = st.session_state.get("user_round_story", "").strip()
                 if story_note:
-                    st.caption(f"Additional round note: {story_note}")
+                    with st.expander("Round note", expanded=False):
+                        st.write(story_note)
             else:
-                st.info(
-                    f"📖 **Your Round Narrative:** \"{st.session_state.get('user_round_story')}\""
-                )
+                with st.expander("Round narrative", expanded=False):
+                    st.write(st.session_state.get("user_round_story"))
             caddie = st.session_state.get("caddie_name", persona_display_name)
             qs = st.session_state.get("followup_questions", {})
 
@@ -7667,16 +7761,21 @@ if show_step1:
 
             question_items = _normalize_followup_questions(qs)
             selected_answers = []
+            question_cols = st.columns(2)
             for idx, item in enumerate(question_items, start=1):
-                with st.container(border=True):
-                    st.caption(f"QUESTION {idx} · {item['focus']}")
-                    st.markdown(f"**{item['question']}**")
-                    answer = st.radio(
-                        f"Q{idx} Choice:",
+                with question_cols[(idx - 1) % 2]:
+                    st.markdown(
+                        "<div style='font-size:.66rem;font-weight:800;letter-spacing:.06em;"
+                        "text-transform:uppercase;color:#8e98a8;margin:3px 0 2px;'>"
+                        f"Q{idx} · {_safe_html(item['focus'])}</div>",
+                        unsafe_allow_html=True,
+                    )
+                    answer = st.selectbox(
+                        item["question"],
                         options=item["options"],
                         index=None,
                         key=f"followup_answer_{idx}",
-                        label_visibility="collapsed",
+                        placeholder="Choose the best match…",
                         help=item.get("why", ""),
                     )
                     selected_answers.append(answer)
@@ -8095,8 +8194,7 @@ if show_step1:
 
         # --- STEP 1C: UNIFIED ROUND SCORECARD ---
         if st.session_state.get("diag_step") == 3 and "diagnosis" in st.session_state:
-            render_round_summary_card("diagnosis")
-            render_followup_summary_card("diagnosis")
+            render_workflow_dashboard("diagnosis")
             diag = st.session_state["diagnosis"]
             caddie = st.session_state.get("caddie_name", persona_display_name)
             roi_data = st.session_state.get("roi_data", {})
@@ -8104,8 +8202,8 @@ if show_step1:
             stage_summary = build_value_chain_roi_summary(roi_data, diag)
 
             st.markdown("### 🧾 Round Diagnosis")
-            st.caption(
-                "One five-stage view of your highest-ROI scoring opportunities. Numerical stroke estimates come from logged round data; strategy/mental attribution comes from your story and follow-up answers."
+            render_micro_note(
+                "Highest-ROI opportunities across the five-stage golf value chain."
             )
 
             # The on-screen narrative is the single source of truth for voice playback.
@@ -8148,35 +8246,42 @@ if show_step1:
                     return str(value) if value not in (None, "") else fallback
 
             def _render_priority_card(
-                rank, stage, title, persona_line, modeled_metric, priority_label,
+                rank, stage, title, persona_line, priority_label,
                 confidence_label, evidence, why_it_matters, practice_focus,
-                direct_metric="—", peer_metric="—", subtype=None, accent="warning"
+                direct_metric="—", peer_metric="—", subtype=None
             ):
                 medal = "🥇" if rank == 1 else "🥈"
+                accent = "#ef4444" if rank == 1 else "#f59e0b"
                 with st.container(border=True):
-                    st.markdown(f"#### {medal} #{rank} Priority: {stage}")
-                    callout = f"**{title}**"
-                    if persona_line and persona_line != title:
-                        callout += f" — {persona_line}"
-                    if accent == "warning":
-                        st.warning(callout)
-                    else:
-                        st.info(callout)
-
+                    st.markdown(
+                        f"<div style='font-size:.66rem;font-weight:850;letter-spacing:.07em;"
+                        f"text-transform:uppercase;color:{accent};margin-bottom:3px;'>"
+                        f"{medal} #{rank} PRACTICE PRIORITY</div>"
+                        f"<div style='font-size:1rem;font-weight:750;line-height:1.22;'>"
+                        f"{_safe_html(stage)}</div>"
+                        f"<div style='font-size:.82rem;color:#aab2bf;line-height:1.25;margin-top:4px;'>"
+                        f"{_safe_html(title)}</div>",
+                        unsafe_allow_html=True,
+                    )
                     render_priority_chips(
                         direct_metric,
                         peer_metric,
                         priority_label or "N/A",
                         confidence_label,
                     )
-
+                    facts = [("Practice", practice_focus or "N/A")]
                     if subtype and subtype != "null":
-                        st.caption(f"🗺️ **Course-management subtype:** {subtype}")
-                    if evidence:
-                        st.markdown(f"**Evidence:** {evidence}")
-                    if why_it_matters:
-                        st.markdown(f"**Why it matters:** {why_it_matters}")
-                    st.markdown(f"**Highest-priority practice focus:** `{practice_focus or 'N/A'}`")
+                        facts.append(("Strategy", subtype))
+                    render_inline_facts(facts)
+
+                    if any([persona_line and persona_line != title, evidence, why_it_matters]):
+                        with st.expander("Why this ranks here", expanded=False):
+                            if persona_line and persona_line != title:
+                                st.write(persona_line)
+                            if evidence:
+                                st.markdown(f"**Evidence:** {evidence}")
+                            if why_it_matters:
+                                st.markdown(f"**Why it matters:** {why_it_matters}")
 
             priority_label = diag.get("roi_priority") or roi_data.get("tier", "N/A").split(" —")[0]
             confidence_label = _confidence_label(diag.get("confidence_score"))
@@ -8186,81 +8291,88 @@ if show_step1:
             primary_direct = _format_stage_number(stage_summary.get("direct_by_stage", {}).get(primary_stage))
             primary_peer = _format_stage_number(stage_summary.get("peer_by_stage", {}).get(primary_stage))
 
-            _render_priority_card(
-                rank=1,
-                stage=primary_stage,
-                title=primary_title,
-                persona_line=primary_persona,
-                modeled_metric=primary_metric,
-                priority_label=priority_label,
-                confidence_label=confidence_label,
-                evidence=roi_evidence,
-                why_it_matters=primary_causes,
-                practice_focus=diag.get("recommended_primary_drill"),
-                direct_metric=primary_direct,
-                peer_metric=primary_peer,
-                subtype=subtype if primary_stage == "Course Management / Strategic Decision-Making" else None,
-                accent="warning",
-            )
-
             secondary = diag.get("secondary_miss")
+            secondary_payload = None
             if secondary:
                 secondary_stage = diag.get("secondary_miss_stage", "Secondary opportunity")
-                secondary_value = stage_summary["values"].get(secondary_stage, 0.0)
-                secondary_has_numeric = stage_summary["has_numeric"].get(secondary_stage, False)
-                secondary_metric = _format_stroke_estimate(secondary_value) if secondary_has_numeric and secondary_value > 0 else (
-                    "0" if secondary_has_numeric else "Qualitative"
-                )
                 secondary_persona = diag.get("secondary_miss_persona") or secondary
                 secondary_priority = diag.get("secondary_roi_priority") or "SECONDARY"
                 secondary_confidence = _confidence_label(
                     diag.get("secondary_confidence_score"), fallback=confidence_label
                 )
-                secondary_evidence = diag.get("secondary_roi_evidence")
-                if not secondary_evidence:
-                    secondary_evidence = diag.get("secondary_cause_breakdown")
+                secondary_evidence = diag.get("secondary_roi_evidence") or diag.get("secondary_cause_breakdown")
                 secondary_direct = _format_stage_number(stage_summary.get("direct_by_stage", {}).get(secondary_stage))
                 secondary_peer = _format_stage_number(stage_summary.get("peer_by_stage", {}).get(secondary_stage))
+                secondary_payload = {
+                    "stage": secondary_stage,
+                    "title": secondary,
+                    "persona": secondary_persona,
+                    "priority": secondary_priority,
+                    "confidence": secondary_confidence,
+                    "evidence": secondary_evidence,
+                    "direct": secondary_direct,
+                    "peer": secondary_peer,
+                }
 
+            priority_cols = st.columns(2 if secondary_payload else 1)
+            with priority_cols[0]:
                 _render_priority_card(
-                    rank=2,
-                    stage=secondary_stage,
-                    title=secondary,
-                    persona_line=secondary_persona,
-                    modeled_metric=secondary_metric,
-                    priority_label=secondary_priority,
-                    confidence_label=secondary_confidence,
-                    evidence=secondary_evidence,
-                    why_it_matters=diag.get("secondary_cause_breakdown"),
-                    practice_focus=diag.get("recommended_secondary_drill"),
-                    direct_metric=secondary_direct,
-                    peer_metric=secondary_peer,
-                    subtype=subtype if secondary_stage == "Course Management / Strategic Decision-Making" else None,
-                    accent="info",
+                    rank=1,
+                    stage=primary_stage,
+                    title=primary_title,
+                    persona_line=primary_persona,
+                    priority_label=priority_label,
+                    confidence_label=confidence_label,
+                    evidence=roi_evidence,
+                    why_it_matters=primary_causes,
+                    practice_focus=diag.get("recommended_primary_drill"),
+                    direct_metric=primary_direct,
+                    peer_metric=primary_peer,
+                    subtype=subtype if primary_stage == "Course Management / Strategic Decision-Making" else None,
                 )
 
-            render_value_chain_opportunity_view(stage_summary, diag)
+            if secondary_payload:
+                with priority_cols[1]:
+                    _render_priority_card(
+                        rank=2,
+                        stage=secondary_payload["stage"],
+                        title=secondary_payload["title"],
+                        persona_line=secondary_payload["persona"],
+                        priority_label=secondary_payload["priority"],
+                        confidence_label=secondary_payload["confidence"],
+                        evidence=secondary_payload["evidence"],
+                        why_it_matters=diag.get("secondary_cause_breakdown"),
+                        practice_focus=diag.get("recommended_secondary_drill"),
+                        direct_metric=secondary_payload["direct"],
+                        peer_metric=secondary_payload["peer"],
+                        subtype=subtype if secondary_payload["stage"] == "Course Management / Strategic Decision-Making" else None,
+                    )
 
-            render_round_performance_snapshot()
+            diag_tab1, diag_tab2, diag_tab3 = st.tabs(
+                ["🎯 Priority Map", "📊 Round Snapshot", "🔍 Evidence & Detail"]
+            )
+            with diag_tab1:
+                render_value_chain_opportunity_view(stage_summary, diag)
 
-            if not roi_data.get("has_handicap_benchmark", False):
-                st.caption(
-                    "ℹ️ Handicap was not provided, so handicap-relative estimates are intentionally omitted where a peer benchmark is required. Direct scoring events still influence priority."
-                )
-            if stage_summary.get("unattributed_penalty", 0) > 0:
-                st.caption(
-                    f"ℹ️ {stage_summary['unattributed_penalty']:g} penalty/trouble stroke(s) remain unattributed because the story did not establish whether the cause was strategy or execution."
-                )
-            if stage_summary.get("unattributed_gir", 0) > 0:
-                st.caption(
-                    "ℹ️ The GIR deficit is visible, but its upstream cause is mixed/unclear, so Birdie Buddy does not force that entire gap into Approach."
-                )
+            with diag_tab2:
+                render_round_performance_snapshot()
 
-            with st.expander("View supporting numerical detail", expanded=False):
-                st.markdown("##### Direct Cost vs Peer Gap")
+            with diag_tab3:
+                if not roi_data.get("has_handicap_benchmark", False):
+                    render_micro_note(
+                        "No handicap benchmark supplied; peer-gap estimates are omitted where required."
+                    )
+                if stage_summary.get("unattributed_penalty", 0) > 0:
+                    render_micro_note(
+                        f"{stage_summary['unattributed_penalty']:g} penalty/trouble stroke(s) remain unattributed "
+                        "because strategy vs execution was not established."
+                    )
+                if stage_summary.get("unattributed_gir", 0) > 0:
+                    render_micro_note(
+                        "Some GIR loss remains mixed/unclear, so it is not forced entirely into Approach."
+                    )
+
                 render_scoring_evidence_bars(roi_data)
-
-                st.markdown("##### Value Chain Numerical Table")
                 snapshot_df = pd.DataFrame(stage_summary["rows"])
                 st.dataframe(
                     snapshot_df,
@@ -8273,27 +8385,23 @@ if show_step1:
                     },
                 )
 
-                if roi_data.get("reasons"):
-                    st.markdown("##### Numerical Model Reasoning")
-                    for reason in roi_data["reasons"]:
-                        st.write(f"• {reason}")
-
-                if vc:
-                    st.markdown("##### Full Five-Stage Analysis")
-                    leak_stage = vc.get("primary_leak_stage", "")
-                    for stage_name, key, icon, _ in VALUE_CHAIN_STAGES:
-                        marker = " — **#1 priority**" if stage_name == leak_stage else ""
-                        st.markdown(f"**{icon} {stage_name}{marker}**")
-                        st.write(vc.get(key, "N/A"))
-                    if vc.get("leak_rationale"):
-                        st.markdown(f"**Why this stage ranks first:** {vc.get('leak_rationale')}")
+                if roi_data.get("reasons") or vc:
+                    with st.expander("Model reasoning", expanded=False):
+                        if roi_data.get("reasons"):
+                            for reason in roi_data["reasons"]:
+                                st.write(f"• {reason}")
+                        if vc:
+                            leak_stage = vc.get("primary_leak_stage", "")
+                            for stage_name, key, icon, _ in VALUE_CHAIN_STAGES:
+                                marker = " — #1 priority" if stage_name == leak_stage else ""
+                                st.markdown(f"**{icon} {stage_name}{marker}**")
+                                st.write(vc.get(key, "N/A"))
 
             blind_spot = diag.get("diagnostic_blind_spot")
             if blind_spot:
-                st.warning(
-                    f"🔍 **Hidden scoring opportunity:** {blind_spot}\n\n"
-                    "This was not prominent in your round story, but the logged evidence made it relevant to the practice plan."
-                )
+                with st.expander("🔍 Hidden scoring opportunity", expanded=False):
+                    st.write(blind_spot)
+                    render_micro_note("Surfaced from logged evidence even though it was not prominent in the round story.")
 
             st.markdown("---")
             if st.session_state.get("workflow_review_mode") == "diagnosis":
@@ -8335,8 +8443,7 @@ if (
     and not st.session_state.get("show_execution_plan", False)
     and not st.session_state.get("workflow_review_mode")
 ):
-    render_round_summary_card("practice_setup")
-    render_diagnosis_summary_card("practice_setup")
+    render_workflow_dashboard("practice_setup")
 
     with st.container(border=True):
         st.subheader("4. Build Today’s Practice Plan")
@@ -8353,32 +8460,6 @@ if (
         existing_balls = int(existing_setup.get("total_balls", 100))
         existing_balls = max(10, min(300, existing_balls))
 
-        st.markdown("#### Available Practice Assets")
-        render_micro_note("Allocate two scarce assets: time + practice balls.")
-
-        col_input_a, col_input_b = st.columns(2)
-        with col_input_a:
-            total_balls = st.number_input(
-                "Approx. Practice Balls Available:",
-                min_value=10,
-                max_value=300,
-                value=existing_balls,
-                step=10,
-                help=(
-                    "Use an approximate ball/repetition budget. Birdie Buddy will allocate "
-                    "that budget across controlled work and transfer/game work."
-                ),
-            )
-        with col_input_b:
-            total_time = st.number_input(
-                "Total Time Available (mins):",
-                min_value=15,
-                max_value=180,
-                value=int(existing_setup.get("total_time", 60)),
-                step=15,
-                help="Time is allocated alongside the ball budget rather than treated as a separate afterthought.",
-            )
-
         primary_category = _drill_category(preferred_primary or "")
         default_area = {
             "full_swing": "Driving Range / Full-Swing Bay",
@@ -8389,18 +8470,62 @@ if (
             "course_management": "Driving Range / Full-Swing Bay",
         }.get(primary_category, "Driving Range / Full-Swing Bay")
 
-        practice_areas = st.multiselect(
-            "Where can you practice today?",
-            PRACTICE_AREA_OPTIONS,
-            default=existing_setup.get("practice_areas") or [default_area],
-            help="Select every area you can actually use during this session.",
-        )
-        equipment = st.multiselect(
-            "Training aids / equipment available",
-            EQUIPMENT_OPTIONS,
-            default=existing_setup.get("equipment") or ["Tees"],
-            help="Golf clubs and balls are assumed. Select only the extra aids you actually have.",
-        )
+        setup_left, setup_right = st.columns(2)
+        with setup_left:
+            st.markdown("#### Assets")
+            asset_a, asset_b = st.columns(2)
+            with asset_a:
+                total_balls = st.number_input(
+                    "Approx. Balls",
+                    min_value=10,
+                    max_value=300,
+                    value=existing_balls,
+                    step=10,
+                    help="Approximate practice-ball/repetition budget.",
+                )
+            with asset_b:
+                total_time = st.number_input(
+                    "Minutes",
+                    min_value=15,
+                    max_value=180,
+                    value=int(existing_setup.get("total_time", 60)),
+                    step=15,
+                    help="Total practice time available.",
+                )
+
+            mode_map = {
+                "AI Balanced": "Combination / Hybrid (AI Balanced)",
+                "Controlled Only": "Pure Grind Mode (100% Controlled Skill Work)",
+                "Transfer Only": "Pure Game Mode (100% Target / Transfer Work)",
+            }
+            reverse_mode = {v: k for k, v in mode_map.items()}
+            current_mode_short = reverse_mode.get(
+                existing_setup.get("practice_mode"),
+                "AI Balanced",
+            )
+            mode_short = st.radio(
+                "Practice Mode",
+                options=list(mode_map.keys()),
+                index=list(mode_map.keys()).index(current_mode_short),
+                horizontal=True,
+                help="AI Balanced adapts the controlled/transfer split from diagnosis and practice history.",
+            )
+            practice_mode = mode_map[mode_short]
+
+        with setup_right:
+            st.markdown("#### Constraints")
+            practice_areas = st.multiselect(
+                "Practice area",
+                PRACTICE_AREA_OPTIONS,
+                default=existing_setup.get("practice_areas") or [default_area],
+                help="Select every area available today.",
+            )
+            equipment = st.multiselect(
+                "Available aids",
+                EQUIPMENT_OPTIONS,
+                default=existing_setup.get("equipment") or ["Tees"],
+                help="Clubs and balls are assumed; select only extra aids.",
+            )
 
         resolved_primary, primary_sub = _resolve_drill_for_environment(
             preferred_primary, practice_areas, equipment
@@ -8426,16 +8551,6 @@ if (
             render_micro_note(
                 "Secondary drill unavailable in this setup; the plan stays focused on the primary opportunity."
             )
-
-        practice_mode = st.radio(
-            "Select Practice Mode:",
-            options=[
-                "Combination / Hybrid (AI Balanced)",
-                "Pure Grind Mode (100% Controlled Skill Work)",
-                "Pure Game Mode (100% Target / Transfer Work)",
-            ],
-            horizontal=False,
-        )
 
         allocation_rationale = ""
         if practice_mode == "Pure Grind Mode (100% Controlled Skill Work)":
@@ -8464,10 +8579,7 @@ if (
         grind_time = int(round(total_time * grind_pct))
         game_time = total_time - grind_time
         st.markdown("#### Practice Asset Allocation")
-        st.caption(
-            "Diagnose → prioritize → allocate → measure → reallocate. "
-            "Ball and time budgets are directed toward the highest expected scoring ROI."
-        )
+        render_micro_note("Diagnose → prioritize → allocate → measure → reallocate")
         render_practice_allocation_bar(
             grind_pct,
             total_balls=total_balls,
@@ -8515,8 +8627,7 @@ if (
     and st.session_state.get("show_execution_plan", False)
     and not st.session_state.get("workflow_review_mode")
 ):
-    render_diagnosis_summary_card("practice_plan")
-    render_practice_setup_summary_card("practice_plan")
+    render_workflow_dashboard("practice_plan")
 
     with st.container(border=True):
         st.subheader("5. Adaptive Practice Execution & Setup Guide")
@@ -8703,73 +8814,77 @@ if (
                     )
 
                 with drill_panel:
-                    st.markdown(f"🔥 **{label}**")
                     drill_unit = _unit_for_drill(d_name, diag.get("primary_miss_stage", ""))
                     execution_note = (
-                        f" · activity: {drill_unit}"
-                        if drill_unit not in {"balls", "shots"}
-                        else ""
+                        drill_unit if drill_unit not in {"balls", "shots"} else "ball reps"
                     )
-                    st.caption(
-                        f"⚡ `≈{balls_per_drill} balls` · `≈{time_per_drill} min`"
-                        f"{execution_note}"
-                    )
-
-                    render_drill_visual_aid(
-                        d_name,
-                        persona_key=st.session_state.get(
-                            "caddie_persona_key", selected_persona_key
-                        ),
-                        show_large=True,
-                    )
-
                     kpi = get_drill_kpi(d_name)
                     drill_purpose = DRILL_PURPOSES.get(
                         d_name,
                         "Build the movement pattern targeted by this drill and make it repeatable under a normal pre-shot routine.",
                     )
-                    render_drill_voice_briefing(
-                        drill_name=d_name,
-                        persona_key=st.session_state.get("caddie_persona_key", selected_persona_key),
-                        diagnosis=diag,
-                        purpose=drill_purpose,
-                        setup_text=schematic["vivid_description"],
-                        kpi=kpi,
-                        balls_per_drill=balls_per_drill,
-                        time_per_drill=time_per_drill,
-                        auto_generate_audio=(idx == 0),
-                    )
+                    equip_items = [
+                        x.strip()
+                        for x in re.split(r",\s*(?![^()]*\))", schematic["equipment"])
+                        if x.strip()
+                    ]
 
-                    st.markdown("**🎯 What This Drill Trains**")
-                    render_indented_html(drill_purpose)
-
-                    st.markdown("**📏 Objective Pre/Post Test**")
-                    st.markdown(f"**{kpi['name']}**")
-                    render_scannable_rows([
-                        ("Test", kpi["test"]),
-                        ("Success", kpi["success"]),
-                        ("Pass target", f"{kpi['target']}/10"),
-                        ("When to test", "Run the same 10-rep test before the drill and again after practice."),
-                    ], margin_left=18, compact=True)
-
-                    st.markdown("**🛠️ Equipment Needed**")
-                    equip_items = re.split(r",\s*(?![^()]*\))", schematic["equipment"])
-                    render_indented_ul(equip_items)
-
-                    st.markdown("**📖 Step-by-Step Coaching Guide**")
-                    render_instruction_steps(schematic["vivid_description"], d_name)
-
-                    st.markdown("**📈 How to Progress the Drill**")
-                    render_progression_steps(
-                        CATEGORY_PROGRESSION.get(
-                            _drill_category(d_name), CATEGORY_PROGRESSION["general"]
+                    top_left, top_right = st.columns([1.15, .85])
+                    with top_left:
+                        render_drill_visual_aid(
+                            d_name,
+                            persona_key=st.session_state.get(
+                                "caddie_persona_key", selected_persona_key
+                            ),
+                            show_large=True,
                         )
+
+                    with top_right:
+                        render_inline_facts([
+                            ("Allocation", f"≈{balls_per_drill} balls · ≈{time_per_drill} min"),
+                            ("Activity", execution_note),
+                            ("Pass", f"{kpi['target']}/10"),
+                        ])
+                        st.markdown(f"**🔥 {label}**")
+                        render_micro_note(drill_purpose, icon="🎯")
+                        render_drill_voice_briefing(
+                            drill_name=d_name,
+                            persona_key=st.session_state.get("caddie_persona_key", selected_persona_key),
+                            diagnosis=diag,
+                            purpose=drill_purpose,
+                            setup_text=schematic["vivid_description"],
+                            kpi=kpi,
+                            balls_per_drill=balls_per_drill,
+                            time_per_drill=time_per_drill,
+                            auto_generate_audio=(idx == 0),
+                        )
+
+                    drill_tab1, drill_tab2, drill_tab3 = st.tabs(
+                        ["▶️ How to Do It", "📏 Test & Equipment", "📈 Progress & Tips"]
                     )
+                    with drill_tab1:
+                        render_instruction_steps(schematic["vivid_description"], d_name)
 
-                    st.markdown("**🧠 Mental Analogy**")
-                    render_indented_html(schematic["analogy"])
+                    with drill_tab2:
+                        render_scannable_rows([
+                            ("Test", kpi["test"]),
+                            ("Success", kpi["success"]),
+                            ("Pass", f"{kpi['target']}/10"),
+                            ("When", "Run the same 10-rep test before and after practice."),
+                        ], margin_left=0, compact=True)
+                        if equip_items:
+                            st.caption("Equipment: " + " · ".join(equip_items))
 
-                    st.info(schematic["pro_tip"])
+                    with drill_tab3:
+                        render_progression_steps(
+                            CATEGORY_PROGRESSION.get(
+                                _drill_category(d_name), CATEGORY_PROGRESSION["general"]
+                            )
+                        )
+                        render_inline_facts([
+                            ("Mental cue", schematic["analogy"]),
+                            ("Pro tip", schematic["pro_tip"]),
+                        ])
 
             if gm_balls > 0 and gm_time > 0 and not is_pure_game:
                 st.markdown("---")
@@ -8877,26 +8992,34 @@ if (
                 diag,
                 st.session_state.get("round_holes_played", 18),
             )
-            if validation_targets:
+            utility_left, utility_right = st.columns(2)
+            with utility_left:
                 with st.container(border=True):
-                    st.markdown("### 🎯 Next-Round Validation")
-                    st.caption(
-                        "Use these on-course checks to see whether today's practice transfers to scoring."
-                    )
-                    for target in validation_targets:
-                        st.write(f"• {target}")
+                    st.markdown("#### 🎯 Next-Round Validation")
+                    if validation_targets:
+                        for idx, target in enumerate(validation_targets, start=1):
+                            st.markdown(
+                                f"<div style='font-size:.78rem;line-height:1.35;margin:4px 0;'>"
+                                f"<strong>{idx}.</strong> {_safe_html(target)}</div>",
+                                unsafe_allow_html=True,
+                            )
+                    else:
+                        render_micro_note("No additional validation target generated for this plan.")
 
-            with st.container(border=True):
-                st.markdown("### 📥 Take Your Plan to Practice")
-                export_card_text = build_export_card(
-                    diag, res, active_drills, DRILL_SCHEMATICS, caddie
-                )
-                st.download_button(
-                    label="Download Printable Practice Card (.txt)",
-                    data=export_card_text,
-                    file_name="birdie_buddy_practice_plan.txt",
-                    mime="text/plain",
-                )
+            with utility_right:
+                with st.container(border=True):
+                    st.markdown("#### 📥 Take It to Practice")
+                    export_card_text = build_export_card(
+                        diag, res, active_drills, DRILL_SCHEMATICS, caddie
+                    )
+                    render_micro_note("Download the compact offline practice card.")
+                    st.download_button(
+                        label="Download Practice Card (.txt)",
+                        data=export_card_text,
+                        file_name="birdie_buddy_practice_plan.txt",
+                        mime="text/plain",
+                        use_container_width=True,
+                    )
 
             # ---------------------------------------------------------
             # END-OF-PRACTICE FEEDBACK — close the loop without requiring
@@ -9047,44 +9170,41 @@ if (
                                 "Transfer Playable Outcomes (10)",
                             ]
                         )
-                        transfer_test_done = st.checkbox(
-                            "I completed the 10-scenario transfer test",
-                            value=existing_transfer,
-                            help=(
-                                "Decision quality, routine/commitment, and shot result are logged separately. "
-                                "A poor result does not erase a sound decision."
-                            ),
-                        )
-                        if transfer_test_done:
-                            st.markdown("**Transfer-phase scorecard**")
-                            tr1, tr2, tr3 = st.columns(3)
-                            with tr1:
-                                transfer_decision_score = st.number_input(
-                                    "Good decisions /10",
-                                    min_value=0,
-                                    max_value=10,
-                                    value=_history_int("Transfer Decision Score (10)", 0),
-                                    step=1,
-                                )
-                            with tr2:
-                                transfer_routine_score = st.number_input(
-                                    "Routine + commitment /10",
-                                    min_value=0,
-                                    max_value=10,
-                                    value=_history_int("Transfer Routine Score (10)", 0),
-                                    step=1,
-                                )
-                            with tr3:
-                                transfer_playable_outcomes = st.number_input(
-                                    "Playable outcomes /10",
-                                    min_value=0,
-                                    max_value=10,
-                                    value=_history_int("Transfer Playable Outcomes (10)", 0),
-                                    step=1,
-                                )
-                            render_micro_note(
-                                "Decision = strategy · Routine = process · Playable outcome = execution/result"
+                        with st.expander(
+                            "Optional transfer-test results",
+                            expanded=existing_transfer,
+                        ):
+                            transfer_test_done = st.checkbox(
+                                "I completed the 10-scenario transfer test",
+                                value=existing_transfer,
+                                help="Decision, routine, and result stay separate.",
                             )
+                            if transfer_test_done:
+                                tr1, tr2, tr3 = st.columns(3)
+                                with tr1:
+                                    transfer_decision_score = st.number_input(
+                                        "Decisions /10",
+                                        min_value=0, max_value=10,
+                                        value=_history_int("Transfer Decision Score (10)", 0),
+                                        step=1,
+                                    )
+                                with tr2:
+                                    transfer_routine_score = st.number_input(
+                                        "Routine /10",
+                                        min_value=0, max_value=10,
+                                        value=_history_int("Transfer Routine Score (10)", 0),
+                                        step=1,
+                                    )
+                                with tr3:
+                                    transfer_playable_outcomes = st.number_input(
+                                        "Playable /10",
+                                        min_value=0, max_value=10,
+                                        value=_history_int("Transfer Playable Outcomes (10)", 0),
+                                        step=1,
+                                    )
+                                render_micro_note(
+                                    "Decision = strategy · Routine = process · Playable = execution/result"
+                                )
 
                     existing_saved = bool(
                         str(_current_log.get("Drill Completed?", "")).strip()
@@ -9151,12 +9271,13 @@ if (
                             st.success("Practice logged")
                             render_inline_facts(saved_rows)
                             if str(saved_completion).strip() != "Not yet":
-                                render_practice_voice_debrief(
-                                    st.session_state.get("caddie_persona_key", selected_persona_key),
-                                    diag,
-                                    _current_log,
-                                    primary_kpi,
-                                )
+                                with st.expander("🎧 Caddie practice debrief", expanded=False):
+                                    render_practice_voice_debrief(
+                                        st.session_state.get("caddie_persona_key", selected_persona_key),
+                                        diag,
+                                        _current_log,
+                                        primary_kpi,
+                                    )
                         else:
                             st.info(f"Practice status logged: **{saved_completion}**")
                 else:
@@ -9186,4 +9307,5 @@ if (
     and not st.session_state.get("workflow_review_mode")
 ):
     _progress_df = load_history_df()
-    render_progress_trends(_progress_df)
+    with st.expander("📈 Progress & Trends", expanded=False):
+        render_progress_trends(_progress_df)
