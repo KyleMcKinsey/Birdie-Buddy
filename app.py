@@ -3590,6 +3590,112 @@ def _apply_scorecard_course_metadata(extraction):
     return populated
 
 
+
+def _sanitize_scorecard_extraction(data):
+    """Normalize scorecard extraction and prevent subtotal/total double counting.
+
+    Golf-app scorecards commonly place summary columns among the hole columns,
+    for example:
+        1..9 | OUT | 10..18 | TOT
+
+    OUT/IN/TOT are summaries, never holes. For full-round aggregate values we
+    prefer an explicitly read far-right round total. When that is unavailable,
+    a complete set of genuine hole-level values may be summed conservatively.
+    """
+    if not isinstance(data, dict):
+        return data
+
+    # Keep only genuine numbered holes. Any OUT / IN / TOT summary row that the
+    # model accidentally emitted as a hole is discarded here.
+    raw_holes = data.get("holes") or []
+    clean_holes = []
+    seen_holes = set()
+    for item in raw_holes:
+        if not isinstance(item, dict):
+            continue
+        hole_no = _as_int_or_none(item.get("hole"))
+        if hole_no is None or not (1 <= hole_no <= 36) or hole_no in seen_holes:
+            continue
+        clean_item = dict(item)
+        clean_item["hole"] = hole_no
+        clean_holes.append(clean_item)
+        seen_holes.add(hole_no)
+
+    clean_holes.sort(key=lambda h: h["hole"])
+    data["holes"] = clean_holes
+
+    round_totals = data.get("round_totals")
+    if not isinstance(round_totals, dict):
+        round_totals = {}
+
+    derived = list(data.get("derived_fields") or [])
+
+    # Prefer explicit far-right full-round totals when Gemini can identify them.
+    # Do NOT combine these with OUT/IN subtotals.
+    total_map = {
+        "round_score": "round_score",
+        "fairways_hit": "fairways_hit",
+        "gir": "gir",
+        "putts": "putts",
+        "penalty_strokes": "penalty_strokes",
+    }
+    for field, total_key in total_map.items():
+        visible_total = _as_int_or_none(round_totals.get(total_key))
+        if visible_total is not None:
+            old_value = _as_int_or_none(data.get(field))
+            data[field] = visible_total
+            if old_value is not None and old_value != visible_total:
+                note = (
+                    f"{field} corrected to visible full-round TOT {visible_total}; "
+                    f"ignored subtotal column(s)"
+                )
+                if note not in derived:
+                    derived.append(note)
+
+    # If there is no explicit penalty total but every played hole has a readable
+    # penalty value, use the per-hole sum. This catches cases where a model
+    # accidentally adds a front-nine subtotal to the far-right total.
+    played = _as_int_or_none(data.get("holes_played"))
+    if played is None and clean_holes:
+        played = len(clean_holes)
+
+    additive_hole_fields = {
+        "round_score": "score",
+        "putts": "putts",
+        "penalty_strokes": "penalty_strokes",
+    }
+    for aggregate_field, hole_field in additive_hole_fields.items():
+        if _as_int_or_none(round_totals.get(aggregate_field)) is not None:
+            continue
+        if not played or len(clean_holes) < played:
+            continue
+
+        played_holes = [h for h in clean_holes if h["hole"] <= played][:played]
+        values = [_as_int_or_none(h.get(hole_field)) for h in played_holes]
+        if len(values) == played and all(v is not None for v in values):
+            hole_sum = int(sum(values))
+            current = _as_int_or_none(data.get(aggregate_field))
+
+            # A complete hole-by-hole sum is safer than an inconsistent aggregate.
+            if current is None or current != hole_sum:
+                data[aggregate_field] = hole_sum
+                note = (
+                    f"{aggregate_field} = {hole_sum}, summed from {played} genuine "
+                    f"hole columns; subtotal/total columns excluded"
+                )
+                if note not in derived:
+                    derived.append(note)
+
+    # Sanity rule specific to additive penalty data: if a visible full-round
+    # total exists, it is authoritative even when OUT/IN subtotals are also shown.
+    penalty_total = _as_int_or_none(round_totals.get("penalty_strokes"))
+    if penalty_total is not None:
+        data["penalty_strokes"] = penalty_total
+
+    data["derived_fields"] = derived
+    return data
+
+
 def _extract_scorecard_with_gemini(uploaded_file):
     """Read a paper/app scorecard image with Gemini and return grounded JSON.
 
@@ -3616,6 +3722,16 @@ def _extract_scorecard_with_gemini(uploaded_file):
       GIR misses short/long/left/right when the app visibly provides those markers.
     - For screenshots such as 18Birdies, use labels/icons actually present rather
       than assuming the app's layout.
+    - IMPORTANT TABLE RULE: scorecard columns labeled OUT, IN, TOTAL, TOT, FRONT,
+      BACK, or similar are SUMMARY columns, NOT golf holes. Never include them in
+      the `holes` array and never add them to the numbered-hole values.
+    - In layouts like `1..9 | OUT | 10..18 | TOT`, OUT is the front-nine subtotal
+      and the far-right TOT is the FULL-ROUND total. For an aggregate stat such as
+      score, putts, GIR, fairways, or penalties, use the far-right full-round TOT
+      when it is clearly labeled. NEVER calculate `OUT + TOT`.
+    - If both a subtotal and a full-round total are visible, preserve the full-round
+      total in `round_totals`; the subtotal may be mentioned in `other_visible_stats`
+      but must not be added to the total.
     - Capture hole-level evidence when readable because it can expose patterns that
       aggregate totals hide.
     - Extract course name, tee name/color, par, course rating, and slope when those
@@ -3656,6 +3772,13 @@ def _extract_scorecard_with_gemini(uploaded_file):
       "failed_up_downs": null,
       "scrambling_opportunities": null,
       "handicap": null,
+      "round_totals": {
+        "round_score": null,
+        "fairways_hit": null,
+        "gir": null,
+        "putts": null,
+        "penalty_strokes": null
+      },
       "holes": [
         {
           "hole": 1,
@@ -3694,7 +3817,7 @@ def _extract_scorecard_with_gemini(uploaded_file):
                 clean = response.text.replace("```json", "").replace("```", "").strip()
                 data = json.loads(clean)
                 if isinstance(data, dict):
-                    return data
+                    return _sanitize_scorecard_extraction(data)
         except Exception as exc:
             last_error = exc
             continue
@@ -6079,6 +6202,19 @@ if show_step1:
                     if note:
                         st.caption(str(note))
 
+                    _subtotal_corrections = [
+                        str(item) for item in (extraction.get("derived_fields") or [])
+                        if (
+                            "subtotal" in str(item).lower()
+                            or "genuine hole columns" in str(item).lower()
+                        )
+                    ]
+                    if _subtotal_corrections:
+                        st.info(
+                            "Scorecard totals were validated so OUT/IN/subtotal columns "
+                            "are not double-counted."
+                        )
+
                     unclear = extraction.get("unclear_fields") or []
                     if unclear:
                         st.warning("Some items were unclear: " + "; ".join(str(x) for x in unclear[:6]))
@@ -6147,6 +6283,10 @@ if show_step1:
                             "Penalty Strokes", min_value=0, max_value=20,
                             value=_as_int_or_none(extraction.get("penalty_strokes")), step=1,
                             placeholder="Not shown", key="upload_penalty_review",
+                            help=(
+                                "Full-round penalty total only. OUT/IN/front-nine/back-nine "
+                                "subtotal columns are never added to the far-right TOTAL/TOT."
+                            ),
                         )
                     with col_n6:
                         extracted_hcp = _as_float_or_none(extraction.get("handicap"))
