@@ -428,6 +428,354 @@ def _drill_category(drill_name: str) -> str:
     return "general"
 
 
+
+# --- DRILL VISUAL AIDS -------------------------------------------------------
+# Birdie Buddy renders these diagrams locally as SVG. This keeps the app as one
+# .py file and avoids image-generation latency, cost, and quota usage.
+
+def _drill_visual_spec(drill_name):
+    """Choose a reusable visual family for the selected drill."""
+    name = str(drill_name or "")
+    low = name.lower()
+    category = _drill_category(name)
+
+    if name == "Target Course Pressure Simulation":
+        return "pressure", "One-Ball Pressure Transfer"
+
+    if category == "course_management":
+        if "dispersion" in low:
+            return "dispersion", "Dispersion Cone & Safe Target"
+        return "decision", "Decision Route & Risk"
+
+    if category == "mental":
+        return "mental", "Pre-Shot / Reset Sequence"
+
+    if category == "bunker":
+        return "bunker", "Sand Entry & Splash Zone"
+
+    if category == "putting":
+        if any(k in low for k in ("ladder", "fringe-to-fringe", "eyes-closed distance")):
+            return "putt_distance", "Distance-Control Ladder"
+        if any(k in low for k in ("gate", "yardstick", "chalk line", "parallel rod", "mirror")):
+            return "putt_line", "Start-Line / Face-Control Setup"
+        return "putt_contact", "Centered Contact & Stroke Control"
+
+    if category == "short_game":
+        if "clock system" in low:
+            return "wedge_clock", "Wedge Clock Calibration"
+        if any(k in low for k in ("low-point", "behind ball", "lead-point", "brush turf", "weight anchor")):
+            return "low_point", "Low-Point & Strike Location"
+        return "short_game", "Strike → Landing Zone → Rollout"
+
+    if "towel under armpits" in low:
+        return "connection", "Arm / Torso Connection"
+    if "coin strike" in low or "low-point" in low:
+        return "low_point", "Ball-First Low Point"
+    if "feet-together" in low:
+        return "balance", "Centered Balance & Rotation"
+    if "wall-head" in low:
+        return "posture", "Posture Reference"
+    if "impact bag" in low:
+        return "impact", "Impact Position Rehearsal"
+    if any(k in low for k in ("pause", "pump", "split-hands")):
+        return "sequence", "Sequence & Transition"
+    return "alignment", "Alignment & Swing-Path Gate"
+
+
+def _dv_text(x, y, text, size=15, fill="#f8fafc", anchor="middle", weight=650):
+    return (
+        f'<text x="{x}" y="{y}" text-anchor="{anchor}" '
+        f'font-family="Arial,Helvetica,sans-serif" font-size="{size}" '
+        f'font-weight="{weight}" fill="{fill}">{html.escape(str(text))}</text>'
+    )
+
+
+def _dv_arrow(x1, y1, x2, y2, color="#f7c948", width=5, dashed=False):
+    import math
+    dash = ' stroke-dasharray="9 7"' if dashed else ""
+    a = math.atan2(y2-y1, x2-x1)
+    head, wing = 12, 6
+    bx, by = x2-head*math.cos(a), y2-head*math.sin(a)
+    lx, ly = bx+wing*math.sin(a), by-wing*math.cos(a)
+    rx, ry = bx-wing*math.sin(a), by+wing*math.cos(a)
+    return (
+        f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{color}" '
+        f'stroke-width="{width}" stroke-linecap="round"{dash}/>'
+        f'<polygon points="{x2},{y2} {lx:.1f},{ly:.1f} {rx:.1f},{ry:.1f}" fill="{color}"/>'
+    )
+
+
+def _dv_ball(x, y, r=9):
+    return (
+        f'<circle cx="{x}" cy="{y}" r="{r}" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>'
+        f'<circle cx="{x-2}" cy="{y-2}" r="1.1" fill="#94a3b8"/>'
+        f'<circle cx="{x+3}" cy="{y+2}" r="1.1" fill="#94a3b8"/>'
+    )
+
+
+def _dv_target(x, y):
+    return (
+        f'<line x1="{x}" y1="{y}" x2="{x}" y2="{y-58}" stroke="#f8fafc" stroke-width="4"/>'
+        f'<polygon points="{x},{y-58} {x+36},{y-47} {x},{y-36}" fill="#ef4444"/>'
+        f'<circle cx="{x}" cy="{y}" r="12" fill="none" stroke="#e2e8f0" stroke-width="3"/>'
+    )
+
+
+def _dv_golfer(x, y, scale=.8, club_angle=-40):
+    import math
+    shoulder = y - 38*scale
+    hip = y - 5*scale
+    foot = y + 35*scale
+    hx, hy = x + 18*scale, y - 16*scale
+    length = 64*scale
+    rad = math.radians(club_angle)
+    cx, cy = hx + length*math.cos(rad), hy + length*math.sin(rad)
+    sw = max(3, 6*scale)
+    return (
+        f'<circle cx="{x}" cy="{y-62*scale}" r="{11*scale}" fill="#e7b98f"/>'
+        f'<line x1="{x}" y1="{shoulder}" x2="{x}" y2="{hip}" stroke="#e2e8f0" stroke-width="{sw}" stroke-linecap="round"/>'
+        f'<line x1="{x-18*scale}" y1="{shoulder+4*scale}" x2="{hx}" y2="{hy}" stroke="#e2e8f0" stroke-width="{sw-1}" stroke-linecap="round"/>'
+        f'<line x1="{x+18*scale}" y1="{shoulder+4*scale}" x2="{hx}" y2="{hy}" stroke="#e2e8f0" stroke-width="{sw-1}" stroke-linecap="round"/>'
+        f'<line x1="{x}" y1="{hip}" x2="{x-16*scale}" y2="{foot}" stroke="#e2e8f0" stroke-width="{sw}" stroke-linecap="round"/>'
+        f'<line x1="{x}" y1="{hip}" x2="{x+18*scale}" y2="{foot}" stroke="#e2e8f0" stroke-width="{sw}" stroke-linecap="round"/>'
+        f'<line x1="{hx}" y1="{hy}" x2="{cx:.1f}" y2="{cy:.1f}" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>'
+    )
+
+
+def _build_drill_visual_svg(drill_name, width=760, height=310):
+    family, title = _drill_visual_spec(drill_name)
+    W, H = width, height
+    p = [
+        f'<svg viewBox="0 0 {W} {H}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{html.escape(title)}">',
+        f'<rect x="1" y="1" width="{W-2}" height="{H-2}" rx="20" fill="#0f172a" stroke="#334155" stroke-width="2"/>',
+        f'<rect x="18" y="58" width="{W-36}" height="{H-78}" rx="16" fill="#153b2c"/>',
+        _dv_text(28, 35, title, 18, anchor="start", weight=700),
+        _dv_text(W-28, 35, "VISUAL SETUP • NOT TO SCALE", 11, "#94a3b8", "end", 700),
+    ]
+
+    if family == "alignment":
+        p += [
+            '<line x1="115" y1="120" x2="645" y2="120" stroke="#60a5fa" stroke-width="5" stroke-linecap="round"/>',
+            '<line x1="115" y1="212" x2="645" y2="212" stroke="#60a5fa" stroke-width="5" stroke-linecap="round"/>',
+            _dv_ball(285, 164), _dv_golfer(265, 225, .72), _dv_target(645, 164),
+            _dv_arrow(305, 164, 605, 164),
+            _dv_text(135, 108, "TARGET LINE", 12, "#bfdbfe", "start"),
+            _dv_text(135, 235, "BODY LINE", 12, "#bfdbfe", "start"),
+        ]
+
+    elif family == "sequence":
+        p += [
+            _dv_golfer(165, 210, .78, -105), _dv_golfer(375, 210, .78, -40),
+            _dv_golfer(585, 210, .78, 10),
+            _dv_text(165, 105, "1 • LOAD", 14, "#bfdbfe"),
+            _dv_text(375, 105, "2 • PAUSE / PUMP", 14, "#fde68a"),
+            _dv_text(585, 105, "3 • ROTATE", 14, "#bbf7d0"),
+            _dv_arrow(240, 160, 300, 160, "#94a3b8", 4),
+            _dv_arrow(455, 160, 515, 160, "#94a3b8", 4),
+        ]
+
+    elif family == "connection":
+        p += [
+            _dv_golfer(370, 220, 1.0, -45),
+            '<rect x="320" y="145" width="20" height="35" rx="5" fill="#f97316"/>',
+            '<rect x="396" y="145" width="20" height="35" rx="5" fill="#f97316"/>',
+            _dv_text(370, 95, "KEEP CONNECTION CUE IN PLACE", 14, "#fed7aa"),
+            _dv_arrow(292, 164, 320, 164, "#f97316", 4),
+            _dv_arrow(444, 164, 416, 164, "#f97316", 4),
+        ]
+
+    elif family == "low_point":
+        p += [
+            '<line x1="90" y1="218" x2="670" y2="218" stroke="#a3e635" stroke-width="5"/>',
+            _dv_ball(310, 207),
+            '<ellipse cx="420" cy="220" rx="35" ry="10" fill="#65a30d"/>',
+            _dv_arrow(205, 120, 450, 210, "#f7c948", 6),
+            _dv_text(310, 150, "BALL", 13),
+            _dv_text(420, 258, "LOW POINT / BRUSH", 13, "#d9f99d"),
+            _dv_text(500, 120, "BALL → TURF", 14, "#fde68a"),
+        ]
+
+    elif family == "balance":
+        p += [
+            '<ellipse cx="365" cy="230" rx="82" ry="28" fill="none" stroke="#60a5fa" stroke-width="4"/>',
+            _dv_golfer(365, 210, .9, -42),
+            '<circle cx="345" cy="247" r="11" fill="#bfdbfe"/><circle cx="385" cy="247" r="11" fill="#bfdbfe"/>',
+            _dv_arrow(365, 145, 365, 205),
+            _dv_text(365, 95, "CENTER MASS OVER A NARROW BASE", 14, "#fde68a"),
+            _dv_text(365, 280, "ROTATE WITHOUT LOSING BALANCE", 12, "#bfdbfe"),
+        ]
+
+    elif family == "posture":
+        p += [
+            '<line x1="550" y1="88" x2="550" y2="260" stroke="#94a3b8" stroke-width="8"/>',
+            '<circle cx="408" cy="116" r="14" fill="#e7b98f"/>',
+            '<line x1="405" y1="132" x2="458" y2="190" stroke="#e2e8f0" stroke-width="10" stroke-linecap="round"/>',
+            '<line x1="458" y1="190" x2="430" y2="250" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round"/>',
+            '<line x1="458" y1="190" x2="490" y2="250" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round"/>',
+            _dv_arrow(505, 120, 540, 120),
+            _dv_text(290, 105, "USE WALL AS POSTURE REFERENCE", 14, "#fde68a"),
+            _dv_text(585, 105, "WALL", 12, "#cbd5e1"),
+        ]
+
+    elif family == "impact":
+        p += [
+            '<rect x="490" y="140" width="92" height="100" rx="14" fill="#475569" stroke="#94a3b8" stroke-width="4"/>',
+            _dv_text(536, 196, "BAG", 18),
+            _dv_golfer(305, 225, .85, -10),
+            _dv_arrow(390, 180, 485, 192, "#f7c948", 6),
+            _dv_text(380, 100, "REHEARSE STABLE IMPACT", 14, "#fde68a"),
+            _dv_text(380, 275, "PRESSURE FORWARD • HANDLE AHEAD • BALANCED", 12, "#cbd5e1"),
+        ]
+
+    elif family == "short_game":
+        p += [
+            _dv_ball(115, 230), _dv_target(655, 145),
+            '<ellipse cx="410" cy="175" rx="72" ry="34" fill="#22c55e" opacity=".30" stroke="#86efac" stroke-width="3"/>',
+            _dv_text(410, 180, "LAND", 13, "#dcfce7"),
+            _dv_arrow(138, 222, 390, 180),
+            _dv_arrow(440, 175, 610, 152, "#86efac", 4, True),
+            _dv_text(260, 195, "CARRY", 12, "#fde68a"),
+            _dv_text(555, 190, "ROLLOUT", 12, "#bbf7d0"),
+        ]
+
+    elif family == "wedge_clock":
+        p += [
+            '<circle cx="370" cy="178" r="92" fill="#102f23" stroke="#94a3b8" stroke-width="3"/>',
+            _dv_text(370, 108, "12", 14), _dv_text(448, 183, "3", 14),
+            _dv_text(370, 265, "6", 14), _dv_text(292, 183, "9", 14),
+            _dv_ball(370, 178),
+            _dv_arrow(370, 178, 315, 125, "#60a5fa", 5),
+            _dv_arrow(370, 178, 372, 102, "#f7c948", 5),
+            _dv_arrow(370, 178, 430, 130, "#86efac", 5),
+            _dv_text(370, 286, "CALIBRATE SWING LENGTH → CARRY", 12, "#cbd5e1"),
+        ]
+
+    elif family == "bunker":
+        p += [
+            '<ellipse cx="355" cy="192" rx="215" ry="78" fill="#d6b879" stroke="#f5deb3" stroke-width="4"/>',
+            _dv_ball(280, 182),
+            '<ellipse cx="335" cy="194" rx="38" ry="16" fill="#f3dba8" stroke="#fff1c8" stroke-width="3"/>',
+            _dv_target(650, 145),
+            _dv_arrow(225, 128, 325, 190, "#ef4444", 4, True),
+            _dv_arrow(345, 182, 610, 150, "#f7c948", 5),
+            _dv_text(250, 112, "ENTER SAND", 12, "#fecaca"),
+            _dv_text(340, 240, "SPLASH", 12, "#fff1c8"),
+        ]
+
+    elif family == "putt_line":
+        p += [
+            _dv_ball(110, 180),
+            '<rect x="205" y="140" width="10" height="80" rx="5" fill="#60a5fa"/>',
+            '<rect x="252" y="140" width="10" height="80" rx="5" fill="#60a5fa"/>',
+            '<line x1="110" y1="180" x2="625" y2="180" stroke="#f8fafc" stroke-width="3" stroke-dasharray="8 7"/>',
+            '<circle cx="650" cy="180" r="17" fill="#0b261c" stroke="#f8fafc" stroke-width="4"/>',
+            _dv_arrow(135, 180, 610, 180),
+            _dv_text(234, 125, "START-LINE GATE", 12, "#bfdbfe"),
+        ]
+
+    elif family == "putt_distance":
+        p += [
+            _dv_ball(95, 225),
+            '<rect x="255" y="120" width="95" height="120" rx="12" fill="#1d4d38" stroke="#86efac" stroke-width="3"/>',
+            '<rect x="390" y="105" width="95" height="135" rx="12" fill="#1d4d38" stroke="#f7c948" stroke-width="3"/>',
+            '<rect x="525" y="90" width="95" height="150" rx="12" fill="#1d4d38" stroke="#60a5fa" stroke-width="3"/>',
+            _dv_arrow(120, 220, 575, 165),
+            _dv_text(302, 265, "SHORT", 12, "#bbf7d0"),
+            _dv_text(437, 265, "MID", 12, "#fde68a"),
+            _dv_text(572, 265, "LONG", 12, "#bfdbfe"),
+            _dv_text(375, 82, "FINISH INSIDE ASSIGNED ZONE", 14, "#f8fafc"),
+        ]
+
+    elif family == "putt_contact":
+        p += [
+            '<rect x="250" y="155" width="180" height="48" rx="12" fill="#64748b" stroke="#cbd5e1" stroke-width="3"/>',
+            '<circle cx="340" cy="179" r="13" fill="#f7c948"/>',
+            _dv_ball(340, 226, 10),
+            '<rect x="300" y="211" width="8" height="45" rx="4" fill="#60a5fa"/>',
+            '<rect x="372" y="211" width="8" height="45" rx="4" fill="#60a5fa"/>',
+            _dv_text(340, 128, "CENTER THE STRIKE", 15, "#fde68a"),
+            _dv_arrow(340, 220, 575, 220, "#86efac", 5),
+        ]
+
+    elif family == "mental":
+        labels, xs = ["RESET", "PICTURE", "COMMIT", "GO"], [115, 285, 455, 625]
+        for i, (label, x) in enumerate(zip(labels, xs)):
+            p.append(f'<rect x="{x-62}" y="138" width="124" height="72" rx="14" fill="#334155" stroke="#64748b" stroke-width="2"/>')
+            p.append(_dv_text(x, 181, label, 14))
+            if i < 3:
+                p.append(_dv_arrow(x+70, 174, xs[i+1]-72, 174, "#f7c948", 4))
+        p += [
+            _dv_text(370, 102, "ONE ROUTINE • ONE DECISION • ONE SHOT", 14, "#fde68a"),
+            _dv_text(370, 252, "PROCESS FIRST • OUTCOME SECOND", 12, "#cbd5e1"),
+        ]
+
+    elif family == "decision":
+        p += [
+            _dv_ball(105, 230),
+            '<ellipse cx="455" cy="160" rx="115" ry="58" fill="#0f5132" stroke="#86efac" stroke-width="3"/>',
+            '<path d="M390 95 C455 70,535 80,575 118 C545 140,510 153,472 160 C440 148,415 125,390 95Z" fill="#1d4ed8" opacity=".72"/>',
+            _dv_target(555, 165),
+            _dv_arrow(130, 218, 515, 165, "#ef4444", 5),
+            _dv_arrow(130, 235, 395, 212, "#86efac", 6),
+            _dv_text(355, 128, "AGGRESSIVE", 12, "#fecaca"),
+            _dv_text(300, 255, "SAFE / FAT SIDE", 12, "#bbf7d0"),
+        ]
+
+    elif family == "dispersion":
+        p += [
+            _dv_ball(105, 230), _dv_target(650, 140),
+            '<polygon points="130,230 590,102 590,212" fill="#60a5fa" opacity=".20" stroke="#60a5fa" stroke-width="3"/>',
+            '<ellipse cx="575" cy="160" rx="65" ry="60" fill="none" stroke="#86efac" stroke-width="4"/>',
+            _dv_arrow(135, 224, 565, 165),
+            _dv_text(390, 102, "EXPECTED DISPERSION", 13, "#bfdbfe"),
+            _dv_text(575, 245, "SAFE TARGET ZONE", 12, "#bbf7d0"),
+        ]
+
+    elif family == "pressure":
+        p += [_dv_ball(95, 245), _dv_golfer(120, 238, .55), _dv_text(120, 95, "FULL ROUTINE", 13, "#fde68a")]
+        for i, (tx, ty) in enumerate([(255,130),(405,210),(550,125),(660,205)], 1):
+            p += [f'<circle cx="{tx}" cy="{ty}" r="28" fill="#1d4d38" stroke="#86efac" stroke-width="3"/>', _dv_text(tx, ty+5, str(i), 16)]
+        p += [_dv_arrow(155, 230, 250, 140), _dv_text(415, 275, "ONE BALL • NEW TARGET • NEW DECISION • NO MULLIGAN", 13)]
+
+    p.append("</svg>")
+    return "".join(p)
+
+
+def _drill_visual_persona_label(persona_key):
+    return {
+        "Bogey-Wan Kenobi (Jedi Master of Swing)": "✨ Training Ground",
+        "Harry Putter (The Boy Who Shanked)": "🪄 Practice Spell",
+        "James Pond (Agent 00-Slice)": "🕵️ Field Exercise",
+        "Captain Hack Sparrow (Pirate of the Fairway)": "🏴‍☠️ Captain's Drill",
+    }.get(persona_key, "🗺️ Visual Setup")
+
+
+def render_drill_visual_aid(drill_name, persona_key=None, show_large=True):
+    """Render the drill setup before the written instructions."""
+    _, title = _drill_visual_spec(drill_name)
+    st.markdown(
+        f"**{_drill_visual_persona_label(persona_key)} — {_safe_html(title)}**",
+        unsafe_allow_html=True,
+    )
+    svg = _build_drill_visual_svg(drill_name)
+    components.html(
+        "<style>body{margin:0;background:transparent;overflow:hidden}svg{display:block;width:100%;height:auto}</style>" + svg,
+        height=322,
+        scrolling=False,
+    )
+    if show_large:
+        with st.expander("🔍 View larger setup", expanded=False):
+            large_svg = _build_drill_visual_svg(drill_name, width=980, height=390)
+            components.html(
+                "<style>body{margin:0;background:transparent;overflow:hidden}svg{display:block;width:100%;height:auto}</style>" + large_svg,
+                height=402,
+                scrolling=False,
+            )
+            st.caption(
+                "The diagram shows setup and intent; use the written coaching guide below for exact execution."
+            )
+
+
 def _format_stroke_estimate(value, include_word=True):
     """Display heuristic stroke estimates as ranges/rounded values, not false precision."""
     try:
@@ -8276,6 +8624,14 @@ if (
                         f"{execution_note}"
                     )
 
+                    render_drill_visual_aid(
+                        d_name,
+                        persona_key=st.session_state.get(
+                            "caddie_persona_key", selected_persona_key
+                        ),
+                        show_large=True,
+                    )
+
                     kpi = get_drill_kpi(d_name)
                     drill_purpose = DRILL_PURPOSES.get(
                         d_name,
@@ -8339,6 +8695,14 @@ if (
                     )
                     st.caption(
                         f"⚡ `≈{gm_balls} balls` · `≈{gm_time} min` · one-ball scenarios"
+                    )
+
+                    render_drill_visual_aid(
+                        "Target Course Pressure Simulation",
+                        persona_key=st.session_state.get(
+                            "caddie_persona_key", selected_persona_key
+                        ),
+                        show_large=True,
                     )
 
                     pressure_kpi = {
