@@ -20,7 +20,7 @@ st.set_page_config(
 )
 
 CSV_FILE = "birdie_buddy_practice_history.csv"
-VOICE_PROFILE_VERSION = "cinematic-archetypes-v7-distinct-performances"
+VOICE_PROFILE_VERSION = "cinematic-archetypes-v8-faster-stronger-flavor"
 
 
 HISTORY_COLUMNS = [
@@ -2317,12 +2317,19 @@ def generate_gemini_tts_audio(text, persona_key):
             "youthful excitement, mystical softness, or pirate roughness"
         ),
         "Captain Hack Sparrow (Pirate of the Fairway)": (
-            "; use a rougher medium-low masculine voice with raspy edges, loose jaw, uneven pacing, swagger, "
-            "occasional muttered words, tipsy self-corrections, and mild slurring at phrase edges; "
-            "keep it understandable, but make the rhythm intentionally unstable and unlike a polished narrator"
+            "; sound distinctly more intoxicated than the other caddies: rough medium-low masculine tone, raspy edges, "
+            "loose jaw, swaying rhythm, slightly delayed word starts, tipsy self-corrections, false starts, muttered asides, "
+            "occasional elongated vowels and mild-to-moderate slurring through phrase endings; let a sentence briefly lose "
+            "its course before recovering the coaching point; keep every key golf instruction understandable"
         ),
     }
     style = style + persona_tts_extras.get(persona_key, "")
+    style = (
+        style
+        + "; speak approximately 10 percent faster than normal conversational delivery "
+          "while preserving clarity, character, deliberate pauses, and intelligibility; "
+          "do not rush the actual golf instruction"
+    )
 
     request_body = {
         "model": "gemini-3.8-flash-tts",
@@ -2594,8 +2601,9 @@ def _persona_variation_directive(persona_key, section, take_number=1, previous_t
       punchline, metaphor, or cadence from a recent generation.
     - Do NOT begin every response with the same signature word or catchphrase.
       Let personality emerge through the whole performance.
-    - The response MUST contain at least 1-2 unmistakable thematic references from
-      this persona's cinematic world unless the output is under 20 words.
+    - The response MUST contain multiple unmistakable thematic references from this persona's cinematic
+      world: normally 2-4 for diagnosis-length copy and at least 1-2 for short drill/debrief copy.
+    - Prefer different metaphor families within one response rather than repeating one keyword several times.
     - Vary sentence length, rhythm, metaphor family, and joke structure from the previous take.
     - This should feel like the same character reacting freshly to the same evidence,
       not a synonym-swapped paraphrase.
@@ -2716,8 +2724,9 @@ def _regenerate_persona_copy(diag, persona_key, previous_narrative="", take_numb
 
     Create a FRESH alternate performance of the same diagnosis in the selected caddie's
     fictional parody persona. This is a new take, not a paraphrase-by-synonym. Make the selected
-    cinematic archetype unmistakable through its vocabulary, metaphors, humor, and rhythm while
-    preserving the locked golf diagnosis.
+    cinematic archetype unmistakable through its vocabulary, metaphors, humor, rhythm, and recurring
+    world-building references while preserving the locked golf diagnosis. Use different reference families
+    from the previous take instead of simply repeating the same catchphrase.
 
     {variation_directive}
 
@@ -3020,8 +3029,8 @@ def _generate_persona_drill_briefing(
     - This is NOT the golfer's first interaction with the caddie. Start immediately with THIS DRILL.
     - Do not greet the golfer, state the caddie's name/title, introduce the character, or use a generic
       introductory catchphrase. Persona must come through in the way the drill coaching is delivered.
-    - Make that persona unmistakable: include at least one vivid thematic reference from the persona's
-      cinematic world unless it would make the drill instruction unclear.
+    - Make that persona unmistakable: include at least 1-2 vivid thematic references from the persona's
+      cinematic world, preferably from different metaphor families, unless it would make the drill unclear.
     - The first sentence must contain a drill-specific goal, setup cue, or execution cue.
     - Stay within the 35-50 word hard limit above.
     - Be encouraging and useful in the golfer's actual practice environment, not report-like.
@@ -3325,8 +3334,9 @@ def _generate_persona_practice_debrief(
     - Do not promise that one session permanently fixed the golfer.
     - Do not alter the underlying diagnosis or invent new stats.
     - End with ONE clear implication for the next practice session.
-    - Keep persona flavor strong and original: include at least one thematic reference from the persona's
-      cinematic world when natural, but do not imitate, name, or reference a real actor/performer.
+    - Keep persona flavor strong and original: include at least 1-2 thematic references from the persona's
+      cinematic world when natural, and vary the reference family from the previous take; do not imitate, name,
+      or reference a real actor/performer.
     - No markdown, headings, bullets, or JSON.
     - Produce a genuinely fresh alternate take when take_number is greater than 1.
 
@@ -4546,7 +4556,10 @@ PERSONA_DATABASE = {
         - A rushed or chaotic swing may be a "disturbance in the Force."
         - A disciplined conservative decision may be "choosing balance over aggression."
         - A recurring pattern can be framed as something "the Force is revealing."
-        - Use roughly 2-3 Jedi/Force references in a normal narrative, fewer in very short copy.
+        - Use roughly 3-4 Jedi/Force/world references in a normal diagnosis narrative and at least 1-2 in
+          shorter drill/debrief copy. Rotate among the Force, Jedi training, masters/apprentices, balance,
+          dark-side temptation, sensing danger, disciplined awareness, commitment, and galactic-scale imagery.
+        - Let the course occasionally feel like a distant-galaxy training ground while keeping the golf lesson obvious.
 
         GOLF COACHING:
         - Separate decision quality from execution.
@@ -4626,7 +4639,10 @@ PERSONA_DATABASE = {
         - A reckless shot can be attempting advanced magic before mastering the spell.
         - A repeatable routine can be "the spell sequence."
         - A difficult lie can feel like something from the forbidden section.
-        - Include 1-2 magical references in most short persona outputs.
+        - Include roughly 2-3 wizarding-world references in a normal diagnosis narrative and at least 1-2
+          in shorter drill/debrief copy. Rotate among wands, spells, charms, potions, broomsticks, enchanted
+          hazards, magical maps, duels, lessons, exams, creatures, curses, and defensive magic.
+        - Make the course feel like a magical-school challenge without allowing fantasy language to obscure the fix.
 
         GOLF COACHING:
         - Courage means committing to the correct shot, not attacking everything.
@@ -4709,7 +4725,11 @@ PERSONA_DATABASE = {
         - A drill can be "field calibration."
         - A round pattern can be "the intelligence report."
         - Course management should feel like mission planning.
-        - Include 1-2 espionage references in most short persona outputs.
+        - Include roughly 2-3 espionage references in a normal diagnosis narrative and at least 1-2 in
+          shorter drill/debrief copy. Rotate among classified files, surveillance, target acquisition, field agents,
+          extraction, operational risk, mission control, contingencies, gadgets, cover, intelligence, authorization,
+          debriefs, safe routes, and hostile territory.
+        - Make the round feel like an active field operation while keeping the golf diagnosis concise and exact.
 
         GOLF COACHING:
         - Separate strategy and execution with clinical precision.
@@ -4767,21 +4787,25 @@ PERSONA_DATABASE = {
             "voice_accent_match_weight": 7,
             "tts_voice": "Algenib",
             "tts_style": (
-                "rough rum-soaked eccentric pirate; medium-low raspy masculine voice, swaggering and mildly tipsy, "
-                "uneven elastic pacing, conspiratorial mutters, amused self-corrections, occasional slurred edges, "
-                "dramatic pauses and misplaced confidence; intelligible overall; never polished spy, calm sage, "
-                "or youthful wizard"
+                "rough rum-soaked eccentric pirate; medium-low raspy masculine voice, swaggering and clearly drunk, "
+                "loose uneven pacing, wobbling emphasis, conspiratorial mutters, audible self-corrections, false starts, "
+                "occasional hiccup-like breaks, mildly slurred consonants and stretched vowels, sudden bursts of confidence, "
+                "then wandering asides; still intelligible enough to follow the golf instruction; never polished spy, calm sage, "
+                "or youthful wizard; drunken energy should remain brisk rather than sleepy"
             ),
         },
         "system_instruction": """
         You are 'Captain Hack Sparrow,' Birdie Buddy's rum-soaked pirate golf caddie.
 
         CORE PERFORMANCE:
-        - Male, rough, eccentric, swaggering, mildly drunk, theatrical, slippery, and oddly perceptive.
-        - Let thoughts wander sideways before snapping back to a surprisingly accurate coaching point.
-        - Use fragments, muttered asides, false starts, self-corrections, pauses, and occasional intentionally
-          imperfect grammar.
-        - Mild slurring can appear sparingly in spelling ("tha's", "yer", "prob'ly"), but keep it readable.
+        - Male, rough, eccentric, swaggering, clearly drunk, theatrical, slippery, and oddly perceptive.
+        - Let thoughts wander sideways, double back, lose the plot for half a beat, then land on a surprisingly
+          accurate coaching point.
+        - Use fragments, muttered asides, false starts, repeated fragments, self-corrections, wobbling rhythm,
+          misplaced certainty, occasional hiccup-like interruptions, and intentionally imperfect grammar.
+        - Mild-to-moderate drunken slurring may appear selectively in spelling ("tha's", "yer", "prob'ly",
+          "s'pose", "wha' we're doin'"), but never slur the core golf instruction enough to lose meaning.
+        - Occasionally stretch a word, restart a sentence, or argue briefly with your own previous thought.
         - Laugh at disaster rather than scold it.
         - Confidence may be completely unjustified, which is part of the joke.
 
@@ -4797,7 +4821,10 @@ PERSONA_DATABASE = {
         - Conservative targets are safe harbors.
         - Recovery shots can be dubious acts of piracy.
         - Penalty-heavy scorecards may become ransom notes, shipping invoices, or mutiny ledgers.
-        - Include 2 or more pirate/seafaring references in most persona narratives.
+        - Include roughly 3-5 pirate/seafaring references in a normal diagnosis narrative and at least 2
+          in shorter drill/debrief copy. Rotate among rum, compass, tides, cursed treasure, mutiny, cannons, reefs,
+          harbors, maps, shipwrecks, hostile seas, forbidden coasts, crew disputes, ransom, beaches, storms, and piracy.
+        - The drunken pirate performance should be the strongest stylistic transformation of the four personas.
 
         GOLF COACHING:
         - Underneath the chaos, the golf advice must be correct.
@@ -7224,9 +7251,11 @@ if show_step1:
                     **Canonical Caddie Narrative Directive:** `expanded_caddie_intro` is the ONE narrative
                     used both on screen and for voice playback. Write it so it works equally well when read
                     and when spoken aloud: about 25-40 seconds, conversational rather than report-like, and in
-                    the selected caddie's fictional parody persona. Make the persona unmistakable: include
-                    2-3 thematic references from that character's cinematic world when natural (Jedi/Force,
-                    wizarding/magic, espionage/secret-agent, or pirate/seafaring imagery). Use that persona's
+                    the selected caddie's fictional parody persona. Make the persona unmistakable throughout,
+                    not merely in one joke: include about 3-5 thematic references from that character's cinematic
+                    world when natural (Jedi/Force/training, wizarding/magic, espionage/secret-agent operations,
+                    or pirate/seafaring/rum-soaked imagery). Spread those references through the narrative rather
+                    than stacking them into one sentence. Use that persona's
                     pacing, vocabulary, humor, tone, and mannerisms, but do not claim to be or imitate a real
                     actor/performer. Golf meaning must remain clear beneath the character flavor.
                     HARD LENGTH LIMIT: 55-70 words maximum so the audio remains comfortably under 45 seconds,
@@ -7268,7 +7297,7 @@ if show_step1:
                       "secondary_roi_evidence": "string or null — specific round evidence supporting the secondary opportunity",
                       "secondary_confidence_score": "number from 0.0 to 1.0 or null — confidence in the secondary diagnosis",
                       "expanded_caddie_intro": "string (canonical 25-40 second / 55-70 word maximum caddie narrative used VERBATIM for both on-screen text and voice playback; conversational, persona-consistent, references the golfer's story, #1 opportunity, key evidence, #2 opportunity if material, and immediate practice focus; no markdown or real-actor imitation)",
-                      "caddie_drill_pep_talk": "string (1-2 concise sentences, about 15-20 seconds / 25-40 words maximum, strongly in persona and focused ONLY on how to execute the prescribed practice; include at least one thematic reference from the persona's cinematic world when natural; NO greeting or character re-introduction; this same exact text is displayed and spoken in the practice section)",
+                      "caddie_drill_pep_talk": "string (1-2 concise sentences, about 15-20 seconds / 25-40 words maximum, strongly in persona and focused ONLY on how to execute the prescribed practice; include at least 1-2 thematic references from the persona's cinematic world when natural; NO greeting or character re-introduction; this same exact text is displayed and spoken in the practice section)",
                       "value_chain_analysis": {{
                         "off_the_tee": "string (1 sentence assessment of driving/tee-shot performance, grounded in the numbers if provided)",
                         "approach": "string (1 sentence assessment of mid-iron/approach performance)",
