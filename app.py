@@ -1444,15 +1444,49 @@ def render_scoring_evidence_bars(roi_data):
         )
 
 
-def render_practice_allocation_bar(controlled_pct, rationale=None, compact=False):
+def render_practice_allocation_bar(
+    controlled_pct,
+    total_balls=None,
+    total_time=None,
+    rationale=None,
+    compact=False,
+):
+    """Show percentage allocation plus the approximate ball/time asset budget."""
     controlled = max(0, min(100, int(round(float(controlled_pct) * 100))))
     transfer = 100 - controlled
     height = 12 if compact else 16
+
+    controlled_balls = (
+        int(round(float(total_balls) * controlled / 100.0))
+        if total_balls is not None else None
+    )
+    transfer_balls = (
+        int(round(float(total_balls))) - controlled_balls
+        if total_balls is not None else None
+    )
+    controlled_time = (
+        int(round(float(total_time) * controlled / 100.0))
+        if total_time is not None else None
+    )
+    transfer_time = (
+        int(round(float(total_time))) - controlled_time
+        if total_time is not None else None
+    )
+
+    controlled_assets = ""
+    transfer_assets = ""
+    if controlled_balls is not None and controlled_time is not None:
+        controlled_assets = f" · ≈{controlled_balls} balls · ≈{controlled_time} min"
+        transfer_assets = f" · ≈{transfer_balls} balls · ≈{transfer_time} min"
+
     st.markdown(
         "<div style='margin:6px 0 8px;'>"
-        "<div style='display:flex;justify-content:space-between;gap:8px;margin-bottom:5px;font-size:.76rem;'>"
-        f"<span><strong>Controlled work</strong> · {controlled}%</span>"
-        f"<span><strong>Transfer / game</strong> · {transfer}%</span></div>"
+        "<div style='display:flex;justify-content:space-between;gap:12px;"
+        "margin-bottom:5px;font-size:.76rem;flex-wrap:wrap;'>"
+        f"<span><strong>Controlled work</strong> · {controlled}%"
+        f"{_safe_html(controlled_assets)}</span>"
+        f"<span><strong>Transfer / game</strong> · {transfer}%"
+        f"{_safe_html(transfer_assets)}</span></div>"
         f"<div style='height:{height}px;display:flex;border-radius:999px;overflow:hidden;"
         "background:rgba(128,128,128,.15);'>"
         f"<div style='width:{controlled}%;background:#4f70b3;'></div>"
@@ -1862,7 +1896,7 @@ def render_progress_trends(df_history):
                     "Decision Quality": st.column_config.TextColumn("Decision Quality"),
                     "Mechanical Evidence Level": st.column_config.TextColumn("Mechanical Evidence"),
                     "Practice Environment": st.column_config.TextColumn("Practice Environment"),
-                    "Practice Allocation": st.column_config.TextColumn("Practice Split"),
+                    "Practice Allocation": st.column_config.TextColumn("Practice Asset Split"),
                     "Baseline KPI (10)": st.column_config.TextColumn("Pre-Test /10"),
                     "Post KPI (10)": st.column_config.TextColumn("Post-Test /10"),
                     "Objective Gain": st.column_config.TextColumn("Objective Gain"),
@@ -1919,9 +1953,8 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
         lines.append(f"Course Management Subtype: {diag.get('course_management_subtype')}")
     if diag.get("secondary_miss"):
         lines.append(f"Secondary Opportunity: {diag.get('secondary_miss')}")
-    practice_unit = str(res.get("practice_unit", "balls"))
     lines.append(
-        f"Total Allocation: {res['total_balls']} {practice_unit.title()} | {res['total_time']} Mins"
+        f"AVAILABLE PRACTICE ASSETS: ≈{res['total_balls']} Balls | {res['total_time']} Mins"
     )
     lines.append(f"Practice Areas: {', '.join(res.get('practice_areas', [])) or 'Not specified'}")
     lines.append(f"Available Equipment: {', '.join(res.get('equipment', [])) or 'No training aids selected'}")
@@ -1976,7 +2009,11 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
         )
         lines.append(f"\nDRILL #{idx+1}: {d_name.upper()}")
         drill_unit = _unit_for_drill(d_name, diag.get("primary_miss_stage", ""))
-        lines.append(f"Target: {balls_per_drill} {drill_unit.title()} | {time_per_drill} Mins")
+        lines.append(
+            f"Asset Allocation: ≈{balls_per_drill} Balls | ≈{time_per_drill} Mins"
+        )
+        if drill_unit not in {"balls", "shots"}:
+            lines.append(f"Activity Format: {drill_unit.title()}")
         lines.append(f"Equipment: {schematic['equipment']}")
         kpi = get_drill_kpi(d_name)
         lines.append(f"Objective Test: {kpi['test']}")
@@ -1991,7 +2028,10 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
 
     if res["game_balls"] > 0 and not is_pure_game:
         lines.append("\nFINAL PHASE: Target Course Pressure Simulation")
-        lines.append(f"Target: {res['game_balls']} Scenarios | {res['game_time']} Mins")
+        lines.append(
+            f"Asset Allocation: ≈{res['game_balls']} Balls | ≈{res['game_time']} Mins"
+        )
+        lines.append("Activity Format: One-ball transfer scenarios")
         lines.append(
             "Instructions: Alternate clubs & flags for every single ball. Execute"
             " full pre-shot routine."
@@ -3006,8 +3046,9 @@ def _generate_persona_drill_briefing(
     - Objective test: {kpi.get('test', '')}
     - Success definition: {kpi.get('success', '')}
     - Pass target: {kpi.get('target', '')}/10
-    - Assigned volume: {balls_per_drill if balls_per_drill is not None else 'N/A'} {volume_unit}
-    - Assigned time: {time_per_drill if time_per_drill is not None else 'N/A'} minutes
+    - Approximate ball allocation: {balls_per_drill if balls_per_drill is not None else 'N/A'} balls
+    - Approximate time allocation: {time_per_drill if time_per_drill is not None else 'N/A'} minutes
+    - Drill activity format: {volume_unit}
 
     PREVIOUS BRIEFING TO AVOID REPEATING TOO CLOSELY:
     {previous_text or 'No previous briefing.'}
@@ -6223,11 +6264,19 @@ def render_practice_setup_summary_card(key_suffix, allow_change=True):
         st.markdown("##### ✅ Practice Setup")
         c1, c2 = st.columns(2)
         with c1:
-            render_compact_metric("Time", f"{res.get('total_time', '—')} min")
+            render_compact_metric("Time Budget", f"{res.get('total_time', '—')} min")
         with c2:
-            unit_label = str(res.get("practice_unit", "balls")).title()
-            render_compact_metric(unit_label, res.get("total_balls", "—"))
-        render_practice_allocation_bar(float(res.get("grind_pct", 0)), compact=True)
+            ball_budget = res.get("total_balls", "—")
+            render_compact_metric(
+                "Ball Budget",
+                f"≈{ball_budget}" if ball_budget != "—" else "—",
+            )
+        render_practice_allocation_bar(
+            float(res.get("grind_pct", 0)),
+            total_balls=res.get("total_balls"),
+            total_time=res.get("total_time"),
+            compact=True,
+        )
         st.caption(f"Practice area: {areas}")
 
         if allow_change and st.button(
@@ -7727,56 +7776,40 @@ if (
         preferred_primary = diag_for_plan.get("recommended_primary_drill")
         preferred_secondary = diag_for_plan.get("recommended_secondary_drill")
         existing_setup = st.session_state.get("confirmed_resources", {})
-        primary_practice_unit = _unit_for_drill(
-            preferred_primary,
-            diag_for_plan.get("primary_miss_stage", ""),
-        )
-        secondary_practice_unit = (
-            _unit_for_drill(
-                preferred_secondary,
-                diag_for_plan.get("secondary_miss_stage", ""),
-            )
-            if preferred_secondary
-            else primary_practice_unit
-        )
-        practice_unit = (
-            primary_practice_unit
-            if secondary_practice_unit == primary_practice_unit
-            else "practice reps"
-        )
+        # Time and practice balls are the two scarce assets Birdie Buddy allocates.
+        # Drill-specific units (putts, scenarios, routine reps, etc.) still describe
+        # execution, but they no longer replace the ball budget in the strategy layer.
+        practice_unit = "balls"
+        existing_balls = int(existing_setup.get("total_balls", 100))
+        existing_balls = max(10, min(300, existing_balls))
 
-        unit_defaults = {
-            "balls": (100, 300, 10),
-            "putts": (60, 200, 10),
-            "shots": (60, 200, 10),
-            "scenarios": (20, 60, 5),
-            "routine reps": (20, 60, 5),
-            "practice reps": (60, 200, 10),
-        }
-        default_reps, max_reps, step_reps = unit_defaults.get(
-            practice_unit, (60, 200, 10)
+        st.markdown("#### Available Practice Assets")
+        st.caption(
+            "Birdie Buddy treats your available time and practice balls as scarce assets, "
+            "then allocates them toward the highest expected scoring return."
         )
-        existing_reps = int(existing_setup.get("total_balls", default_reps))
-        existing_reps = max(10, min(max_reps, existing_reps))
 
         col_input_a, col_input_b = st.columns(2)
         with col_input_a:
             total_balls = st.number_input(
-                f"Total {practice_unit.title()} Available:",
+                "Approx. Practice Balls Available:",
                 min_value=10,
-                max_value=max_reps,
-                value=existing_reps,
-                step=step_reps,
-                help="Birdie Buddy uses the practice unit that matches the diagnosed skill instead of treating every session as a bucket of range balls.",
+                max_value=300,
+                value=existing_balls,
+                step=10,
+                help=(
+                    "Use an approximate ball/repetition budget. Birdie Buddy will allocate "
+                    "that budget across controlled work and transfer/game work."
+                ),
             )
         with col_input_b:
-            default_time = 45 if practice_unit == "scenarios" else (30 if practice_unit == "routine reps" else 60)
             total_time = st.number_input(
                 "Total Time Available (mins):",
                 min_value=15,
                 max_value=180,
-                value=int(existing_setup.get("total_time", default_time)),
+                value=int(existing_setup.get("total_time", 60)),
                 step=15,
+                help="Time is allocated alongside the ball budget rather than treated as a separate afterthought.",
             )
 
         primary_category = _drill_category(preferred_primary or "")
@@ -7864,9 +7897,15 @@ if (
         game_balls = total_balls - grind_balls
         grind_time = int(round(total_time * grind_pct))
         game_time = total_time - grind_time
-        st.markdown("#### Practice Allocation")
+        st.markdown("#### Practice Asset Allocation")
+        st.caption(
+            "Diagnose → prioritize → allocate → measure → reallocate. "
+            "Ball and time budgets are directed toward the highest expected scoring ROI."
+        )
         render_practice_allocation_bar(
             grind_pct,
+            total_balls=total_balls,
+            total_time=total_time,
             rationale=allocation_rationale,
         )
 
@@ -7954,13 +7993,13 @@ if (
             if (c_balls < 40 or c_time < 30) and p_complexity == "High":
                 st.warning(
                     f"⚠️ **Low Resource Alert:** `{p_drill}` is High Complexity. Focus on"
-                    f" basic feel keys with your limited budget ({c_balls} balls / {c_time}"
-                    " mins)."
+                    f" basic feel keys with your limited budget (≈{c_balls} balls / ≈{c_time}"
+                    " min)."
                 )
 
             summary_line = (
-                "💡 **Targeted Prescription:** Circuit optimized across"
-                f" {len(active_drills)} focus areas."
+                "💡 **Targeted Prescription:** Ball and time assets optimized across"
+                f" {len(active_drills)} highest-value focus areas."
             )
             if rationale:
                 st.info(f"{summary_line}\n\n**Bang for Your Buck Rationale:** {rationale}")
@@ -8096,8 +8135,14 @@ if (
                     st.markdown(f"### 🎯 Drill #{idx+1}: **{d_name}**")
                     st.markdown(f"🔥 **{label}**")
                     drill_unit = _unit_for_drill(d_name, diag.get("primary_miss_stage", ""))
+                    execution_note = (
+                        f" · activity: {drill_unit}"
+                        if drill_unit not in {"balls", "shots"}
+                        else ""
+                    )
                     st.caption(
-                        f"⚡ `{balls_per_drill} {drill_unit.title()}` | `{time_per_drill} Mins`"
+                        f"⚡ `≈{balls_per_drill} balls` · `≈{time_per_drill} min`"
+                        f"{execution_note}"
                     )
 
                     kpi = get_drill_kpi(d_name)
@@ -8161,7 +8206,7 @@ if (
                         "🔥 **Final Phase: On-Course Pressure Transfer & Routine Integration**"
                     )
                     st.caption(
-                        f"⚡ `{gm_balls} Scenarios` | `{gm_time} Mins`"
+                        f"⚡ `≈{gm_balls} balls` · `≈{gm_time} min` · one-ball scenarios"
                     )
 
                     pressure_kpi = {
