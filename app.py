@@ -8814,77 +8814,73 @@ if (
                     )
 
                 with drill_panel:
+                    st.markdown(f"🔥 **{label}**")
                     drill_unit = _unit_for_drill(d_name, diag.get("primary_miss_stage", ""))
                     execution_note = (
-                        drill_unit if drill_unit not in {"balls", "shots"} else "ball reps"
+                        f" · activity: {drill_unit}"
+                        if drill_unit not in {"balls", "shots"}
+                        else ""
                     )
+                    st.caption(
+                        f"⚡ `≈{balls_per_drill} balls` · `≈{time_per_drill} min`"
+                        f"{execution_note}"
+                    )
+
+                    render_drill_visual_aid(
+                        d_name,
+                        persona_key=st.session_state.get(
+                            "caddie_persona_key", selected_persona_key
+                        ),
+                        show_large=True,
+                    )
+
                     kpi = get_drill_kpi(d_name)
                     drill_purpose = DRILL_PURPOSES.get(
                         d_name,
                         "Build the movement pattern targeted by this drill and make it repeatable under a normal pre-shot routine.",
                     )
-                    equip_items = [
-                        x.strip()
-                        for x in re.split(r",\s*(?![^()]*\))", schematic["equipment"])
-                        if x.strip()
-                    ]
-
-                    top_left, top_right = st.columns([1.15, .85])
-                    with top_left:
-                        render_drill_visual_aid(
-                            d_name,
-                            persona_key=st.session_state.get(
-                                "caddie_persona_key", selected_persona_key
-                            ),
-                            show_large=True,
-                        )
-
-                    with top_right:
-                        render_inline_facts([
-                            ("Allocation", f"≈{balls_per_drill} balls · ≈{time_per_drill} min"),
-                            ("Activity", execution_note),
-                            ("Pass", f"{kpi['target']}/10"),
-                        ])
-                        st.markdown(f"**🔥 {label}**")
-                        render_micro_note(drill_purpose, icon="🎯")
-                        render_drill_voice_briefing(
-                            drill_name=d_name,
-                            persona_key=st.session_state.get("caddie_persona_key", selected_persona_key),
-                            diagnosis=diag,
-                            purpose=drill_purpose,
-                            setup_text=schematic["vivid_description"],
-                            kpi=kpi,
-                            balls_per_drill=balls_per_drill,
-                            time_per_drill=time_per_drill,
-                            auto_generate_audio=(idx == 0),
-                        )
-
-                    drill_tab1, drill_tab2, drill_tab3 = st.tabs(
-                        ["▶️ How to Do It", "📏 Test & Equipment", "📈 Progress & Tips"]
+                    render_drill_voice_briefing(
+                        drill_name=d_name,
+                        persona_key=st.session_state.get("caddie_persona_key", selected_persona_key),
+                        diagnosis=diag,
+                        purpose=drill_purpose,
+                        setup_text=schematic["vivid_description"],
+                        kpi=kpi,
+                        balls_per_drill=balls_per_drill,
+                        time_per_drill=time_per_drill,
+                        auto_generate_audio=(idx == 0),
                     )
-                    with drill_tab1:
-                        render_instruction_steps(schematic["vivid_description"], d_name)
 
-                    with drill_tab2:
-                        render_scannable_rows([
-                            ("Test", kpi["test"]),
-                            ("Success", kpi["success"]),
-                            ("Pass", f"{kpi['target']}/10"),
-                            ("When", "Run the same 10-rep test before and after practice."),
-                        ], margin_left=0, compact=True)
-                        if equip_items:
-                            st.caption("Equipment: " + " · ".join(equip_items))
+                    st.markdown("**🎯 What This Drill Trains**")
+                    render_indented_html(drill_purpose)
 
-                    with drill_tab3:
-                        render_progression_steps(
-                            CATEGORY_PROGRESSION.get(
-                                _drill_category(d_name), CATEGORY_PROGRESSION["general"]
-                            )
+                    st.markdown("**📏 Objective Pre/Post Test**")
+                    st.markdown(f"**{kpi['name']}**")
+                    render_scannable_rows([
+                        ("Test", kpi["test"]),
+                        ("Success", kpi["success"]),
+                        ("Pass target", f"{kpi['target']}/10"),
+                        ("When to test", "Run the same 10-rep test before the drill and again after practice."),
+                    ], margin_left=18, compact=True)
+
+                    st.markdown("**🛠️ Equipment Needed**")
+                    equip_items = re.split(r",\s*(?![^()]*\))", schematic["equipment"])
+                    render_indented_ul(equip_items)
+
+                    st.markdown("**📖 Step-by-Step Coaching Guide**")
+                    render_instruction_steps(schematic["vivid_description"], d_name)
+
+                    st.markdown("**📈 How to Progress the Drill**")
+                    render_progression_steps(
+                        CATEGORY_PROGRESSION.get(
+                            _drill_category(d_name), CATEGORY_PROGRESSION["general"]
                         )
-                        render_inline_facts([
-                            ("Mental cue", schematic["analogy"]),
-                            ("Pro tip", schematic["pro_tip"]),
-                        ])
+                    )
+
+                    st.markdown("**🧠 Mental Analogy**")
+                    render_indented_html(schematic["analogy"])
+
+                    st.info(schematic["pro_tip"])
 
             if gm_balls > 0 and gm_time > 0 and not is_pure_game:
                 st.markdown("---")
