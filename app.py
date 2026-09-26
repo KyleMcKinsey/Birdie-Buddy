@@ -6415,11 +6415,13 @@ if show_step1:
                     st.session_state["round_holes_played"] = holes_played
                     st.session_state["round_fairway_opportunities"] = fairway_opportunities
                     st.session_state["round_gir_opportunities"] = gir_opportunities
-                    st.session_state["round_course_name"] = course_name.strip()
-                    st.session_state["round_tee_name"] = tee_name.strip()
-                    st.session_state["round_course_par"] = course_par
-                    st.session_state["round_course_rating"] = course_rating
-                    st.session_state["round_course_slope"] = course_slope
+                    # These five values already live in session state because the
+                    # course-context widgets use the same explicit keys. Writing
+                    # those keys again after the widgets have been instantiated
+                    # triggers StreamlitWidgetAlreadyInstantiatedError.
+                    #
+                    # Use the current widget values directly for normalization;
+                    # Streamlit has already persisted any user edits.
                     _norm = _compute_round_normalization(
                         round_score, holes_played, course_par, course_rating, course_slope
                     )
