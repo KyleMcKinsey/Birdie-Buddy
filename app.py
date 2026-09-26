@@ -5,6 +5,7 @@ import html
 import io
 import json
 import os
+import time
 import re
 import urllib.error
 import urllib.parse
@@ -20,7 +21,7 @@ st.set_page_config(
 )
 
 CSV_FILE = "birdie_buddy_practice_history.csv"
-VOICE_PROFILE_VERSION = "cinematic-archetypes-v8-faster-stronger-flavor"
+VOICE_PROFILE_VERSION = "cinematic-archetypes-v9-hack50-quota-safe"
 
 
 HISTORY_COLUMNS = [
@@ -2321,56 +2322,68 @@ def _resolve_persona_voice(persona_key):
     return fallback
 
 
-def generate_gemini_tts_audio(text, persona_key):
-    """Generate high-quality seekable WAV speech using Gemini TTS.
 
-    The app uses distinct prebuilt studio voices and persona-specific delivery
-    directions. It deliberately asks for a character-inspired performance rather
-    than an imitation of any real actor or recorded performer.
-    """
-    spoken_text = _speech_clean_text(text)
-    if not spoken_text:
-        raise ValueError("There is no caddie text to speak.")
+class TTSQuotaExceeded(RuntimeError):
+    """Raised when Gemini TTS quota/rate limits should stop further automatic attempts."""
 
-    persona = PERSONA_DATABASE.get(persona_key, {})
-    profile = persona.get("voice_profile", {})
-    voice_name = _resolve_persona_voice(persona_key)
-    style = profile.get(
-        "tts_style",
-        "Warm, conversational golf coach. Natural pacing, expressive but clear.",
+
+def _tts_block_message():
+    """Return a concise reason if TTS should not be attempted right now."""
+    daily_date = st.session_state.get("tts_daily_quota_blocked_date")
+    today_utc = datetime.utcnow().strftime("%Y-%m-%d")
+    if daily_date == today_utc:
+        return (
+            "Gemini TTS free-tier daily quota has been reached. "
+            "Caddie text remains available; audio will resume after the quota resets."
+        )
+
+    retry_at = float(st.session_state.get("tts_rate_limit_retry_at", 0) or 0)
+    if retry_at > time.time():
+        remaining = max(1, int(round(retry_at - time.time())))
+        return (
+            f"Gemini TTS is temporarily rate-limited. Audio retry is paused for about "
+            f"{remaining} more seconds."
+        )
+
+    if retry_at:
+        st.session_state.pop("tts_rate_limit_retry_at", None)
+    return ""
+
+
+def _record_tts_rate_limit(error_text):
+    """Record daily quota vs short cooldown so reruns do not hammer the API."""
+    text = str(error_text or "")
+    lower = text.lower()
+
+    if (
+        "requests per day" in lower
+        or "perday" in lower
+        or "per day" in lower and "limit" in lower
+    ):
+        st.session_state["tts_daily_quota_blocked_date"] = datetime.utcnow().strftime("%Y-%m-%d")
+        return (
+            "Gemini TTS free-tier daily quota has been reached (the API reports a "
+            "10-requests/day limit). Caddie text remains available; Birdie Buddy has "
+            "stopped further automatic audio requests for this session."
+        )
+
+    retry_match = re.search(r"retry(?:\\s+in|delay[^0-9]*)(\\d+)s", lower)
+    retry_seconds = int(retry_match.group(1)) if retry_match else 60
+    st.session_state["tts_rate_limit_retry_at"] = time.time() + max(15, retry_seconds)
+    return (
+        f"Gemini TTS is temporarily rate-limited. Birdie Buddy paused automatic "
+        f"audio retries for about {max(15, retry_seconds)} seconds."
     )
 
-    persona_tts_extras = {
-        "Bogey-Wan Kenobi (Jedi Master of Swing)": (
-            "; keep the fundamental pitch comfortably low and masculine; favor chest resonance; "
-            "use long thoughtful pauses and restrained intonation like an older mystical mentor; "
-            "soften urgency and avoid bright sentence endings; never sound youthful, playful, or piratical"
-        ),
-        "Harry Putter (The Boy Who Shanked)": (
-            "; use a clearly younger male voice with lighter resonance and youthful energy; "
-            "allow brief nervous breaths and faster bursts when excited; keep the delivery earnest, curious, "
-            "and adventurous rather than polished, elderly, low-baritone, or suave"
-        ),
-        "James Pond (Agent 00-Slice)": (
-            "; keep the voice low, smooth, controlled, polished and close-miked; use crisp consonants, "
-            "short controlled phrases, restrained emotional range, and dry confidence; avoid warm mentor cadence, "
-            "youthful excitement, mystical softness, or pirate roughness"
-        ),
-        "Captain Hack Sparrow (Pirate of the Fairway)": (
-            "; sound distinctly more intoxicated than the other caddies: rough medium-low masculine tone, raspy edges, "
-            "loose jaw, swaying rhythm, slightly delayed word starts, tipsy self-corrections, false starts, muttered asides, "
-            "occasional elongated vowels and mild-to-moderate slurring through phrase endings; let a sentence briefly lose "
-            "its course before recovering the coaching point; keep every key golf instruction understandable"
-        ),
-    }
-    style = style + persona_tts_extras.get(persona_key, "")
-    style = (
-        style
-        + "; speak approximately 10 percent faster than normal conversational delivery "
-          "while preserving clarity, character, deliberate pauses, and intelligibility; "
-          "do not rush the actual golf instruction"
-    )
 
+@st.cache_data(ttl=86400, show_spinner=False)
+def _cached_gemini_tts_request(
+    spoken_text,
+    voice_name,
+    style,
+    voice_profile_version,
+):
+    """Network-only TTS request cached for 24h to avoid wasting quota on identical clips."""
     request_body = {
         "model": "gemini-3.8-flash-tts",
         "input": [{
@@ -2413,7 +2426,9 @@ def generate_gemini_tts_audio(text, persona_key):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=90) as response:
+            # A slow connection should not leave the Streamlit UI waiting for 90s
+            # per model. 35s is enough to distinguish normal generation from a stall.
+            with urllib.request.urlopen(req, timeout=35) as response:
                 payload = json.loads(response.read().decode("utf-8"))
             audio_bytes = _extract_tts_audio_bytes(payload)
             if audio_bytes:
@@ -2424,14 +2439,88 @@ def generate_gemini_tts_audio(text, persona_key):
                 body = exc.read().decode("utf-8", errors="replace")
             except Exception:
                 body = ""
+            if exc.code == 429:
+                # Quota/rate limits should not cascade into more fallback requests.
+                raise TTSQuotaExceeded(body or f"HTTP 429 from {model_name}")
             last_error = RuntimeError(f"{model_name}: HTTP {exc.code} {body[:350]}")
+            # Try the lighter fallback only for model/API compatibility failures.
+            if exc.code not in {400, 403, 404, 405, 422}:
+                raise last_error
+        except (TimeoutError, urllib.error.URLError) as exc:
+            # Network stalls are not improved by immediately waiting another 35s
+            # on a second model.
+            raise RuntimeError(
+                "Gemini TTS request timed out or the network connection failed."
+            ) from exc
         except Exception as exc:
             last_error = exc
+            break
 
     raise RuntimeError(
         "High-quality caddie audio could not be generated. "
         f"{last_error or 'No compatible Gemini TTS model was available.'}"
     )
+
+
+def generate_gemini_tts_audio(text, persona_key):
+    """Generate cached, quota-aware seekable WAV speech using Gemini TTS."""
+    spoken_text = _speech_clean_text(text)
+    if not spoken_text:
+        raise ValueError("There is no caddie text to speak.")
+
+    blocked = _tts_block_message()
+    if blocked:
+        raise TTSQuotaExceeded(blocked)
+
+    persona = PERSONA_DATABASE.get(persona_key, {})
+    profile = persona.get("voice_profile", {})
+    voice_name = _resolve_persona_voice(persona_key)
+    style = profile.get(
+        "tts_style",
+        "Warm, conversational golf coach. Natural pacing, expressive but clear.",
+    )
+
+    persona_tts_extras = {
+        "Bogey-Wan Kenobi (Jedi Master of Swing)": (
+            "; keep the fundamental pitch comfortably low and masculine; favor chest resonance; "
+            "use long thoughtful pauses and restrained intonation like an older mystical mentor; "
+            "soften urgency and avoid bright sentence endings; never sound youthful, playful, or piratical"
+        ),
+        "Harry Putter (The Boy Who Shanked)": (
+            "; use a clearly younger male voice with lighter resonance and youthful energy; "
+            "allow brief nervous breaths and faster bursts when excited; keep the delivery earnest, curious, "
+            "and adventurous rather than polished, elderly, low-baritone, or suave"
+        ),
+        "James Pond (Agent 00-Slice)": (
+            "; keep the voice low, smooth, controlled, polished and close-miked; use crisp consonants, "
+            "short controlled phrases, restrained emotional range, and dry confidence; avoid warm mentor cadence, "
+            "youthful excitement, mystical softness, or pirate roughness"
+        ),
+        "Captain Hack Sparrow (Pirate of the Fairway)": (
+            "; push intoxication roughly fifty percent beyond the prior performance: strong swaying cadence, "
+            "raspy loose-jaw delivery, frequent false starts and self-corrections, repeated fragments, muttered "
+            "crew asides, elongated vowels, and moderate slurring on nonessential words; briefly lose the thread "
+            "before recovering the coaching point; keep numbers and golf instructions understandable"
+        ),
+    }
+    style = style + persona_tts_extras.get(persona_key, "")
+    style = (
+        style
+        + "; speak approximately 10 percent faster than normal conversational delivery "
+          "while preserving clarity, character, deliberate pauses, and intelligibility; "
+          "do not rush the actual golf instruction"
+    )
+
+    try:
+        return _cached_gemini_tts_request(
+            spoken_text,
+            voice_name,
+            style,
+            VOICE_PROFILE_VERSION,
+        )
+    except TTSQuotaExceeded as exc:
+        concise = _record_tts_rate_limit(str(exc))
+        raise TTSQuotaExceeded(concise) from exc
 
 
 def _format_audio_time(seconds):
@@ -2921,6 +3010,8 @@ def render_caddie_voice_player(
                     "model": used_model,
                 }
                 has_audio = True
+            except TTSQuotaExceeded as exc:
+                st.warning(str(exc))
             except Exception as exc:
                 st.warning(f"Caddie audio is temporarily unavailable: {exc}")
 
@@ -3127,6 +3218,7 @@ def render_drill_voice_briefing(
     kpi,
     balls_per_drill=None,
     time_per_drill=None,
+    auto_generate_audio=True,
 ):
     """Generate and play a concise persona coaching briefing for one drill."""
     caddie_name = persona_key.split(" (")[0]
@@ -3153,13 +3245,13 @@ def render_drill_voice_briefing(
     existing_text = str(st.session_state.get(text_key, "") or "").strip()
     existing_audio = st.session_state.get(audio_key)
 
-    # First render of an unlocked drill card: prepare the section-specific
-    # briefing and matching audio automatically.
-    if not existing_text or not existing_audio:
+    # Always prepare the short persona text. Only the primary drill automatically
+    # consumes TTS quota; secondary/transfer clips are available on demand.
+    if not existing_text:
         try:
             take_number = max(1, int(st.session_state.get(take_key, 0)) or 1)
             with st.spinner("Preparing caddie drill briefing..."):
-                briefing = existing_text or _generate_persona_drill_briefing(
+                briefing = _generate_persona_drill_briefing(
                     drill_name=drill_name,
                     persona_key=persona_key,
                     diagnosis=diagnosis,
@@ -3171,18 +3263,26 @@ def render_drill_voice_briefing(
                     previous_text="",
                     take_number=take_number,
                 )
-                audio_bytes = existing_audio
-                if not audio_bytes:
-                    audio_bytes, _, _ = generate_gemini_tts_audio(
-                        briefing, persona_key
-                    )
             st.session_state[text_key] = briefing
-            st.session_state[audio_key] = audio_bytes
             st.session_state[take_key] = take_number
             existing_text = briefing
-            existing_audio = audio_bytes
         except Exception as exc:
-            st.warning(f"Drill briefing audio is temporarily unavailable: {exc}")
+            st.warning(f"Caddie drill briefing text is temporarily unavailable: {exc}")
+
+    if auto_generate_audio and existing_text and not existing_audio:
+        try:
+            blocked = _tts_block_message()
+            if blocked:
+                raise TTSQuotaExceeded(blocked)
+            with st.spinner("Preparing primary drill audio..."):
+                existing_audio, _, _ = generate_gemini_tts_audio(
+                    existing_text, persona_key
+                )
+            st.session_state[audio_key] = existing_audio
+        except TTSQuotaExceeded as exc:
+            st.warning(str(exc))
+        except Exception as exc:
+            st.warning(f"Primary drill audio is temporarily unavailable: {exc}")
 
     briefing = str(st.session_state.get(text_key, "") or "").strip()
     audio_bytes = st.session_state.get(audio_key)
@@ -3195,8 +3295,31 @@ def render_drill_voice_briefing(
             uid=f"drill-{digest}",
             caddie_name=caddie_name,
         )
+    elif briefing and not auto_generate_audio:
+        st.caption(
+            "🔊 Secondary/transfer audio is generated on demand to conserve the Gemini TTS quota."
+        )
+        if st.button(
+            "🔊 Generate Caddie Audio",
+            key=f"drill_voice_audio_button_{digest}",
+            use_container_width=True,
+        ):
+            try:
+                blocked = _tts_block_message()
+                if blocked:
+                    raise TTSQuotaExceeded(blocked)
+                with st.spinner("Generating caddie audio..."):
+                    audio_bytes, _, _ = generate_gemini_tts_audio(
+                        briefing, persona_key
+                    )
+                st.session_state[audio_key] = audio_bytes
+                st.rerun()
+            except TTSQuotaExceeded as exc:
+                st.warning(str(exc))
+            except Exception as exc:
+                st.warning(f"Drill audio is temporarily unavailable: {exc}")
 
-    # Optional fresh take only; initial generation no longer requires a click.
+    # Fresh take remains available after audio/text exists.
     if briefing and st.button(
         "🔄 New Caddie Drill Briefing",
         key=f"drill_voice_button_{digest}",
@@ -3224,6 +3347,8 @@ def render_drill_voice_briefing(
             st.session_state[audio_key] = fresh_audio
             st.session_state[take_key] = take_number
             st.rerun()
+        except TTSQuotaExceeded as exc:
+            st.warning(str(exc))
         except Exception as exc:
             st.error(f"Drill briefing could not be regenerated: {exc}")
 
@@ -3232,6 +3357,9 @@ def render_drill_voice_briefing(
 
 def _ensure_caddie_audio_cached(text, persona_key):
     """Prepare ordinary section audio without rendering a player."""
+    blocked = _tts_block_message()
+    if blocked:
+        raise TTSQuotaExceeded(blocked)
     spoken_text = _speech_clean_text(text)
     if not spoken_text:
         return
@@ -3260,6 +3388,9 @@ def _ensure_drill_voice_cached(
     time_per_drill=None,
 ):
     """Prepare one drill briefing + audio using the exact cache keys used by its player."""
+    blocked = _tts_block_message()
+    if blocked:
+        raise TTSQuotaExceeded(blocked)
     context_blob = json.dumps(
         {
             "voice_profile_version": VOICE_PROFILE_VERSION,
@@ -3465,6 +3596,8 @@ def render_practice_voice_debrief(persona_key, diagnosis, practice_row, kpi):
             st.session_state[take_key] = take_number
             existing_text = debrief
             existing_audio = audio_bytes
+        except TTSQuotaExceeded as exc:
+            st.warning(str(exc))
         except Exception as exc:
             st.warning(f"Practice debrief audio is temporarily unavailable: {exc}")
 
@@ -3504,6 +3637,8 @@ def render_practice_voice_debrief(persona_key, diagnosis, practice_row, kpi):
             st.session_state[audio_key] = fresh_audio
             st.session_state[take_key] = take_number
             st.rerun()
+        except TTSQuotaExceeded as exc:
+            st.warning(str(exc))
         except Exception as exc:
             st.error(f"Practice debrief could not be regenerated: {exc}")
 
@@ -4828,25 +4963,31 @@ PERSONA_DATABASE = {
             "voice_accent_match_weight": 7,
             "tts_voice": "Algenib",
             "tts_style": (
-                "rough rum-soaked eccentric pirate; medium-low raspy masculine voice, swaggering and clearly drunk, "
-                "loose uneven pacing, wobbling emphasis, conspiratorial mutters, audible self-corrections, false starts, "
-                "occasional hiccup-like breaks, mildly slurred consonants and stretched vowels, sudden bursts of confidence, "
-                "then wandering asides; still intelligible enough to follow the golf instruction; never polished spy, calm sage, "
-                "or youthful wizard; drunken energy should remain brisk rather than sleepy"
+                "rough rum-soaked eccentric pirate; medium-low raspy masculine voice, swaggering and strongly intoxicated, "
+                "roughly fifty percent drunker in performance than the prior version; noticeably loose jaw, swaying rhythm, "
+                "frequent false starts, doubled words, conspiratorial mutters, tipsy self-corrections, delayed word launches, "
+                "occasional hiccup-like breaks, more obvious but still readable slurred consonants, stretched vowels, sudden "
+                "misplaced confidence, and sentences that briefly wander off course before stumbling back to the coaching point; "
+                "keep the actual golf instruction intelligible; never polished spy, calm sage, or youthful wizard; drunken energy "
+                "should remain brisk rather than sleepy"
             ),
         },
         "system_instruction": """
         You are 'Captain Hack Sparrow,' Birdie Buddy's rum-soaked pirate golf caddie.
 
         CORE PERFORMANCE:
-        - Male, rough, eccentric, swaggering, clearly drunk, theatrical, slippery, and oddly perceptive.
-        - Let thoughts wander sideways, double back, lose the plot for half a beat, then land on a surprisingly
-          accurate coaching point.
-        - Use fragments, muttered asides, false starts, repeated fragments, self-corrections, wobbling rhythm,
-          misplaced certainty, occasional hiccup-like interruptions, and intentionally imperfect grammar.
-        - Mild-to-moderate drunken slurring may appear selectively in spelling ("tha's", "yer", "prob'ly",
-          "s'pose", "wha' we're doin'"), but never slur the core golf instruction enough to lose meaning.
-        - Occasionally stretch a word, restart a sentence, or argue briefly with your own previous thought.
+        - Male, rough, eccentric, swaggering, heavily tipsy-to-drunk, theatrical, slippery, and oddly perceptive.
+        - Increase the drunken performance about 50% over the previous version: thoughts should wander more often,
+          double back, briefly forget the point, then unexpectedly land on accurate coaching.
+        - Use fragments, muttered asides, false starts, doubled words, repeated fragments, self-corrections,
+          wobbling rhythm, misplaced certainty, occasional hiccup-like interruptions, and intentionally imperfect grammar.
+        - Moderate drunken slurring may appear selectively in spelling ("tha's", "yer", "prob'ly", "s'pose",
+          "wha' we're doin'", "thasss", "rrright"), especially in jokes and pirate asides, but keep the actual
+          drill cue, number, target, club, and scoring instruction understandable.
+        - In a normal 35-70 word persona narrative, aim for roughly 2-4 obvious intoxication beats: a false start,
+          self-correction, repeated word, muttered aside, lightly slurred phrase, or momentary argument with the crew.
+        - Occasionally stretch a word, restart a sentence, contradict yourself for comic effect, or momentarily
+          address the imaginary crew before returning to the golfer.
         - Laugh at disaster rather than scold it.
         - Confidence may be completely unjustified, which is part of the joke.
 
@@ -4862,7 +5003,7 @@ PERSONA_DATABASE = {
         - Conservative targets are safe harbors.
         - Recovery shots can be dubious acts of piracy.
         - Penalty-heavy scorecards may become ransom notes, shipping invoices, or mutiny ledgers.
-        - Include roughly 3-5 pirate/seafaring references in a normal diagnosis narrative and at least 2
+        - Include roughly 5-7 pirate/seafaring references in a normal diagnosis narrative and at least 3
           in shorter drill/debrief copy. Rotate among rum, compass, tides, cursed treasure, mutiny, cannons, reefs,
           harbors, maps, shipwrecks, hostile seas, forbidden coasts, crew disputes, ransom, beaches, storms, and piracy.
         - The drunken pirate performance should be the strongest stylistic transformation of the four personas.
@@ -8023,20 +8164,19 @@ if (
                 "caddie_persona_key", selected_persona_key
             )
 
-            # Prepare every audio clip for the unlocked plan in one deliberate phase.
-            # Individual cards then open with a ready-to-play player instead of a
-            # sequence of separate generation spinners.
+            # Quota-efficient audio preparation:
+            # automatically prepare only the practice strategy and PRIMARY drill.
+            # Secondary/transfer audio is generated on demand. This keeps the
+            # free-tier 10-request/day TTS budget from being consumed by one plan.
             audio_plan_signature = hashlib.sha256(
                 json.dumps(
                     {
                         "voice_profile_version": VOICE_PROFILE_VERSION,
                         "persona": practice_persona_key,
                         "primary": diag.get("primary_miss"),
-                        "drills": active_drills,
-                        "balls": drill_ball_alloc,
-                        "time": drill_time_alloc,
-                        "game_balls": gm_balls,
-                        "game_time": gm_time,
+                        "primary_drill": active_drills[0] if active_drills else None,
+                        "balls": drill_ball_alloc[0] if drill_ball_alloc else None,
+                        "time": drill_time_alloc[0] if drill_time_alloc else None,
                     },
                     sort_keys=True,
                     ensure_ascii=False,
@@ -8045,57 +8185,48 @@ if (
             audio_plan_key = f"practice_audio_ready_{audio_plan_signature}"
 
             if not st.session_state.get(audio_plan_key):
-                try:
-                    with st.spinner("Preparing caddie audio for your practice plan..."):
-                        if pep_talk:
-                            _ensure_caddie_audio_cached(pep_talk, practice_persona_key)
-
-                        for audio_idx, audio_drill in enumerate(active_drills):
-                            audio_schematic = DRILL_SCHEMATICS.get(
-                                audio_drill,
-                                DRILL_SCHEMATICS["Alignment Stick Gate Drill"],
-                            )
-                            audio_kpi = get_drill_kpi(audio_drill)
-                            audio_purpose = DRILL_PURPOSES.get(
-                                audio_drill,
-                                "Build the targeted skill and make it repeatable under a normal pre-shot routine.",
-                            )
-                            _ensure_drill_voice_cached(
-                                drill_name=audio_drill,
-                                persona_key=practice_persona_key,
-                                diagnosis=diag,
-                                purpose=audio_purpose,
-                                setup_text=audio_schematic["vivid_description"],
-                                kpi=audio_kpi,
-                                balls_per_drill=drill_ball_alloc[audio_idx],
-                                time_per_drill=drill_time_alloc[audio_idx],
-                            )
-
-                        if gm_balls > 0 and gm_time > 0 and not is_pure_game:
-                            pressure_kpi_prewarm = {
-                                "name": "Decision + routine transfer",
-                                "test": "Score 10 one-ball scenarios, grading decision quality, routine/commitment, and shot result separately.",
-                                "success": "A successful process rep earns the decision and routine points before the shot result is considered.",
-                                "target": 8,
-                            }
-                            _ensure_drill_voice_cached(
-                                drill_name="Target Course Pressure Simulation",
-                                persona_key=practice_persona_key,
-                                diagnosis=diag,
-                                purpose="Transfer the session's technical, strategic, and mental work into realistic one-ball, one-decision course behavior.",
-                                setup_text=(
-                                    "Pick 3-5 different range targets that represent different on-course shots. "
-                                    "Assign a club, target, and imaginary hole situation before each ball. "
-                                    "Step completely away between reps, complete the full routine, and hit one ball only. "
-                                    "No mulligans after a miss."
-                                ),
-                                kpi=pressure_kpi_prewarm,
-                                balls_per_drill=gm_balls,
-                                time_per_drill=gm_time,
-                            )
+                blocked = _tts_block_message()
+                if blocked:
+                    st.caption(f"🔇 {blocked}")
                     st.session_state[audio_plan_key] = True
-                except Exception as exc:
-                    st.caption(f"Audio preparation will retry inside the relevant section: {exc}")
+                else:
+                    try:
+                        with st.spinner("Preparing essential caddie audio for your practice plan..."):
+                            if pep_talk:
+                                _ensure_caddie_audio_cached(
+                                    pep_talk, practice_persona_key
+                                )
+
+                            if active_drills:
+                                audio_drill = active_drills[0]
+                                audio_schematic = DRILL_SCHEMATICS.get(
+                                    audio_drill,
+                                    DRILL_SCHEMATICS["Alignment Stick Gate Drill"],
+                                )
+                                audio_kpi = get_drill_kpi(audio_drill)
+                                audio_purpose = DRILL_PURPOSES.get(
+                                    audio_drill,
+                                    "Build the targeted skill and make it repeatable under a normal pre-shot routine.",
+                                )
+                                _ensure_drill_voice_cached(
+                                    drill_name=audio_drill,
+                                    persona_key=practice_persona_key,
+                                    diagnosis=diag,
+                                    purpose=audio_purpose,
+                                    setup_text=audio_schematic["vivid_description"],
+                                    kpi=audio_kpi,
+                                    balls_per_drill=drill_ball_alloc[0],
+                                    time_per_drill=drill_time_alloc[0],
+                                )
+                        st.session_state[audio_plan_key] = True
+                    except TTSQuotaExceeded as exc:
+                        st.warning(str(exc))
+                        st.session_state[audio_plan_key] = True
+                    except Exception as exc:
+                        st.caption(
+                            "Essential practice audio could not be prepared automatically. "
+                            f"The text plan is still ready. ({exc})"
+                        )
 
             if pep_talk:
                 st.success(f"🗣️ **{caddie}'s Practice Strategy:** “{pep_talk}”")
@@ -8159,6 +8290,7 @@ if (
                         kpi=kpi,
                         balls_per_drill=balls_per_drill,
                         time_per_drill=time_per_drill,
+                        auto_generate_audio=(idx == 0),
                     )
 
                     st.markdown("**🎯 What This Drill Trains**")
@@ -8230,6 +8362,7 @@ if (
                         kpi=pressure_kpi,
                         balls_per_drill=gm_balls,
                         time_per_drill=gm_time,
+                        auto_generate_audio=False,
                     )
 
                     st.markdown("**📏 Objective Transfer Test**")
