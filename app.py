@@ -429,6 +429,56 @@ def _drill_category(drill_name: str) -> str:
 
 
 
+
+def render_practice_section_header(title, kind="primary", kicker="", icon=""):
+    """High-contrast but restrained section strip for long practice plans."""
+    palette = {
+        "primary": {
+            "bg": "rgba(59,130,246,.16)",
+            "border": "rgba(96,165,250,.82)",
+            "kicker": "#93c5fd",
+        },
+        "secondary": {
+            "bg": "rgba(168,85,247,.15)",
+            "border": "rgba(192,132,252,.82)",
+            "kicker": "#d8b4fe",
+        },
+        "transfer": {
+            "bg": "rgba(16,185,129,.14)",
+            "border": "rgba(52,211,153,.82)",
+            "kicker": "#6ee7b7",
+        },
+    }
+    colors = palette.get(kind, palette["primary"])
+    safe_title = html.escape(str(title or ""))
+    safe_kicker = html.escape(str(kicker or ""))
+    safe_icon = html.escape(str(icon or ""))
+
+    st.markdown(
+        (
+            f"<div style='"
+            f"background:{colors['bg']};"
+            f"border:1px solid {colors['border']};"
+            f"border-left:5px solid {colors['border']};"
+            "border-radius:10px;"
+            "padding:10px 13px;"
+            "margin:6px 0 9px 0;"
+            "box-shadow:inset 0 1px 0 rgba(255,255,255,.035);"
+            "'>"
+            + (
+                f"<div style='font-size:.69rem;font-weight:800;letter-spacing:.09em;"
+                f"text-transform:uppercase;color:{colors['kicker']};margin-bottom:3px;'>"
+                f"{safe_kicker}</div>"
+                if safe_kicker else ""
+            )
+            + f"<div style='font-size:1.02rem;font-weight:760;line-height:1.25;'>"
+              f"{safe_icon} {safe_title}</div>"
+            "</div>"
+        ),
+        unsafe_allow_html=True,
+    )
+
+
 # --- DRILL VISUAL AIDS -------------------------------------------------------
 # Birdie Buddy renders these diagrams locally as SVG. This keeps the app as one
 # .py file and avoids image-generation latency, cost, and quota usage.
@@ -8605,13 +8655,27 @@ if (
                         f" {s_miss if s_miss else 'Performance Polish'})"
                     )
 
-                drill_panel = (
-                    st.container(border=True)
-                    if idx == 0
-                    else st.expander(f"🎯 Drill #{idx+1}: {d_name} — secondary focus", expanded=False)
-                )
+                if idx == 0:
+                    render_practice_section_header(
+                        d_name,
+                        kind="primary",
+                        kicker="Primary Drill · Drill #1",
+                        icon="🎯",
+                    )
+                    drill_panel = st.container(border=True)
+                else:
+                    render_practice_section_header(
+                        d_name,
+                        kind="secondary",
+                        kicker=f"Secondary Drill · Drill #{idx+1}",
+                        icon="🧩",
+                    )
+                    drill_panel = st.expander(
+                        f"Open Drill #{idx+1} details",
+                        expanded=False,
+                    )
+
                 with drill_panel:
-                    st.markdown(f"### 🎯 Drill #{idx+1}: **{d_name}**")
                     st.markdown(f"🔥 **{label}**")
                     drill_unit = _unit_for_drill(d_name, diag.get("primary_miss_stage", ""))
                     execution_note = (
@@ -8682,14 +8746,16 @@ if (
 
             if gm_balls > 0 and gm_time > 0 and not is_pure_game:
                 st.markdown("---")
+                render_practice_section_header(
+                    "Target Course Pressure Simulation",
+                    kind="transfer",
+                    kicker=f"Transfer Phase · Drill #{len(active_drills)+1}",
+                    icon="🏁",
+                )
                 with st.expander(
-                    f"⛳ Drill #{len(active_drills)+1}: Target Course Pressure Simulation — transfer phase",
+                    "Open transfer / pressure details",
                     expanded=False,
                 ):
-                    st.markdown(
-                        f"### ⛳ Drill #{len(active_drills)+1}: **Target Course Pressure"
-                        " Simulation**"
-                    )
                     st.markdown(
                         "🔥 **Final Phase: On-Course Pressure Transfer & Routine Integration**"
                     )
