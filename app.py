@@ -3507,6 +3507,89 @@ def _as_float_or_none(value):
         return None
 
 
+def _scorecard_course_metadata(extraction):
+    """Return only course metadata that the uploaded image actually supports.
+
+    Par may be derived from a complete set of visible hole pars. Rating and slope
+    are never inferred because they depend on the exact course/tee set.
+    """
+    extraction = extraction or {}
+
+    course_name = str(extraction.get("course_name") or "").strip()
+    tee_name = str(extraction.get("tee_name") or "").strip()
+    course_par = _as_int_or_none(extraction.get("course_par"))
+    course_rating = _as_float_or_none(extraction.get("course_rating"))
+    course_slope = _as_int_or_none(extraction.get("course_slope"))
+
+    # Conservative fallback: sum per-hole pars only when every played/readable
+    # hole has an explicit par. This is grounded in the image rather than a lookup.
+    if course_par is None:
+        holes = [h for h in (extraction.get("holes") or []) if isinstance(h, dict)]
+        played = _as_int_or_none(extraction.get("holes_played"))
+        readable = [
+            h for h in holes
+            if _as_int_or_none(h.get("hole")) is not None
+            and _as_int_or_none(h.get("par")) is not None
+        ]
+        required = played if played is not None else len(holes)
+        if required and len(readable) >= required:
+            # Use the first unique played-hole rows up to the known round length.
+            by_hole = {}
+            for h in readable:
+                hole_no = _as_int_or_none(h.get("hole"))
+                if hole_no not in by_hole:
+                    by_hole[hole_no] = _as_int_or_none(h.get("par"))
+            if len(by_hole) >= required:
+                ordered = [by_hole[k] for k in sorted(by_hole)[:required]]
+                if all(v is not None for v in ordered):
+                    course_par = int(sum(ordered))
+                    derived = list(extraction.get("derived_fields") or [])
+                    note = f"course_par = {course_par}, summed from visible hole pars"
+                    if note not in derived:
+                        derived.append(note)
+                    extraction["derived_fields"] = derived
+                    extraction["course_par"] = course_par
+
+    return {
+        "round_course_name": course_name,
+        "round_tee_name": tee_name,
+        "round_course_par": course_par,
+        "round_course_rating": course_rating,
+        "round_course_slope": course_slope,
+    }
+
+
+def _apply_scorecard_course_metadata(extraction):
+    """Push newly read course metadata into the optional review widgets.
+
+    This runs immediately after a new scorecard is read. Missing fields are
+    cleared so metadata from a prior uploaded round cannot leak into the new one.
+    The golfer can still edit every field afterward.
+    """
+    metadata = _scorecard_course_metadata(extraction)
+    labels = {
+        "round_course_name": "Course",
+        "round_tee_name": "Tees",
+        "round_course_par": "Par",
+        "round_course_rating": "Course Rating",
+        "round_course_slope": "Slope",
+    }
+
+    populated = []
+    for key, value in metadata.items():
+        if key in {"round_course_name", "round_tee_name"}:
+            st.session_state[key] = str(value or "")
+            if str(value or "").strip():
+                populated.append(labels[key])
+        else:
+            st.session_state[key] = value
+            if value is not None:
+                populated.append(labels[key])
+
+    st.session_state["scorecard_course_fields_populated"] = populated
+    return populated
+
+
 def _extract_scorecard_with_gemini(uploaded_file):
     """Read a paper/app scorecard image with Gemini and return grounded JSON.
 
@@ -3535,8 +3618,16 @@ def _extract_scorecard_with_gemini(uploaded_file):
       than assuming the app's layout.
     - Capture hole-level evidence when readable because it can expose patterns that
       aggregate totals hide.
-    - Extract course name, tee name/color, par, course rating, and slope ONLY when those
-      items are visibly printed in the image. Do not look them up or infer them.
+    - Extract course name, tee name/color, par, course rating, and slope when those
+      items are visibly supported by the image. Do not look them up from outside knowledge.
+    - A combined rating/slope label such as "71.4 / 128" may be split into
+      course_rating=71.4 and course_slope=128 only when the surrounding image clearly
+      identifies that pair as rating/slope for the displayed tees.
+    - If total par for the played holes is not printed but every played hole's par is
+      clearly readable, you MAY derive course_par by summing those visible hole pars.
+      Add that calculation to derived_fields. Do not derive course rating or slope.
+    - Tee name/color should preserve the visible label as written (for example
+      "Blue", "White", "Gold", "Back", or "Member") rather than translating it.
 
     Output STRICT raw JSON with no markdown:
     {
@@ -5538,6 +5629,7 @@ def _start_new_round():
                 "round_course_rating", "round_course_slope",
                 "round_score_to_par", "round_score_to_par_pace",
                 "round_approx_differential",
+                "scorecard_course_fields_populated",
             }
         ):
             st.session_state.pop(key, None)
@@ -5945,9 +6037,20 @@ if show_step1:
                     if st.session_state.get("scorecard_upload_signature") != upload_signature:
                         st.session_state["scorecard_upload_signature"] = upload_signature
                         st.session_state.pop("scorecard_extraction", None)
+                        st.session_state.pop("scorecard_course_fields_populated", None)
                         for key in list(st.session_state.keys()):
                             if key.startswith("upload_") and key != "upload_round_notes":
                                 st.session_state.pop(key, None)
+                        # Prevent course metadata from a prior uploaded round from
+                        # surviving when the new image does not show that field.
+                        for key in [
+                            "round_course_name",
+                            "round_tee_name",
+                            "round_course_par",
+                            "round_course_rating",
+                            "round_course_slope",
+                        ]:
+                            st.session_state.pop(key, None)
 
                     st.image(scorecard_file, caption="Uploaded scorecard", use_container_width=True)
                     if st.button("📷 Read Scorecard", type="secondary", use_container_width=True):
@@ -5957,6 +6060,7 @@ if show_step1:
                             for key in list(st.session_state.keys()):
                                 if key.startswith("upload_"):
                                     st.session_state.pop(key, None)
+                            _apply_scorecard_course_metadata(extraction)
                             st.session_state["scorecard_extraction"] = extraction
                             st.rerun()
                         except Exception as exc:
@@ -6108,11 +6212,23 @@ if show_step1:
                 else:
                     st.info("Upload a scorecard image or app screenshot to begin.")
 
-            with st.expander("🏟️ Optional course context for meaningful progress trends", expanded=False):
+            _auto_course_fields = st.session_state.get(
+                "scorecard_course_fields_populated", []
+            )
+            with st.expander(
+                "🏟️ Optional course context for meaningful progress trends",
+                expanded=bool(_auto_course_fields),
+            ):
                 st.caption(
                     "Optional, but recommended. Par normalizes 9- vs 18-hole trends; "
                     "course rating and slope allow a more course-aware approximate differential."
                 )
+                if intake_mode == "📷 Upload Scorecard" and _auto_course_fields:
+                    st.success(
+                        "Auto-filled from the scorecard: "
+                        + ", ".join(_auto_course_fields)
+                        + ". Review or correct anything before continuing."
+                    )
                 extracted_course = (
                     st.session_state.get("scorecard_extraction", {})
                     if intake_mode == "📷 Upload Scorecard"
@@ -6122,14 +6238,26 @@ if show_step1:
                 with cc1:
                     course_name = st.text_input(
                         "Course",
-                        value=str(extracted_course.get("course_name") or ""),
+                        value=str(
+                            st.session_state.get(
+                                "round_course_name",
+                                extracted_course.get("course_name") or "",
+                            )
+                            or ""
+                        ),
                         key="round_course_name",
                         placeholder="Optional",
                     )
                 with cc2:
                     tee_name = st.text_input(
                         "Tees",
-                        value=str(extracted_course.get("tee_name") or ""),
+                        value=str(
+                            st.session_state.get(
+                                "round_tee_name",
+                                extracted_course.get("tee_name") or "",
+                            )
+                            or ""
+                        ),
                         key="round_tee_name",
                         placeholder="Optional",
                     )
@@ -6139,7 +6267,10 @@ if show_step1:
                         "Par for holes played",
                         min_value=1,
                         max_value=150,
-                        value=_as_int_or_none(extracted_course.get("course_par")),
+                        value=st.session_state.get(
+                            "round_course_par",
+                            _as_int_or_none(extracted_course.get("course_par")),
+                        ),
                         step=1,
                         key="round_course_par",
                         placeholder="Optional",
@@ -6150,7 +6281,10 @@ if show_step1:
                         "Course Rating",
                         min_value=20.0,
                         max_value=100.0,
-                        value=_as_float_or_none(extracted_course.get("course_rating")),
+                        value=st.session_state.get(
+                            "round_course_rating",
+                            _as_float_or_none(extracted_course.get("course_rating")),
+                        ),
                         step=0.1,
                         key="round_course_rating",
                         placeholder="Optional",
@@ -6161,7 +6295,10 @@ if show_step1:
                         "Slope",
                         min_value=55,
                         max_value=155,
-                        value=_as_int_or_none(extracted_course.get("course_slope")),
+                        value=st.session_state.get(
+                            "round_course_slope",
+                            _as_int_or_none(extracted_course.get("course_slope")),
+                        ),
                         step=1,
                         key="round_course_slope",
                         placeholder="Optional",
