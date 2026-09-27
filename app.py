@@ -539,21 +539,21 @@ def render_drill_metric_boxes(ball_count, time_minutes, activity, pass_target):
         ("📊", "Activity", str(activity).replace("_", " ").title()),
         ("🏁", "Pass", f"{pass_target}/10"),
     ]
-    cols = st.columns([1.18, .94, .72], gap="medium")
+    cols = st.columns([1.15, .92, .62], gap="small")
     for col, (icon, label, value) in zip(cols, cards):
         with col:
             st.markdown(
-                "<div style='min-height:68px;padding:11px 12px;margin:2px 0 7px;"
-                "border-radius:11px;"
+                "<div style='min-height:56px;padding:8px 10px;margin:1px 0 6px;"
+                "border-radius:10px;"
                 "background:linear-gradient(145deg,rgba(36,48,66,.90),rgba(20,28,40,.94));"
                 "border:1px solid rgba(109,125,148,.46);"
                 "box-shadow:inset 0 1px 0 rgba(255,255,255,.045),"
-                "0 4px 12px rgba(0,0,0,.10);'>"
-                f"<div style='font-size:.67rem;font-weight:800;color:#b7c5d8;"
-                "letter-spacing:.035em;white-space:nowrap;'>"
+                "0 3px 9px rgba(0,0,0,.09);'>"
+                f"<div style='font-size:.62rem;font-weight:800;color:#b7c5d8;"
+                "letter-spacing:.03em;white-space:nowrap;'>"
                 f"{_safe_html(icon)} {_safe_html(label)}</div>"
-                f"<div style='font-size:.81rem;font-weight:780;line-height:1.30;"
-                "margin-top:6px;color:#f8fafc;'>"
+                f"<div style='font-size:.76rem;font-weight:770;line-height:1.24;"
+                "margin-top:4px;color:#f8fafc;'>"
                 f"{_safe_html(value)}</div>"
                 "</div>",
                 unsafe_allow_html=True,
@@ -650,7 +650,7 @@ def render_drill_progress_cards(steps):
             unsafe_allow_html=True,
         )
 
-def render_practice_section_header(title, kind="primary", kicker="", icon=""):
+def render_practice_section_header(title, kind="primary", kicker="", icon="", subtitle=""):
     """High-contrast but restrained section strip for long practice plans."""
     palette = {
         "primary": {
@@ -673,6 +673,7 @@ def render_practice_section_header(title, kind="primary", kicker="", icon=""):
     safe_title = html.escape(str(title or ""))
     safe_kicker = html.escape(str(kicker or ""))
     safe_icon = html.escape(str(icon or ""))
+    safe_subtitle = html.escape(str(subtitle or ""))
 
     st.markdown(
         (
@@ -691,9 +692,14 @@ def render_practice_section_header(title, kind="primary", kicker="", icon=""):
                 f"{safe_kicker}</div>"
                 if safe_kicker else ""
             )
-            + f"<div style='font-size:1.02rem;font-weight:760;line-height:1.25;'>"
+            + f"<div style='font-size:1.02rem;font-weight:760;line-height:1.22;'>"
               f"{safe_icon} {safe_title}</div>"
-            "</div>"
+            + (
+                f"<div style='font-size:.80rem;line-height:1.35;color:#9fb0c6;"
+                f"margin-top:4px;font-weight:600;'>{safe_subtitle}</div>"
+                if safe_subtitle else ""
+            )
+            + "</div>"
         ),
         unsafe_allow_html=True,
     )
@@ -1102,7 +1108,7 @@ def render_drill_visual_aid(drill_name, persona_key=None, show_large=True):
     )
 
     st.markdown(
-        "<div style='padding:12px 12px 11px;margin:2px 0 12px;"
+        "<div style='padding:12px 12px 11px;margin:2px 0 6px;"
         "border:1px solid rgba(91,111,139,.46);border-radius:12px;"
         "background:linear-gradient(145deg,rgba(12,20,32,.92),rgba(8,14,23,.96));"
         "box-shadow:0 6px 16px rgba(0,0,0,.12),"
@@ -1111,26 +1117,6 @@ def render_drill_visual_aid(drill_name, persona_key=None, show_large=True):
         "</div>",
         unsafe_allow_html=True,
     )
-
-    if show_large:
-        with st.expander("🔍 View larger setup", expanded=False):
-            large_svg = _build_drill_visual_svg(
-                drill_name, width=980, height=390
-            )
-            responsive_large_svg = large_svg.replace(
-                'width="100%" height="100%"',
-                'width="100%" height="auto" style="display:block;"',
-                1,
-            )
-            st.markdown(
-                "<div style='padding:10px;border-radius:11px;"
-                "background:#0b1421;border:1px solid rgba(91,111,139,.42);'>"
-                f"{responsive_large_svg}</div>",
-                unsafe_allow_html=True,
-            )
-            st.caption(
-                "Setup diagram only — use the coaching steps below for execution."
-            )
 
 
 def _format_stroke_estimate(value, include_word=True):
@@ -9189,6 +9175,7 @@ if (
                         kind="primary",
                         kicker="Primary Drill · Drill #1",
                         icon="🎯",
+                        subtitle=f"Primary highest-priority drill · Addressing: {p_miss}",
                     )
                     drill_panel = st.container(border=True)
                 else:
@@ -9197,6 +9184,7 @@ if (
                         kind="secondary",
                         kicker=f"Secondary Drill · Drill #{idx+1}",
                         icon="🧩",
+                        subtitle=f"Secondary focus drill · Addressing: {s_miss if s_miss else 'Performance Polish'}",
                     )
                     drill_panel = st.expander(
                         f"Open Drill #{idx+1} details",
@@ -9221,8 +9209,7 @@ if (
                         if x.strip()
                     ]
 
-                    # Approved preview hierarchy:
-                    # visual on the left; metrics + priority + caddie on the right.
+                    # Tighter top row: visual left, compact metric cards + purpose right.
                     drill_visual_col, drill_info_col = st.columns(
                         [1.04, 1.06], gap="medium"
                     )
@@ -9233,7 +9220,7 @@ if (
                             persona_key=st.session_state.get(
                                 "caddie_persona_key", selected_persona_key
                             ),
-                            show_large=True,
+                            show_large=False,
                         )
 
                     with drill_info_col:
@@ -9245,30 +9232,29 @@ if (
                         )
 
                         st.markdown(
-                            "<div style='margin:10px 0 7px;'>"
-                            f"<div style='font-size:1.10rem;font-weight:850;"
-                            "line-height:1.28;color:#f8fafc;'>"
-                            f"🔥 {_safe_html(label)}</div>"
+                            "<div style='margin:8px 0 4px;'>"
                             f"<div style='font-size:.84rem;line-height:1.48;"
-                            "color:#bec8d6;margin-top:8px;'>"
+                            "color:#bec8d6;'>"
                             f"🎯 {_safe_html(drill_purpose)}</div>"
                             "</div>",
                             unsafe_allow_html=True,
                         )
 
-                        render_drill_voice_briefing(
-                            drill_name=d_name,
-                            persona_key=st.session_state.get(
-                                "caddie_persona_key", selected_persona_key
-                            ),
-                            diagnosis=diag,
-                            purpose=drill_purpose,
-                            setup_text=schematic["vivid_description"],
-                            kpi=kpi,
-                            balls_per_drill=balls_per_drill,
-                            time_per_drill=time_per_drill,
-                            auto_generate_audio=(idx == 0),
-                        )
+                    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+
+                    render_drill_voice_briefing(
+                        drill_name=d_name,
+                        persona_key=st.session_state.get(
+                            "caddie_persona_key", selected_persona_key
+                        ),
+                        diagnosis=diag,
+                        purpose=drill_purpose,
+                        setup_text=schematic["vivid_description"],
+                        kpi=kpi,
+                        balls_per_drill=balls_per_drill,
+                        time_per_drill=time_per_drill,
+                        auto_generate_audio=(idx == 0),
+                    )
 
                     st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
@@ -9330,6 +9316,7 @@ if (
                     kind="transfer",
                     kicker=f"Transfer Phase · Drill #{len(active_drills)+1}",
                     icon="🏁",
+                    subtitle="One-ball pressure transfer · Course-like decision and commitment reps",
                 )
                 with st.expander(
                     "Open transfer / pressure details",
@@ -9362,7 +9349,7 @@ if (
                             persona_key=st.session_state.get(
                                 "caddie_persona_key", selected_persona_key
                             ),
-                            show_large=True,
+                            show_large=False,
                         )
 
                     with transfer_info_col:
@@ -9373,28 +9360,27 @@ if (
                             pressure_kpi["target"],
                         )
                         st.markdown(
-                            "<div style='margin:10px 0 7px;'>"
-                            "<div style='font-size:1.10rem;font-weight:850;"
-                            "line-height:1.28;color:#f8fafc;'>"
-                            "🔥 Final Phase: On-Course Pressure Transfer</div>"
+                            "<div style='margin:8px 0 4px;'>"
                             "<div style='font-size:.84rem;line-height:1.48;"
-                            "color:#bec8d6;margin-top:8px;'>"
+                            "color:#bec8d6;'>"
                             f"🎯 {_safe_html(pressure_purpose)}</div></div>",
                             unsafe_allow_html=True,
                         )
-                        render_drill_voice_briefing(
-                            drill_name="Target Course Pressure Simulation",
-                            persona_key=st.session_state.get(
-                                "caddie_persona_key", selected_persona_key
-                            ),
-                            diagnosis=diag,
-                            purpose=pressure_purpose,
-                            setup_text=pressure_setup,
-                            kpi=pressure_kpi,
-                            balls_per_drill=gm_balls,
-                            time_per_drill=gm_time,
-                            auto_generate_audio=False,
-                        )
+
+                    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+                    render_drill_voice_briefing(
+                        drill_name="Target Course Pressure Simulation",
+                        persona_key=st.session_state.get(
+                            "caddie_persona_key", selected_persona_key
+                        ),
+                        diagnosis=diag,
+                        purpose=pressure_purpose,
+                        setup_text=pressure_setup,
+                        kpi=pressure_kpi,
+                        balls_per_drill=gm_balls,
+                        time_per_drill=gm_time,
+                        auto_generate_audio=False,
+                    )
 
                     transfer_how, transfer_test, transfer_progress = st.tabs(
                         ["▶️ How to Do It", "🔧 Test & Equipment", "📈 Progress & Tips"]
