@@ -580,8 +580,12 @@ def render_drill_insight_card(title, text, kind="mental"):
 
     clean_text = str(text or "").strip()
     if kind == "tip":
+        # Remove leading emoji / bullets / markdown wrappers and any repeated
+        # "Pro Tip:" label so only the actual tip content remains.
         clean_text = re.sub(
-            r'^\s*(?:💡\s*)?(?:\*\*\s*)?pro\s*tip\s*:?(?:\s*\*\*)?\s*',
+            r'^\s*(?:[^\w\s:]+|\uFE0F|\u200D|\*|_|\s)*'
+            r'(?:pro\s*tip)\s*:?\s*'
+            r'(?:\*\*|__|\*|_|\s)*',
             "",
             clean_text,
             flags=re.IGNORECASE,
