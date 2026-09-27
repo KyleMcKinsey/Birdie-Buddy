@@ -702,14 +702,15 @@ def render_practice_section_header(title, kind="primary", kicker="", icon="", su
                 f"{safe_kicker}</div>"
                 if safe_kicker else ""
             )
+            + "<div style='display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;'>"
             + f"<div style='font-size:1.02rem;font-weight:760;line-height:1.22;'>"
               f"{safe_icon} {safe_title}</div>"
             + (
-                f"<div style='font-size:.80rem;line-height:1.35;color:#9fb0c6;"
-                f"margin-top:4px;font-weight:600;'>{safe_subtitle}</div>"
+                f"<div style='font-size:.79rem;line-height:1.25;color:#9fb0c6;"
+                f"font-weight:600;'>{safe_subtitle}</div>"
                 if safe_subtitle else ""
             )
-            + "</div>"
+            + "</div></div>"
         ),
         unsafe_allow_html=True,
     )
@@ -9185,7 +9186,7 @@ if (
                         kind="primary",
                         kicker="Primary Drill · Drill #1",
                         icon="🎯",
-                        subtitle=f"Primary highest-priority drill · Addressing: {p_miss}",
+                        subtitle=f"Addressing: {p_miss}",
                     )
                     drill_panel = st.container(border=True)
                 else:
@@ -9194,7 +9195,7 @@ if (
                         kind="secondary",
                         kicker=f"Secondary Drill · Drill #{idx+1}",
                         icon="🧩",
-                        subtitle=f"Secondary focus drill · Addressing: {s_miss if s_miss else 'Performance Polish'}",
+                        subtitle=f"Addressing: {s_miss if s_miss else 'Performance Polish'}",
                     )
                     drill_panel = st.expander(
                         f"Open Drill #{idx+1} details",
@@ -9326,7 +9327,7 @@ if (
                     kind="transfer",
                     kicker=f"Transfer Phase · Drill #{len(active_drills)+1}",
                     icon="🏁",
-                    subtitle="One-ball pressure transfer · Course-like decision and commitment reps",
+                    subtitle="Addressing: Course-like transfer",
                 )
                 with st.expander(
                     "Open transfer / pressure details",
