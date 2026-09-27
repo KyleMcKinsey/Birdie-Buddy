@@ -17,7 +17,48 @@ import streamlit.components.v1 as components
 from PIL import Image
 
 st.set_page_config(
-    page_title="Birdie Buddy", page_icon="⛳", layout="centered"
+    page_title="Birdie Buddy", page_icon="⛳", layout="wide"
+)
+
+st.markdown(
+    """
+    <style>
+    /* Birdie Buddy dashboard canvas:
+       wide enough for the approved drill layout without becoming edge-to-edge. */
+    .stMainBlockContainer,
+    [data-testid="stMainBlockContainer"] {
+        max-width: 1180px !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+        padding-top: 1.4rem !important;
+    }
+
+    /* Give columns a little more breathing room. */
+    [data-testid="stHorizontalBlock"] {
+        gap: 1rem;
+    }
+
+    /* Keep drill tabs readable and visually substantial. */
+    button[data-baseweb="tab"] {
+        min-height: 44px;
+    }
+    button[data-baseweb="tab"] p {
+        font-size: .88rem !important;
+        font-weight: 700 !important;
+    }
+
+    /* Prevent metric-card content from looking like stacked narrow towers. */
+    [data-testid="stHorizontalBlock"] > div {
+        min-width: 0;
+    }
+
+    /* Audio players should fill the available coaching column cleanly. */
+    [data-testid="stAudio"] {
+        width: 100%;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 CSV_FILE = "birdie_buddy_practice_history.csv"
@@ -476,11 +517,11 @@ def render_drill_metric_boxes(ball_count, time_minutes, activity, pass_target):
         ("📊", "Activity", str(activity).replace("_", " ").title()),
         ("🏁", "Pass", f"{pass_target}/10"),
     ]
-    cols = st.columns([1.35, 1, .8])
+    cols = st.columns([1.25, 1, .85])
     for col, (icon, label, value) in zip(cols, cards):
         with col:
             st.markdown(
-                "<div style='min-height:58px;padding:8px 12px;border-radius:10px;"
+                "<div style='min-height:60px;padding:9px 14px;border-radius:11px;"
                 "background:linear-gradient(135deg,rgba(71,85,105,.18),rgba(30,41,59,.09));"
                 "border:1px solid rgba(148,163,184,.27);"
                 "box-shadow:inset 0 1px 0 rgba(255,255,255,.035);'>"
@@ -8902,7 +8943,7 @@ if (
                     # Visual and coaching content below the metrics. Use a slightly
                     # visual-heavy split but give coaching enough width to avoid
                     # the severe title wrapping seen in the prior build.
-                    drill_visual_col, drill_info_col = st.columns([1.08, 1.12])
+                    drill_visual_col, drill_info_col = st.columns([1.12, 1.0])
 
                     with drill_visual_col:
                         render_drill_visual_aid(
@@ -9035,7 +9076,7 @@ if (
                         pressure_kpi["target"],
                     )
 
-                    transfer_visual_col, transfer_info_col = st.columns([1.08, 1.12])
+                    transfer_visual_col, transfer_info_col = st.columns([1.12, 1.0])
 
                     with transfer_visual_col:
                         render_drill_visual_aid(
