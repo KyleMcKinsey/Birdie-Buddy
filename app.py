@@ -33,9 +33,14 @@ st.markdown(
         padding-top: 1.4rem !important;
     }
 
-    /* Give columns a little more breathing room. */
+    /* Give dashboard cards enough separation that borders never visually touch. */
     [data-testid="stHorizontalBlock"] {
-        gap: 1rem;
+        gap: 1.15rem;
+    }
+
+    /* A little breathing room around bordered Streamlit panels. */
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        border-radius: 12px !important;
     }
 
     /* Tabs: segmented-control feel, matching the approved drill preview. */
@@ -528,29 +533,32 @@ def _drill_category(drill_name: str) -> str:
 
 
 def render_drill_metric_boxes(ball_count, time_minutes, activity, pass_target):
-    """Compact Allocation / Activity / Pass cards for the right drill panel."""
+    """Compact Allocation / Activity / Pass cards with deliberate spacing."""
     cards = [
         ("⚪", "Allocation", f"≈{ball_count} balls · ≈{time_minutes} min"),
         ("📊", "Activity", str(activity).replace("_", " ").title()),
         ("🏁", "Pass", f"{pass_target}/10"),
     ]
-    cols = st.columns([1.18, .94, .72], gap="small")
+    cols = st.columns([1.18, .94, .72], gap="medium")
     for col, (icon, label, value) in zip(cols, cards):
         with col:
             st.markdown(
-                "<div style='min-height:66px;padding:9px 10px;border-radius:10px;"
-                "background:linear-gradient(145deg,rgba(36,48,66,.88),rgba(20,28,40,.92));"
-                "border:1px solid rgba(109,125,148,.48);"
-                "box-shadow:inset 0 1px 0 rgba(255,255,255,.035);'>"
-                f"<div style='font-size:.66rem;font-weight:800;color:#b7c5d8;"
+                "<div style='min-height:68px;padding:11px 12px;margin:2px 0 7px;"
+                "border-radius:11px;"
+                "background:linear-gradient(145deg,rgba(36,48,66,.90),rgba(20,28,40,.94));"
+                "border:1px solid rgba(109,125,148,.46);"
+                "box-shadow:inset 0 1px 0 rgba(255,255,255,.045),"
+                "0 4px 12px rgba(0,0,0,.10);'>"
+                f"<div style='font-size:.67rem;font-weight:800;color:#b7c5d8;"
                 "letter-spacing:.035em;white-space:nowrap;'>"
                 f"{_safe_html(icon)} {_safe_html(label)}</div>"
-                f"<div style='font-size:.79rem;font-weight:780;line-height:1.28;"
-                "margin-top:5px;color:#f8fafc;'>"
+                f"<div style='font-size:.81rem;font-weight:780;line-height:1.30;"
+                "margin-top:6px;color:#f8fafc;'>"
                 f"{_safe_html(value)}</div>"
                 "</div>",
                 unsafe_allow_html=True,
             )
+
 
 def render_drill_insight_card(title, text, kind="mental"):
     """Large readable Mental Analogy / Pro Tip card from the approved preview."""
@@ -570,7 +578,7 @@ def render_drill_insight_card(title, text, kind="mental"):
     }
     p = palette.get(kind, palette["mental"])
     st.markdown(
-        "<div style='min-height:132px;padding:15px 17px;"
+        "<div style='min-height:132px;padding:16px 18px;margin:2px 0 10px;"
         f"background:{p['bg']};border:1px solid {p['border']};"
         "border-radius:11px;box-shadow:inset 0 1px 0 rgba(255,255,255,.035);'>"
         f"<div style='font-size:.94rem;font-weight:850;color:{p['title']};"
@@ -587,7 +595,7 @@ def render_drill_detail_cards(rows):
     """Readable cards for the Test & Equipment tab."""
     for label, value in rows:
         st.markdown(
-            "<div style='margin:7px 0;padding:11px 13px;border-radius:9px;"
+            "<div style='margin:10px 2px;padding:12px 14px;border-radius:10px;"
             "background:rgba(21,30,43,.80);border:1px solid rgba(100,116,139,.30);'>"
             f"<div style='font-size:.70rem;font-weight:850;letter-spacing:.045em;"
             "text-transform:uppercase;color:#8fa3bb;margin-bottom:4px;'>"
@@ -630,7 +638,7 @@ def render_drill_progress_cards(steps):
 
     for idx, step in enumerate(parts, start=1):
         st.markdown(
-            "<div style='margin:7px 0;padding:11px 13px;border-radius:9px;"
+            "<div style='margin:10px 2px;padding:12px 14px;border-radius:10px;"
             "background:rgba(21,30,43,.80);border:1px solid rgba(100,116,139,.30);"
             "display:flex;gap:10px;align-items:flex-start;'>"
             f"<div style='min-width:25px;height:25px;border-radius:50%;"
@@ -810,12 +818,59 @@ def _build_drill_visual_svg(drill_name, width=760, height=310):
     W, H = width, height
     p = [
         f'<svg viewBox="0 0 {W} {H}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{html.escape(title)}">',
-        f'<rect x="1" y="1" width="{W-2}" height="{H-2}" rx="20" fill="#0f172a" stroke="#334155" stroke-width="2"/>',
-        f'<rect x="18" y="58" width="{W-36}" height="{H-78}" rx="16" fill="#153b2c"/>',
-        f'<path d="M18 {H-70} C170 {H-135}, 330 {H-90}, 470 {H-145} S650 {H-100}, {W-18} {H-150} L{W-18} {H-20} L18 {H-20}Z" fill="#174b32" opacity=".72"/>',
-        f'<path d="M18 92 C150 58, 255 88, 375 70 S600 92, {W-18} 65 L{W-18} 105 C610 125, 475 106, 355 119 S145 105, 18 128Z" fill="#123523" opacity=".88"/>',
+        '<defs>'
+        '<linearGradient id="cardBg" x1="0" y1="0" x2="1" y2="1">'
+        '<stop offset="0%" stop-color="#111f36"/><stop offset="100%" stop-color="#091321"/>'
+        '</linearGradient>'
+        '<linearGradient id="courseBg" x1="0" y1="0" x2="0" y2="1">'
+        '<stop offset="0%" stop-color="#174d36"/><stop offset="55%" stop-color="#155037"/>'
+        '<stop offset="100%" stop-color="#103d2c"/>'
+        '</linearGradient>'
+        '<linearGradient id="fairwayGlow" x1="0" y1="0" x2="1" y2="0">'
+        '<stop offset="0%" stop-color="#1f6a43"/><stop offset="50%" stop-color="#27784a"/>'
+        '<stop offset="100%" stop-color="#1d5b3d"/>'
+        '</linearGradient>'
+        '<linearGradient id="dispersionFill" x1="0" y1="0" x2="1" y2="0">'
+        '<stop offset="0%" stop-color="#38bdf8" stop-opacity=".06"/>'
+        '<stop offset="100%" stop-color="#60a5fa" stop-opacity=".34"/>'
+        '</linearGradient>'
+        '<radialGradient id="targetGlow">'
+        '<stop offset="0%" stop-color="#bef264" stop-opacity=".46"/>'
+        '<stop offset="70%" stop-color="#84cc16" stop-opacity=".17"/>'
+        '<stop offset="100%" stop-color="#84cc16" stop-opacity="0"/>'
+        '</radialGradient>'
+        '<filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">'
+        '<feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#020617" flood-opacity=".40"/>'
+        '</filter>'
+        '</defs>',
+        f'<rect x="1" y="1" width="{W-2}" height="{H-2}" rx="20" fill="url(#cardBg)" stroke="#3b5575" stroke-width="2"/>',
+        f'<rect x="18" y="58" width="{W-36}" height="{H-78}" rx="16" fill="url(#courseBg)" filter="url(#softShadow)"/>',
+
+        # layered rough / fairway forms create more depth without using a golfer
+        f'<path d="M18 80 C120 58,205 82,300 69 S505 81,610 65 S700 72,{W-18} 61 '
+        f'L{W-18} 115 C675 126,590 113,505 125 S305 114,215 129 S95 118,18 136Z" '
+        f'fill="#0c3527" opacity=".96"/>',
+        f'<path d="M18 {H-48} C150 {H-124},286 {H-99},398 {H-139} '
+        f'S610 {H-108},{W-18} {H-151} L{W-18} {H-20} L18 {H-20}Z" '
+        f'fill="#164b33" opacity=".92"/>',
+        f'<path d="M40 {H-59} C178 {H-132},292 {H-111},410 {H-146} '
+        f'S605 {H-119},{W-42} {H-155} L{W-42} {H-52} '
+        f'C620 {H-32},485 {H-44},360 {H-30} S150 {H-35},40 {H-59}Z" '
+        f'fill="url(#fairwayGlow)" opacity=".80"/>',
+
+        # subtle mowing stripes
+        f'<path d="M55 {H-63} C190 {H-124},292 {H-108},405 {H-140}" '
+        f'fill="none" stroke="#4b9867" stroke-width="18" opacity=".10"/>',
+        f'<path d="M175 {H-45} C300 {H-100},410 {H-91},535 {H-125}" '
+        f'fill="none" stroke="#8bc59c" stroke-width="14" opacity=".07"/>',
+
+        # tree-line silhouettes
+        f'<circle cx="55" cy="88" r="18" fill="#092b20"/><circle cx="78" cy="82" r="24" fill="#0a3023"/>'
+        f'<circle cx="110" cy="90" r="18" fill="#092b20"/><circle cx="{W-100}" cy="82" r="25" fill="#0a3023"/>'
+        f'<circle cx="{W-70}" cy="91" r="19" fill="#092b20"/>',
+
         _dv_text(28, 35, title, 18, anchor="start", weight=700),
-        _dv_text(W-28, 35, "VISUAL SETUP • NOT TO SCALE", 11, "#94a3b8", "end", 700),
+        _dv_text(W-28, 35, "VISUAL SETUP • NOT TO SCALE", 11, "#93a8c4", "end", 700),
     ]
 
     if family == "alignment":
@@ -988,12 +1043,34 @@ def _build_drill_visual_svg(drill_name, width=760, height=310):
 
     elif family == "dispersion":
         p += [
-            _dv_ball(105, 230), _dv_target(650, 140),
-            '<polygon points="130,230 590,102 590,212" fill="#60a5fa" opacity=".20" stroke="#60a5fa" stroke-width="3"/>',
-            '<ellipse cx="575" cy="160" rx="65" ry="60" fill="none" stroke="#86efac" stroke-width="4"/>',
-            _dv_arrow(135, 224, 565, 165),
-            _dv_text(390, 102, "EXPECTED DISPERSION", 13, "#bfdbfe"),
-            _dv_text(575, 245, "SAFE TARGET ZONE", 12, "#bbf7d0"),
+            # soft target glow + safe-zone ring
+            '<circle cx="585" cy="158" r="92" fill="url(#targetGlow)"/>',
+            '<ellipse cx="585" cy="158" rx="67" ry="60" fill="#315f36" opacity=".34" '
+            'stroke="#9bf5a7" stroke-width="4"/>',
+
+            # dispersion cone body with bright dashed envelope
+            '<polygon points="126,230 565,94 610,220" fill="url(#dispersionFill)"/>',
+            '<line x1="128" y1="230" x2="565" y2="94" stroke="#dbeafe" '
+            'stroke-width="3" stroke-dasharray="10 8" opacity=".92"/>',
+            '<line x1="128" y1="230" x2="610" y2="220" stroke="#dbeafe" '
+            'stroke-width="3" stroke-dasharray="10 8" opacity=".92"/>',
+
+            # intended aim line
+            _dv_arrow(132, 226, 568, 163, "#f7c948", 6),
+            _dv_ball(105, 230),
+            _dv_target(650, 142),
+
+            # hazard / boundary cones for context
+            '<polygon points="286,173 298,142 310,173" fill="#fb923c"/>'
+            '<rect x="284" y="173" width="28" height="5" rx="2" fill="#fdba74"/>',
+            '<polygon points="505,111 517,80 529,111" fill="#fb923c"/>'
+            '<rect x="503" y="111" width="28" height="5" rx="2" fill="#fdba74"/>',
+            '<polygon points="518,232 530,201 542,232" fill="#fb923c"/>'
+            '<rect x="516" y="232" width="28" height="5" rx="2" fill="#fdba74"/>',
+
+            _dv_text(390, 92, "EXPECTED DISPERSION", 13, "#dbeafe"),
+            _dv_text(585, 255, "SAFE TARGET ZONE", 12, "#d9f99d"),
+            _dv_text(350, 205, "AIM LINE", 11, "#fde68a"),
         ]
 
     elif family == "pressure":
@@ -1016,30 +1093,45 @@ def _drill_visual_persona_label(persona_key):
 
 
 def render_drill_visual_aid(drill_name, persona_key=None, show_large=True):
-    """Render the golfer-free drill setup card with responsive inline SVG."""
-    with st.container(border=True):
-        svg = _build_drill_visual_svg(drill_name)
-        responsive_svg = svg.replace(
-            'width="100%" height="100%"',
-            'width="100%" height="auto" style="display:block;"',
-            1,
-        )
-        st.markdown(responsive_svg, unsafe_allow_html=True)
+    """Render a polished golfer-free visual card with controlled padding."""
+    svg = _build_drill_visual_svg(drill_name)
+    responsive_svg = svg.replace(
+        'width="100%" height="100%"',
+        'width="100%" height="auto" style="display:block;"',
+        1,
+    )
 
-        if show_large:
-            with st.expander("🔍 View larger setup", expanded=False):
-                large_svg = _build_drill_visual_svg(
-                    drill_name, width=980, height=390
-                )
-                responsive_large_svg = large_svg.replace(
-                    'width="100%" height="100%"',
-                    'width="100%" height="auto" style="display:block;"',
-                    1,
-                )
-                st.markdown(responsive_large_svg, unsafe_allow_html=True)
-                st.caption(
-                    "Setup diagram only — use the coaching steps below for execution."
-                )
+    st.markdown(
+        "<div style='padding:12px 12px 11px;margin:2px 0 12px;"
+        "border:1px solid rgba(91,111,139,.46);border-radius:12px;"
+        "background:linear-gradient(145deg,rgba(12,20,32,.92),rgba(8,14,23,.96));"
+        "box-shadow:0 6px 16px rgba(0,0,0,.12),"
+        "inset 0 1px 0 rgba(255,255,255,.025);'>"
+        f"{responsive_svg}"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    if show_large:
+        with st.expander("🔍 View larger setup", expanded=False):
+            large_svg = _build_drill_visual_svg(
+                drill_name, width=980, height=390
+            )
+            responsive_large_svg = large_svg.replace(
+                'width="100%" height="100%"',
+                'width="100%" height="auto" style="display:block;"',
+                1,
+            )
+            st.markdown(
+                "<div style='padding:10px;border-radius:11px;"
+                "background:#0b1421;border:1px solid rgba(91,111,139,.42);'>"
+                f"{responsive_large_svg}</div>",
+                unsafe_allow_html=True,
+            )
+            st.caption(
+                "Setup diagram only — use the coaching steps below for execution."
+            )
+
 
 def _format_stroke_estimate(value, include_word=True):
     """Display heuristic stroke estimates as ranges/rounded values, not false precision."""
@@ -1539,7 +1631,7 @@ def render_instruction_steps(content: str, drill_name: str = "", margin_left: in
             )
 
         st.markdown(
-            "<div style='margin:9px 0;padding:14px 16px;border-radius:11px;"
+            "<div style='margin:12px 2px;padding:15px 17px;border-radius:11px;"
             "background:linear-gradient(145deg,rgba(20,28,40,.92),rgba(13,20,31,.96));"
             f"border:1px solid {m['border']};"
             "box-shadow:inset 0 1px 0 rgba(255,255,255,.025);'>"
@@ -3981,11 +4073,11 @@ def render_drill_voice_briefing(
     )
 
     if briefing:
-        status_col, quote_col = st.columns([.92, 1.18], gap="small")
+        status_col, quote_col = st.columns([.92, 1.18], gap="medium")
 
         with status_col:
             st.markdown(
-                "<div style='min-height:166px;padding:13px 14px;border-radius:10px;"
+                "<div style='min-height:166px;padding:15px 16px;margin:3px 0 10px;border-radius:11px;"
                 f"background:{status_bg};border:1px solid {status_border};'>"
                 f"<div style='font-size:.82rem;font-weight:850;color:{status_color};"
                 "margin-bottom:8px;'>"
@@ -3997,7 +4089,7 @@ def render_drill_voice_briefing(
 
         with quote_col:
             st.markdown(
-                "<div style='min-height:166px;padding:13px 14px;border-radius:10px;"
+                "<div style='min-height:166px;padding:15px 16px;margin:3px 0 10px;border-radius:11px;"
                 "background:linear-gradient(145deg,rgba(20,61,96,.72),rgba(21,48,76,.80));"
                 "border:1px solid rgba(56,189,248,.36);'>"
                 f"<div style='font-size:.83rem;font-weight:850;color:#60a5fa;"
@@ -9178,6 +9270,8 @@ if (
                             auto_generate_audio=(idx == 0),
                         )
 
+                    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+
                     how_tab, test_tab, progress_tab = st.tabs(
                         ["▶️ How to Do It", "🔧 Test & Equipment", "📈 Progress & Tips"]
                     )
@@ -9214,6 +9308,7 @@ if (
                             icon="📌",
                         )
 
+                    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
                     analogy_col, tip_col = st.columns(2, gap="medium")
                     with analogy_col:
                         render_drill_insight_card(
