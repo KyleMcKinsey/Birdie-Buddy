@@ -470,23 +470,25 @@ def _drill_category(drill_name: str) -> str:
 
 
 def render_drill_metric_boxes(ball_count, time_minutes, activity, pass_target):
-    """Preview-style allocation/activity/pass cards."""
+    """Wide preview-style Allocation / Activity / Pass cards."""
     cards = [
         ("⚪", "Allocation", f"≈{ball_count} balls · ≈{time_minutes} min"),
         ("📊", "Activity", str(activity).replace("_", " ").title()),
         ("🏁", "Pass", f"{pass_target}/10"),
     ]
-    cols = st.columns(3)
+    cols = st.columns([1.35, 1, .8])
     for col, (icon, label, value) in zip(cols, cards):
         with col:
             st.markdown(
-                "<div style='min-height:62px;padding:8px 10px;border-radius:10px;"
-                "background:rgba(100,116,139,.10);"
-                "border:1px solid rgba(148,163,184,.24);"
-                "box-shadow:inset 0 1px 0 rgba(255,255,255,.025);'>"
-                f"<div style='font-size:.68rem;font-weight:800;color:#aab4c2;'>"
+                "<div style='min-height:58px;padding:8px 12px;border-radius:10px;"
+                "background:linear-gradient(135deg,rgba(71,85,105,.18),rgba(30,41,59,.09));"
+                "border:1px solid rgba(148,163,184,.27);"
+                "box-shadow:inset 0 1px 0 rgba(255,255,255,.035);'>"
+                f"<div style='font-size:.69rem;font-weight:800;color:#aeb7c4;"
+                "letter-spacing:.025em;'>"
                 f"{_safe_html(icon)} {_safe_html(label)}</div>"
-                f"<div style='font-size:.81rem;font-weight:700;line-height:1.25;margin-top:4px;'>"
+                f"<div style='font-size:.86rem;font-weight:760;line-height:1.25;"
+                "margin-top:4px;color:#f4f7fb;'>"
                 f"{_safe_html(value)}</div>"
                 "</div>",
                 unsafe_allow_html=True,
@@ -511,11 +513,11 @@ def render_drill_insight_card(title, text, kind="mental"):
     }
     p = palette.get(kind, palette["mental"])
     st.markdown(
-        "<div style='min-height:112px;padding:12px 14px;"
+        "<div style='min-height:126px;padding:14px 16px;"
         f"background:{p['bg']};border:1px solid {p['border']};border-radius:11px;'>"
         f"<div style='font-size:.90rem;font-weight:800;color:{p['title']};margin-bottom:7px;'>"
         f"{p['icon']} {_safe_html(title)}</div>"
-        "<div style='font-size:.84rem;line-height:1.5;color:#e5e7eb;'>"
+        "<div style='font-size:.88rem;line-height:1.55;color:#edf0f5;'>"
         f"{_safe_html(text)}</div>"
         "</div>",
         unsafe_allow_html=True,
@@ -692,6 +694,8 @@ def _build_drill_visual_svg(drill_name, width=760, height=310):
         f'<svg viewBox="0 0 {W} {H}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{html.escape(title)}">',
         f'<rect x="1" y="1" width="{W-2}" height="{H-2}" rx="20" fill="#0f172a" stroke="#334155" stroke-width="2"/>',
         f'<rect x="18" y="58" width="{W-36}" height="{H-78}" rx="16" fill="#153b2c"/>',
+        f'<path d="M18 {H-70} C170 {H-135}, 330 {H-90}, 470 {H-145} S650 {H-100}, {W-18} {H-150} L{W-18} {H-20} L18 {H-20}Z" fill="#174b32" opacity=".72"/>',
+        f'<path d="M18 92 C150 58, 255 88, 375 70 S600 92, {W-18} 65 L{W-18} 105 C610 125, 475 106, 355 119 S145 105, 18 128Z" fill="#123523" opacity=".88"/>',
         _dv_text(28, 35, title, 18, anchor="start", weight=700),
         _dv_text(W-28, 35, "VISUAL SETUP • NOT TO SCALE", 11, "#94a3b8", "end", 700),
     ]
@@ -8886,8 +8890,19 @@ if (
                         if x.strip()
                     ]
 
-                    # Preview-style top section: visual left, key information right.
-                    drill_visual_col, drill_info_col = st.columns([1.05, .95])
+                    # FULL-WIDTH metric row first. This prevents the three cards
+                    # from becoming narrow towers inside a squeezed right column.
+                    render_drill_metric_boxes(
+                        balls_per_drill,
+                        time_per_drill,
+                        activity_label,
+                        kpi["target"],
+                    )
+
+                    # Visual and coaching content below the metrics. Use a slightly
+                    # visual-heavy split but give coaching enough width to avoid
+                    # the severe title wrapping seen in the prior build.
+                    drill_visual_col, drill_info_col = st.columns([1.08, 1.12])
 
                     with drill_visual_col:
                         render_drill_visual_aid(
@@ -8899,19 +8914,17 @@ if (
                         )
 
                     with drill_info_col:
-                        render_drill_metric_boxes(
-                            balls_per_drill,
-                            time_per_drill,
-                            activity_label,
-                            kpi["target"],
-                        )
-                        st.markdown(f"### 🔥 {label}")
                         st.markdown(
-                            "<div style='font-size:.84rem;line-height:1.45;"
-                            "color:#b6bfcb;margin:2px 0 9px;'>"
-                            f"🎯 {_safe_html(drill_purpose)}</div>",
+                            "<div style='margin:2px 0 7px;'>"
+                            f"<div style='font-size:1.15rem;font-weight:800;line-height:1.25;'>"
+                            f"🔥 {_safe_html(label)}</div>"
+                            f"<div style='font-size:.84rem;line-height:1.45;"
+                            "color:#b6bfcb;margin-top:7px;'>"
+                            f"🎯 {_safe_html(drill_purpose)}</div>"
+                            "</div>",
                             unsafe_allow_html=True,
                         )
+
                         render_drill_voice_briefing(
                             drill_name=d_name,
                             persona_key=st.session_state.get(
@@ -8926,7 +8939,8 @@ if (
                             auto_generate_audio=(idx == 0),
                         )
 
-                    # Keep detail clear without the old long vertical stack.
+                    # The preview's three tabs remain, but the content uses normal
+                    # readable type sizes rather than tiny compact helper text.
                     how_tab, test_tab, progress_tab = st.tabs(
                         ["▶️ How to Do It", "🔧 Test & Equipment", "📈 Progress & Tips"]
                     )
@@ -8969,7 +8983,8 @@ if (
                             icon="📌",
                         )
 
-                    # Important cues remain large and visible regardless of active tab.
+                    # Valuable coaching cues stay outside the tabs and at normal
+                    # reading size, matching the approved preview.
                     analogy_col, tip_col = st.columns(2)
                     with analogy_col:
                         render_drill_insight_card(
@@ -9013,7 +9028,14 @@ if (
                         "realistic one-ball, one-decision course behavior."
                     )
 
-                    transfer_visual_col, transfer_info_col = st.columns([1.05, .95])
+                    render_drill_metric_boxes(
+                        gm_balls,
+                        gm_time,
+                        "One-Ball Scenarios",
+                        pressure_kpi["target"],
+                    )
+
+                    transfer_visual_col, transfer_info_col = st.columns([1.08, 1.12])
 
                     with transfer_visual_col:
                         render_drill_visual_aid(
@@ -9025,12 +9047,6 @@ if (
                         )
 
                     with transfer_info_col:
-                        render_drill_metric_boxes(
-                            gm_balls,
-                            gm_time,
-                            "One-Ball Scenarios",
-                            pressure_kpi["target"],
-                        )
                         st.markdown("### 🔥 Final Phase: On-Course Pressure Transfer")
                         st.markdown(
                             "<div style='font-size:.84rem;line-height:1.45;"
