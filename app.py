@@ -38,13 +38,30 @@ st.markdown(
         gap: 1rem;
     }
 
-    /* Keep drill tabs readable and visually substantial. */
+    /* Tabs: segmented-control feel, matching the approved drill preview. */
+    [data-baseweb="tab-list"] {
+        gap: 0 !important;
+        border-bottom: 1px solid rgba(100,116,139,.42);
+    }
     button[data-baseweb="tab"] {
-        min-height: 44px;
+        min-height: 46px;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        border: 1px solid rgba(100,116,139,.42) !important;
+        border-bottom: none !important;
+        border-radius: 9px 9px 0 0 !important;
+        background: rgba(15,23,42,.34) !important;
     }
     button[data-baseweb="tab"] p {
         font-size: .88rem !important;
-        font-weight: 700 !important;
+        font-weight: 750 !important;
+    }
+    button[data-baseweb="tab"][aria-selected="true"] {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+        color: white !important;
+    }
+    button[data-baseweb="tab"][aria-selected="true"] p {
+        color: white !important;
     }
 
     /* Prevent metric-card content from looking like stacked narrow towers. */
@@ -511,59 +528,119 @@ def _drill_category(drill_name: str) -> str:
 
 
 def render_drill_metric_boxes(ball_count, time_minutes, activity, pass_target):
-    """Wide preview-style Allocation / Activity / Pass cards."""
+    """Compact Allocation / Activity / Pass cards for the right drill panel."""
     cards = [
         ("⚪", "Allocation", f"≈{ball_count} balls · ≈{time_minutes} min"),
         ("📊", "Activity", str(activity).replace("_", " ").title()),
         ("🏁", "Pass", f"{pass_target}/10"),
     ]
-    cols = st.columns([1.25, 1, .85])
+    cols = st.columns([1.18, .94, .72], gap="small")
     for col, (icon, label, value) in zip(cols, cards):
         with col:
             st.markdown(
-                "<div style='min-height:60px;padding:9px 14px;border-radius:11px;"
-                "background:linear-gradient(135deg,rgba(71,85,105,.18),rgba(30,41,59,.09));"
-                "border:1px solid rgba(148,163,184,.27);"
+                "<div style='min-height:66px;padding:9px 10px;border-radius:10px;"
+                "background:linear-gradient(145deg,rgba(36,48,66,.88),rgba(20,28,40,.92));"
+                "border:1px solid rgba(109,125,148,.48);"
                 "box-shadow:inset 0 1px 0 rgba(255,255,255,.035);'>"
-                f"<div style='font-size:.69rem;font-weight:800;color:#aeb7c4;"
-                "letter-spacing:.025em;'>"
+                f"<div style='font-size:.66rem;font-weight:800;color:#b7c5d8;"
+                "letter-spacing:.035em;white-space:nowrap;'>"
                 f"{_safe_html(icon)} {_safe_html(label)}</div>"
-                f"<div style='font-size:.86rem;font-weight:760;line-height:1.25;"
-                "margin-top:4px;color:#f4f7fb;'>"
+                f"<div style='font-size:.79rem;font-weight:780;line-height:1.28;"
+                "margin-top:5px;color:#f8fafc;'>"
                 f"{_safe_html(value)}</div>"
                 "</div>",
                 unsafe_allow_html=True,
             )
 
-
 def render_drill_insight_card(title, text, kind="mental"):
-    """Large, readable coaching cue card kept visible below the tabs."""
+    """Large readable Mental Analogy / Pro Tip card from the approved preview."""
     palette = {
         "mental": {
-            "bg": "linear-gradient(135deg, rgba(109,76,199,.22), rgba(82,61,155,.10))",
-            "border": "rgba(167,139,250,.70)",
+            "bg": "linear-gradient(135deg, rgba(93,65,180,.28), rgba(51,40,104,.16))",
+            "border": "rgba(167,139,250,.76)",
             "title": "#c4b5fd",
             "icon": "🧠",
         },
         "tip": {
-            "bg": "linear-gradient(135deg, rgba(180,135,0,.20), rgba(113,84,0,.10))",
-            "border": "rgba(250,204,21,.62)",
+            "bg": "linear-gradient(135deg, rgba(174,130,0,.28), rgba(90,68,0,.16))",
+            "border": "rgba(250,204,21,.72)",
             "title": "#fde047",
             "icon": "💡",
         },
     }
     p = palette.get(kind, palette["mental"])
     st.markdown(
-        "<div style='min-height:126px;padding:14px 16px;"
-        f"background:{p['bg']};border:1px solid {p['border']};border-radius:11px;'>"
-        f"<div style='font-size:.90rem;font-weight:800;color:{p['title']};margin-bottom:7px;'>"
+        "<div style='min-height:132px;padding:15px 17px;"
+        f"background:{p['bg']};border:1px solid {p['border']};"
+        "border-radius:11px;box-shadow:inset 0 1px 0 rgba(255,255,255,.035);'>"
+        f"<div style='font-size:.94rem;font-weight:850;color:{p['title']};"
+        "margin-bottom:8px;'>"
         f"{p['icon']} {_safe_html(title)}</div>"
-        "<div style='font-size:.88rem;line-height:1.55;color:#edf0f5;'>"
+        "<div style='font-size:.90rem;line-height:1.55;color:#f0f3f8;'>"
         f"{_safe_html(text)}</div>"
         "</div>",
         unsafe_allow_html=True,
     )
 
+
+def render_drill_detail_cards(rows):
+    """Readable cards for the Test & Equipment tab."""
+    for label, value in rows:
+        st.markdown(
+            "<div style='margin:7px 0;padding:11px 13px;border-radius:9px;"
+            "background:rgba(21,30,43,.80);border:1px solid rgba(100,116,139,.30);'>"
+            f"<div style='font-size:.70rem;font-weight:850;letter-spacing:.045em;"
+            "text-transform:uppercase;color:#8fa3bb;margin-bottom:4px;'>"
+            f"{_safe_html(label)}</div>"
+            f"<div style='font-size:.88rem;line-height:1.48;color:#edf2f7;'>"
+            f"{_safe_html(value)}</div></div>",
+            unsafe_allow_html=True,
+        )
+
+
+def render_drill_equipment_chips(items):
+    """Compact wrapping equipment chips."""
+    chips = "".join(
+        "<span style='display:inline-block;margin:3px 5px 3px 0;padding:6px 9px;"
+        "border-radius:999px;background:rgba(71,85,105,.24);"
+        "border:1px solid rgba(148,163,184,.30);font-size:.78rem;"
+        "font-weight:650;color:#e6ebf2;'>"
+        f"🛠️ {_safe_html(item)}</span>"
+        for item in items if str(item).strip()
+    )
+    if chips:
+        st.markdown(
+            "<div style='margin-top:10px;'>"
+            "<div style='font-size:.76rem;font-weight:850;color:#aeb9c8;"
+            "margin-bottom:4px;'>EQUIPMENT</div>"
+            f"<div>{chips}</div></div>",
+            unsafe_allow_html=True,
+        )
+
+
+def render_drill_progress_cards(steps):
+    """Clear progression cards; accepts either a string progression or a list."""
+    if isinstance(steps, str):
+        clean = re.sub(r"^\s*Progression:\s*", "", steps, flags=re.IGNORECASE)
+        parts = [p.strip() for p in re.split(r"\s*→\s*", clean) if p.strip()]
+        if len(parts) <= 1:
+            parts = [clean.strip()] if clean.strip() else []
+    else:
+        parts = [str(step).strip() for step in steps if str(step).strip()]
+
+    for idx, step in enumerate(parts, start=1):
+        st.markdown(
+            "<div style='margin:7px 0;padding:11px 13px;border-radius:9px;"
+            "background:rgba(21,30,43,.80);border:1px solid rgba(100,116,139,.30);"
+            "display:flex;gap:10px;align-items:flex-start;'>"
+            f"<div style='min-width:25px;height:25px;border-radius:50%;"
+            "background:#334155;display:flex;align-items:center;justify-content:center;"
+            "font-size:.72rem;font-weight:850;color:#f8fafc;'>"
+            f"{idx}</div>"
+            f"<div style='font-size:.88rem;line-height:1.48;color:#edf2f7;'>"
+            f"{_safe_html(step)}</div></div>",
+            unsafe_allow_html=True,
+        )
 
 def render_practice_section_header(title, kind="primary", kicker="", icon=""):
     """High-contrast but restrained section strip for long practice plans."""
@@ -939,30 +1016,30 @@ def _drill_visual_persona_label(persona_key):
 
 
 def render_drill_visual_aid(drill_name, persona_key=None, show_large=True):
-    """Render the drill setup before the written instructions."""
-    _, title = _drill_visual_spec(drill_name)
-    st.markdown(
-        f"**{_drill_visual_persona_label(persona_key)} — {_safe_html(title)}**",
-        unsafe_allow_html=True,
-    )
-    svg = _build_drill_visual_svg(drill_name)
-    components.html(
-        "<style>body{margin:0;background:transparent;overflow:hidden}svg{display:block;width:100%;height:auto}</style>" + svg,
-        height=322,
-        scrolling=False,
-    )
-    if show_large:
-        with st.expander("🔍 View larger setup", expanded=False):
-            large_svg = _build_drill_visual_svg(drill_name, width=980, height=390)
-            components.html(
-                "<style>body{margin:0;background:transparent;overflow:hidden}svg{display:block;width:100%;height:auto}</style>" + large_svg,
-                height=402,
-                scrolling=False,
-            )
-            st.caption(
-                "The diagram shows setup and intent; use the written coaching guide below for exact execution."
-            )
+    """Render the golfer-free drill setup card with responsive inline SVG."""
+    with st.container(border=True):
+        svg = _build_drill_visual_svg(drill_name)
+        responsive_svg = svg.replace(
+            'width="100%" height="100%"',
+            'width="100%" height="auto" style="display:block;"',
+            1,
+        )
+        st.markdown(responsive_svg, unsafe_allow_html=True)
 
+        if show_large:
+            with st.expander("🔍 View larger setup", expanded=False):
+                large_svg = _build_drill_visual_svg(
+                    drill_name, width=980, height=390
+                )
+                responsive_large_svg = large_svg.replace(
+                    'width="100%" height="100%"',
+                    'width="100%" height="auto" style="display:block;"',
+                    1,
+                )
+                st.markdown(responsive_large_svg, unsafe_allow_html=True)
+                st.caption(
+                    "Setup diagram only — use the coaching steps below for execution."
+                )
 
 def _format_stroke_estimate(value, include_word=True):
     """Display heuristic stroke estimates as ranges/rounded values, not false precision."""
@@ -1402,8 +1479,8 @@ CATEGORY_PROGRESSION = {
 }
 
 
-def render_instruction_steps(content: str, drill_name: str = "", margin_left: int = 24):
-    """Render detailed SETUP / EXECUTION / SUCCESS / AVOID coaching blocks."""
+def render_instruction_steps(content: str, drill_name: str = "", margin_left: int = 0):
+    """Render SETUP / EXECUTION / SUCCESS / AVOID as full preview-style cards."""
     pattern = r"(SETUP|EXECUTION|SUCCESS|AVOID):\s*"
     matches = list(re.finditer(pattern, content, flags=re.IGNORECASE))
 
@@ -1412,40 +1489,76 @@ def render_instruction_steps(content: str, drill_name: str = "", margin_left: in
         return
 
     category = _drill_category(drill_name)
-    addons = CATEGORY_INSTRUCTION_ADDONS.get(category, CATEGORY_INSTRUCTION_ADDONS["general"])
-    icons = {"SETUP": "1️⃣", "EXECUTION": "2️⃣", "SUCCESS": "3️⃣", "AVOID": "⚠️"}
-    titles = {
-        "SETUP": "SETUP — Build the drill correctly",
-        "EXECUTION": "EXECUTION — Run each rep deliberately",
-        "SUCCESS": "SUCCESS — Know what a good rep looks like",
-        "AVOID": "AVOID — Common ways the drill gets cheated",
-    }
-
-    blocks = []
-    for idx, match in enumerate(matches):
-        label = match.group(1).upper()
-        start = match.end()
-        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(content)
-        body = content[start:end].strip()
-        extra = addons.get(label, "")
-        body_html = _scannable_html_text(body, min_length=125)
-        extra_html = _scannable_html_text(extra, min_length=125)
-        blocks.append(
-            "<div style='margin-bottom:18px; padding-bottom:16px; "
-            "border-bottom:1px solid rgba(128,128,128,0.20);'>"
-            f"<div style='font-weight:700; margin-bottom:8px;'>{icons[label]} {titles[label]}</div>"
-            f"<div style='line-height:1.68;'>{body_html}</div>"
-            f"<div style='line-height:1.62; margin-top:12px; color:#aeb4bf;'>"
-            f"<strong>Coach detail:</strong><br>{extra_html}</div>"
-            "</div>"
-        )
-
-    st.markdown(
-        f"<div style='margin-left:{margin_left}px; margin-top:6px; margin-bottom:10px;'>"
-        f"{''.join(blocks)}</div>",
-        unsafe_allow_html=True,
+    addons = CATEGORY_INSTRUCTION_ADDONS.get(
+        category, CATEGORY_INSTRUCTION_ADDONS["general"]
     )
 
+    meta = {
+        "SETUP": {
+            "num": "1", "icon": "📍",
+            "title": "SETUP", "subtitle": "Build the drill correctly",
+            "border": "rgba(96,165,250,.36)",
+            "badge": "#2563eb",
+        },
+        "EXECUTION": {
+            "num": "2", "icon": "📋",
+            "title": "EXECUTION", "subtitle": "Run each rep deliberately",
+            "border": "rgba(96,165,250,.36)",
+            "badge": "#2563eb",
+        },
+        "SUCCESS": {
+            "num": "3", "icon": "✅",
+            "title": "SUCCESS", "subtitle": "Know what a good rep looks like",
+            "border": "rgba(52,211,153,.38)",
+            "badge": "#059669",
+        },
+        "AVOID": {
+            "num": "!", "icon": "⚠️",
+            "title": "AVOID", "subtitle": "Common ways the drill gets cheated",
+            "border": "rgba(248,113,113,.38)",
+            "badge": "#dc2626",
+        },
+    }
+
+    for idx, match in enumerate(matches):
+        label = match.group(1).upper()
+        body_start = match.end()
+        body_end = matches[idx + 1].start() if idx + 1 < len(matches) else len(content)
+        body = content[body_start:body_end].strip()
+        extra = str(addons.get(label, "") or "").strip()
+        m = meta[label]
+
+        extra_html = ""
+        if extra:
+            extra_html = (
+                "<div style='margin-top:10px;padding-top:9px;"
+                "border-top:1px solid rgba(148,163,184,.16);"
+                "font-size:.82rem;line-height:1.5;color:#aeb9c8;'>"
+                f"<strong style='color:#c9d3e0;'>Coach cue:</strong> "
+                f"{_safe_html(extra)}</div>"
+            )
+
+        st.markdown(
+            "<div style='margin:9px 0;padding:14px 16px;border-radius:11px;"
+            "background:linear-gradient(145deg,rgba(20,28,40,.92),rgba(13,20,31,.96));"
+            f"border:1px solid {m['border']};"
+            "box-shadow:inset 0 1px 0 rgba(255,255,255,.025);'>"
+            "<div style='display:flex;align-items:center;gap:10px;margin-bottom:8px;'>"
+            f"<span style='display:inline-flex;width:27px;height:27px;border-radius:50%;"
+            f"align-items:center;justify-content:center;background:{m['badge']};"
+            "color:white;font-size:.78rem;font-weight:850;'>"
+            f"{m['num']}</span>"
+            f"<span style='font-size:.91rem;font-weight:850;color:#f8fafc;'>"
+            f"{m['title']}</span>"
+            f"<span style='font-size:.80rem;color:#99a8ba;'>— {m['subtitle']}</span>"
+            f"<span style='margin-left:auto;font-size:1.10rem;'>{m['icon']}</span>"
+            "</div>"
+            "<div style='font-size:.91rem;line-height:1.58;color:#e8edf4;'>"
+            f"{_safe_html(body)}</div>"
+            f"{extra_html}"
+            "</div>",
+            unsafe_allow_html=True,
+        )
 
 def format_instruction_steps_for_export(content: str, drill_name: str = "") -> str:
     """Expand the structured drill instructions in the plain-text export."""
@@ -3752,7 +3865,7 @@ def render_drill_voice_briefing(
     time_per_drill=None,
     auto_generate_audio=True,
 ):
-    """Generate and play a concise persona coaching briefing for one drill."""
+    """Generate persona briefing and render it in the approved preview layout."""
     caddie_name = persona_key.split(" (")[0]
     context_blob = json.dumps(
         {
@@ -3776,9 +3889,9 @@ def render_drill_voice_briefing(
 
     existing_text = str(st.session_state.get(text_key, "") or "").strip()
     existing_audio = st.session_state.get(audio_key)
+    status_message = ""
+    status_kind = "ready"
 
-    # Always prepare the short persona text. Only the primary drill automatically
-    # consumes TTS quota; secondary/transfer clips are available on demand.
     if not existing_text:
         try:
             take_number = max(1, int(st.session_state.get(take_key, 0)) or 1)
@@ -3799,7 +3912,8 @@ def render_drill_voice_briefing(
             st.session_state[take_key] = take_number
             existing_text = briefing
         except Exception as exc:
-            st.warning(f"Caddie drill briefing text is temporarily unavailable: {exc}")
+            status_message = f"Caddie text is temporarily unavailable: {exc}"
+            status_kind = "error"
 
     if auto_generate_audio and existing_text and not existing_audio:
         try:
@@ -3812,25 +3926,107 @@ def render_drill_voice_briefing(
                 )
             st.session_state[audio_key] = existing_audio
         except TTSQuotaExceeded as exc:
-            st.warning(str(exc))
+            status_message = str(exc)
+            status_kind = "quota"
         except Exception as exc:
-            st.warning(f"Primary drill audio is temporarily unavailable: {exc}")
+            status_message = f"Audio is temporarily unavailable: {exc}"
+            status_kind = "error"
 
     briefing = str(st.session_state.get(text_key, "") or "").strip()
     audio_bytes = st.session_state.get(audio_key)
 
+    if not status_message:
+        if audio_bytes:
+            status_message = (
+                "Caddie audio is ready. Use the player below whenever you want the briefing."
+            )
+            status_kind = "ready"
+        elif briefing and not auto_generate_audio:
+            status_message = (
+                "Audio is optional for this drill and is generated on demand to conserve TTS quota."
+            )
+            status_kind = "ondemand"
+        elif briefing:
+            status_message = "Caddie text is ready."
+            status_kind = "ready"
+
+    status_palette = {
+        "quota": (
+            "#fde047",
+            "rgba(94,86,16,.56)",
+            "rgba(250,204,21,.32)",
+            "🔊 Audio Status",
+        ),
+        "error": (
+            "#fca5a5",
+            "rgba(99,34,34,.48)",
+            "rgba(248,113,113,.32)",
+            "⚠️ Audio Status",
+        ),
+        "ondemand": (
+            "#93c5fd",
+            "rgba(30,58,95,.48)",
+            "rgba(96,165,250,.32)",
+            "🔊 Audio Status",
+        ),
+        "ready": (
+            "#86efac",
+            "rgba(20,83,45,.40)",
+            "rgba(74,222,128,.28)",
+            "🔊 Audio Status",
+        ),
+    }
+    status_color, status_bg, status_border, status_title = status_palette.get(
+        status_kind, status_palette["ready"]
+    )
+
     if briefing:
-        st.info(f'**{caddie_name}:** “{briefing}”')
+        status_col, quote_col = st.columns([.92, 1.18], gap="small")
+
+        with status_col:
+            st.markdown(
+                "<div style='min-height:166px;padding:13px 14px;border-radius:10px;"
+                f"background:{status_bg};border:1px solid {status_border};'>"
+                f"<div style='font-size:.82rem;font-weight:850;color:{status_color};"
+                "margin-bottom:8px;'>"
+                f"{status_title}</div>"
+                "<div style='font-size:.82rem;line-height:1.52;color:#f0f3f7;'>"
+                f"{_safe_html(status_message)}</div></div>",
+                unsafe_allow_html=True,
+            )
+
+        with quote_col:
+            st.markdown(
+                "<div style='min-height:166px;padding:13px 14px;border-radius:10px;"
+                "background:linear-gradient(145deg,rgba(20,61,96,.72),rgba(21,48,76,.80));"
+                "border:1px solid rgba(56,189,248,.36);'>"
+                f"<div style='font-size:.83rem;font-weight:850;color:#60a5fa;"
+                "margin-bottom:7px;'>🎙️ "
+                f"{_safe_html(caddie_name)}</div>"
+                "<div style='font-size:.84rem;line-height:1.52;color:#dbeafe;'>"
+                f"“{_safe_html(briefing)}”</div></div>",
+                unsafe_allow_html=True,
+            )
+    elif status_message:
+        st.markdown(
+            "<div style='padding:12px 14px;border-radius:10px;"
+            f"background:{status_bg};border:1px solid {status_border};'>"
+            f"<div style='font-size:.82rem;font-weight:850;color:{status_color};"
+            "margin-bottom:5px;'>"
+            f"{status_title}</div>"
+            "<div style='font-size:.82rem;line-height:1.5;color:#f0f3f7;'>"
+            f"{_safe_html(status_message)}</div></div>",
+            unsafe_allow_html=True,
+        )
+
     if audio_bytes:
         _render_seekable_audio_player(
             audio_bytes,
             uid=f"drill-{digest}",
             caddie_name=caddie_name,
         )
-    elif briefing and not auto_generate_audio:
-        st.caption(
-            "🔊 Secondary/transfer audio is generated on demand to conserve the Gemini TTS quota."
-        )
+
+    if briefing and not audio_bytes and not auto_generate_audio:
         if st.button(
             "🔊 Generate Caddie Audio",
             key=f"drill_voice_audio_button_{digest}",
@@ -3851,7 +4047,6 @@ def render_drill_voice_briefing(
             except Exception as exc:
                 st.warning(f"Drill audio is temporarily unavailable: {exc}")
 
-    # Fresh take remains available after audio/text exists.
     if briefing and st.button(
         "🔄 New Caddie Drill Briefing",
         key=f"drill_voice_button_{digest}",
@@ -3872,20 +4067,23 @@ def render_drill_voice_briefing(
                     previous_text=briefing,
                     take_number=take_number,
                 )
-                fresh_audio, _, _ = generate_gemini_tts_audio(
-                    fresh_briefing, persona_key
-                )
+                blocked = _tts_block_message()
+                fresh_audio = None
+                if not blocked:
+                    fresh_audio, _, _ = generate_gemini_tts_audio(
+                        fresh_briefing, persona_key
+                    )
             st.session_state[text_key] = fresh_briefing
-            st.session_state[audio_key] = fresh_audio
+            if fresh_audio:
+                st.session_state[audio_key] = fresh_audio
+            else:
+                st.session_state.pop(audio_key, None)
             st.session_state[take_key] = take_number
             st.rerun()
         except TTSQuotaExceeded as exc:
             st.warning(str(exc))
         except Exception as exc:
             st.error(f"Drill briefing could not be regenerated: {exc}")
-
-
-
 
 def _ensure_caddie_audio_cached(text, persona_key):
     """Prepare ordinary section audio without rendering a player."""
@@ -8931,19 +9129,11 @@ if (
                         if x.strip()
                     ]
 
-                    # FULL-WIDTH metric row first. This prevents the three cards
-                    # from becoming narrow towers inside a squeezed right column.
-                    render_drill_metric_boxes(
-                        balls_per_drill,
-                        time_per_drill,
-                        activity_label,
-                        kpi["target"],
+                    # Approved preview hierarchy:
+                    # visual on the left; metrics + priority + caddie on the right.
+                    drill_visual_col, drill_info_col = st.columns(
+                        [1.04, 1.06], gap="medium"
                     )
-
-                    # Visual and coaching content below the metrics. Use a slightly
-                    # visual-heavy split but give coaching enough width to avoid
-                    # the severe title wrapping seen in the prior build.
-                    drill_visual_col, drill_info_col = st.columns([1.12, 1.0])
 
                     with drill_visual_col:
                         render_drill_visual_aid(
@@ -8955,12 +9145,20 @@ if (
                         )
 
                     with drill_info_col:
+                        render_drill_metric_boxes(
+                            balls_per_drill,
+                            time_per_drill,
+                            activity_label,
+                            kpi["target"],
+                        )
+
                         st.markdown(
-                            "<div style='margin:2px 0 7px;'>"
-                            f"<div style='font-size:1.15rem;font-weight:800;line-height:1.25;'>"
+                            "<div style='margin:10px 0 7px;'>"
+                            f"<div style='font-size:1.10rem;font-weight:850;"
+                            "line-height:1.28;color:#f8fafc;'>"
                             f"🔥 {_safe_html(label)}</div>"
-                            f"<div style='font-size:.84rem;line-height:1.45;"
-                            "color:#b6bfcb;margin-top:7px;'>"
+                            f"<div style='font-size:.84rem;line-height:1.48;"
+                            "color:#bec8d6;margin-top:8px;'>"
                             f"🎯 {_safe_html(drill_purpose)}</div>"
                             "</div>",
                             unsafe_allow_html=True,
@@ -8980,8 +9178,6 @@ if (
                             auto_generate_audio=(idx == 0),
                         )
 
-                    # The preview's three tabs remain, but the content uses normal
-                    # readable type sizes rather than tiny compact helper text.
                     how_tab, test_tab, progress_tab = st.tabs(
                         ["▶️ How to Do It", "🔧 Test & Equipment", "📈 Progress & Tips"]
                     )
@@ -8993,7 +9189,7 @@ if (
 
                     with test_tab:
                         st.markdown(f"#### 📏 {kpi['name']}")
-                        render_scannable_rows(
+                        render_drill_detail_cards(
                             [
                                 ("Test", kpi["test"]),
                                 ("Success", kpi["success"]),
@@ -9002,31 +9198,23 @@ if (
                                     "When to test",
                                     "Run the same 10-rep test before the drill and again after practice.",
                                 ),
-                            ],
-                            margin_left=0,
-                            compact=False,
+                            ]
                         )
-                        if equip_items:
-                            st.markdown("#### 🛠️ Equipment Needed")
-                            render_indented_ul(equip_items, margin_left=4)
+                        render_drill_equipment_chips(equip_items)
 
                     with progress_tab:
                         st.markdown("#### 📈 How to Progress the Drill")
-                        render_progression_steps(
-                            CATEGORY_PROGRESSION.get(
-                                _drill_category(d_name),
-                                CATEGORY_PROGRESSION["general"],
-                            ),
-                            margin_left=4,
+                        progression_steps = CATEGORY_PROGRESSION.get(
+                            _drill_category(d_name),
+                            CATEGORY_PROGRESSION["general"],
                         )
+                        render_drill_progress_cards(progression_steps)
                         render_micro_note(
                             "Progress only when the current version is repeatable; quality beats adding difficulty too early.",
                             icon="📌",
                         )
 
-                    # Valuable coaching cues stay outside the tabs and at normal
-                    # reading size, matching the approved preview.
-                    analogy_col, tip_col = st.columns(2)
+                    analogy_col, tip_col = st.columns(2, gap="medium")
                     with analogy_col:
                         render_drill_insight_card(
                             "Mental Analogy",
@@ -9069,14 +9257,9 @@ if (
                         "realistic one-ball, one-decision course behavior."
                     )
 
-                    render_drill_metric_boxes(
-                        gm_balls,
-                        gm_time,
-                        "One-Ball Scenarios",
-                        pressure_kpi["target"],
+                    transfer_visual_col, transfer_info_col = st.columns(
+                        [1.04, 1.06], gap="medium"
                     )
-
-                    transfer_visual_col, transfer_info_col = st.columns([1.12, 1.0])
 
                     with transfer_visual_col:
                         render_drill_visual_aid(
@@ -9088,11 +9271,20 @@ if (
                         )
 
                     with transfer_info_col:
-                        st.markdown("### 🔥 Final Phase: On-Course Pressure Transfer")
+                        render_drill_metric_boxes(
+                            gm_balls,
+                            gm_time,
+                            "One-Ball Scenarios",
+                            pressure_kpi["target"],
+                        )
                         st.markdown(
-                            "<div style='font-size:.84rem;line-height:1.45;"
-                            "color:#b6bfcb;margin:2px 0 9px;'>"
-                            f"🎯 {_safe_html(pressure_purpose)}</div>",
+                            "<div style='margin:10px 0 7px;'>"
+                            "<div style='font-size:1.10rem;font-weight:850;"
+                            "line-height:1.28;color:#f8fafc;'>"
+                            "🔥 Final Phase: On-Course Pressure Transfer</div>"
+                            "<div style='font-size:.84rem;line-height:1.48;"
+                            "color:#bec8d6;margin-top:8px;'>"
+                            f"🎯 {_safe_html(pressure_purpose)}</div></div>",
                             unsafe_allow_html=True,
                         )
                         render_drill_voice_briefing(
@@ -9129,7 +9321,7 @@ if (
 
                     with transfer_test:
                         st.markdown("#### 📏 Decision + Routine Transfer")
-                        render_scannable_rows(
+                        render_drill_detail_cards(
                             [
                                 (
                                     "Test",
@@ -9147,46 +9339,33 @@ if (
                                     "Playable outcome",
                                     "Track separately from strategy/process. A poor swing does not erase a good decision.",
                                 ),
-                            ],
-                            margin_left=0,
-                            compact=False,
+                            ]
                         )
-                        st.markdown("#### 🛠️ Equipment Needed")
-                        render_indented_ul(
+                        render_drill_equipment_chips(
                             [
                                 "Full Golf Bag (All Clubs)",
                                 "Laser Rangefinder or Target Flags",
                                 "Pre-shot Routine Line",
-                            ],
-                            margin_left=4,
+                            ]
                         )
 
                     with transfer_progress:
                         st.markdown("#### 📈 How to Progress the Drill")
-                        render_scannable_rows(
+                        render_drill_progress_cards(
                             [
-                                (
-                                    "Step 1",
-                                    "Start with 5 unscored simulated holes and focus on decision quality and routine.",
-                                ),
-                                (
-                                    "Step 2",
-                                    "Move to 9 or 18 one-ball scenarios with changing clubs and targets.",
-                                ),
-                                (
-                                    "Step 3",
-                                    "Add consequences only after the routine and decision process stay consistent.",
-                                ),
-                            ],
-                            margin_left=0,
-                            compact=False,
+                                "Start with 5 unscored simulated holes and focus on decision quality and routine.",
+                                "Move to 9 or 18 one-ball scenarios with changing clubs and targets.",
+                                "Add consequences only after the routine and decision process stay consistent.",
+                            ]
                         )
                         render_micro_note(
                             "Judge the decision before judging the result.",
                             icon="📌",
                         )
 
-                    transfer_analogy_col, transfer_tip_col = st.columns(2)
+                    transfer_analogy_col, transfer_tip_col = st.columns(
+                        2, gap="medium"
+                    )
                     with transfer_analogy_col:
                         render_drill_insight_card(
                             "Mental Analogy",
