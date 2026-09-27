@@ -468,6 +468,60 @@ def _drill_category(drill_name: str) -> str:
 
 
 
+
+def render_drill_metric_boxes(ball_count, time_minutes, activity, pass_target):
+    """Preview-style allocation/activity/pass cards."""
+    cards = [
+        ("⚪", "Allocation", f"≈{ball_count} balls · ≈{time_minutes} min"),
+        ("📊", "Activity", str(activity).replace("_", " ").title()),
+        ("🏁", "Pass", f"{pass_target}/10"),
+    ]
+    cols = st.columns(3)
+    for col, (icon, label, value) in zip(cols, cards):
+        with col:
+            st.markdown(
+                "<div style='min-height:62px;padding:8px 10px;border-radius:10px;"
+                "background:rgba(100,116,139,.10);"
+                "border:1px solid rgba(148,163,184,.24);"
+                "box-shadow:inset 0 1px 0 rgba(255,255,255,.025);'>"
+                f"<div style='font-size:.68rem;font-weight:800;color:#aab4c2;'>"
+                f"{_safe_html(icon)} {_safe_html(label)}</div>"
+                f"<div style='font-size:.81rem;font-weight:700;line-height:1.25;margin-top:4px;'>"
+                f"{_safe_html(value)}</div>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+
+
+def render_drill_insight_card(title, text, kind="mental"):
+    """Large, readable coaching cue card kept visible below the tabs."""
+    palette = {
+        "mental": {
+            "bg": "linear-gradient(135deg, rgba(109,76,199,.22), rgba(82,61,155,.10))",
+            "border": "rgba(167,139,250,.70)",
+            "title": "#c4b5fd",
+            "icon": "🧠",
+        },
+        "tip": {
+            "bg": "linear-gradient(135deg, rgba(180,135,0,.20), rgba(113,84,0,.10))",
+            "border": "rgba(250,204,21,.62)",
+            "title": "#fde047",
+            "icon": "💡",
+        },
+    }
+    p = palette.get(kind, palette["mental"])
+    st.markdown(
+        "<div style='min-height:112px;padding:12px 14px;"
+        f"background:{p['bg']};border:1px solid {p['border']};border-radius:11px;'>"
+        f"<div style='font-size:.90rem;font-weight:800;color:{p['title']};margin-bottom:7px;'>"
+        f"{p['icon']} {_safe_html(title)}</div>"
+        "<div style='font-size:.84rem;line-height:1.5;color:#e5e7eb;'>"
+        f"{_safe_html(text)}</div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def render_practice_section_header(title, kind="primary", kicker="", icon=""):
     """High-contrast but restrained section strip for long practice plans."""
     palette = {
@@ -610,6 +664,7 @@ def _dv_target(x, y):
 
 
 def _dv_golfer(x, y, scale=.8, club_angle=-40):
+    """Legacy helper retained for compatibility; current drill visuals omit golfers."""
     import math
     shoulder = y - 38*scale
     hip = y - 5*scale
@@ -645,7 +700,7 @@ def _build_drill_visual_svg(drill_name, width=760, height=310):
         p += [
             '<line x1="115" y1="120" x2="645" y2="120" stroke="#60a5fa" stroke-width="5" stroke-linecap="round"/>',
             '<line x1="115" y1="212" x2="645" y2="212" stroke="#60a5fa" stroke-width="5" stroke-linecap="round"/>',
-            _dv_ball(285, 164), _dv_golfer(265, 225, .72), _dv_target(645, 164),
+            _dv_ball(285, 164), _dv_target(645, 164),
             _dv_arrow(305, 164, 605, 164),
             _dv_text(135, 108, "TARGET LINE", 12, "#bfdbfe", "start"),
             _dv_text(135, 235, "BODY LINE", 12, "#bfdbfe", "start"),
@@ -653,8 +708,8 @@ def _build_drill_visual_svg(drill_name, width=760, height=310):
 
     elif family == "sequence":
         p += [
-            _dv_golfer(165, 210, .78, -105), _dv_golfer(375, 210, .78, -40),
-            _dv_golfer(585, 210, .78, 10),
+            
+            
             _dv_text(165, 105, "1 • LOAD", 14, "#bfdbfe"),
             _dv_text(375, 105, "2 • PAUSE / PUMP", 14, "#fde68a"),
             _dv_text(585, 105, "3 • ROTATE", 14, "#bbf7d0"),
@@ -664,7 +719,7 @@ def _build_drill_visual_svg(drill_name, width=760, height=310):
 
     elif family == "connection":
         p += [
-            _dv_golfer(370, 220, 1.0, -45),
+            
             '<rect x="320" y="145" width="20" height="35" rx="5" fill="#f97316"/>',
             '<rect x="396" y="145" width="20" height="35" rx="5" fill="#f97316"/>',
             _dv_text(370, 95, "KEEP CONNECTION CUE IN PLACE", 14, "#fed7aa"),
@@ -686,7 +741,7 @@ def _build_drill_visual_svg(drill_name, width=760, height=310):
     elif family == "balance":
         p += [
             '<ellipse cx="365" cy="230" rx="82" ry="28" fill="none" stroke="#60a5fa" stroke-width="4"/>',
-            _dv_golfer(365, 210, .9, -42),
+            
             '<circle cx="345" cy="247" r="11" fill="#bfdbfe"/><circle cx="385" cy="247" r="11" fill="#bfdbfe"/>',
             _dv_arrow(365, 145, 365, 205),
             _dv_text(365, 95, "CENTER MASS OVER A NARROW BASE", 14, "#fde68a"),
@@ -709,7 +764,7 @@ def _build_drill_visual_svg(drill_name, width=760, height=310):
         p += [
             '<rect x="490" y="140" width="92" height="100" rx="14" fill="#475569" stroke="#94a3b8" stroke-width="4"/>',
             _dv_text(536, 196, "BAG", 18),
-            _dv_golfer(305, 225, .85, -10),
+            
             _dv_arrow(390, 180, 485, 192, "#f7c948", 6),
             _dv_text(380, 100, "REHEARSE STABLE IMPACT", 14, "#fde68a"),
             _dv_text(380, 275, "PRESSURE FORWARD • HANDLE AHEAD • BALANCED", 12, "#cbd5e1"),
@@ -820,7 +875,7 @@ def _build_drill_visual_svg(drill_name, width=760, height=310):
         ]
 
     elif family == "pressure":
-        p += [_dv_ball(95, 245), _dv_golfer(120, 238, .55), _dv_text(120, 95, "FULL ROUTINE", 13, "#fde68a")]
+        p += [_dv_ball(95, 245), _dv_text(120, 95, "FULL ROUTINE", 13, "#fde68a")]
         for i, (tx, ty) in enumerate([(255,130),(405,210),(550,125),(660,205)], 1):
             p += [f'<circle cx="{tx}" cy="{ty}" r="28" fill="#1d4d38" stroke="#86efac" stroke-width="3"/>', _dv_text(tx, ty+5, str(i), 16)]
         p += [_dv_arrow(155, 230, 250, 140), _dv_text(415, 275, "ONE BALL • NEW TARGET • NEW DECISION • NO MULLIGAN", 13)]
@@ -8814,73 +8869,120 @@ if (
                     )
 
                 with drill_panel:
-                    st.markdown(f"🔥 **{label}**")
-                    drill_unit = _unit_for_drill(d_name, diag.get("primary_miss_stage", ""))
-                    execution_note = (
-                        f" · activity: {drill_unit}"
-                        if drill_unit not in {"balls", "shots"}
-                        else ""
+                    drill_unit = _unit_for_drill(
+                        d_name, diag.get("primary_miss_stage", "")
                     )
-                    st.caption(
-                        f"⚡ `≈{balls_per_drill} balls` · `≈{time_per_drill} min`"
-                        f"{execution_note}"
+                    activity_label = (
+                        drill_unit if drill_unit not in {"balls", "shots"} else "Ball Reps"
                     )
-
-                    render_drill_visual_aid(
-                        d_name,
-                        persona_key=st.session_state.get(
-                            "caddie_persona_key", selected_persona_key
-                        ),
-                        show_large=True,
-                    )
-
                     kpi = get_drill_kpi(d_name)
                     drill_purpose = DRILL_PURPOSES.get(
                         d_name,
                         "Build the movement pattern targeted by this drill and make it repeatable under a normal pre-shot routine.",
                     )
-                    render_drill_voice_briefing(
-                        drill_name=d_name,
-                        persona_key=st.session_state.get("caddie_persona_key", selected_persona_key),
-                        diagnosis=diag,
-                        purpose=drill_purpose,
-                        setup_text=schematic["vivid_description"],
-                        kpi=kpi,
-                        balls_per_drill=balls_per_drill,
-                        time_per_drill=time_per_drill,
-                        auto_generate_audio=(idx == 0),
-                    )
+                    equip_items = [
+                        x.strip()
+                        for x in re.split(r",\s*(?![^()]*\))", schematic["equipment"])
+                        if x.strip()
+                    ]
 
-                    st.markdown("**🎯 What This Drill Trains**")
-                    render_indented_html(drill_purpose)
+                    # Preview-style top section: visual left, key information right.
+                    drill_visual_col, drill_info_col = st.columns([1.05, .95])
 
-                    st.markdown("**📏 Objective Pre/Post Test**")
-                    st.markdown(f"**{kpi['name']}**")
-                    render_scannable_rows([
-                        ("Test", kpi["test"]),
-                        ("Success", kpi["success"]),
-                        ("Pass target", f"{kpi['target']}/10"),
-                        ("When to test", "Run the same 10-rep test before the drill and again after practice."),
-                    ], margin_left=18, compact=True)
-
-                    st.markdown("**🛠️ Equipment Needed**")
-                    equip_items = re.split(r",\s*(?![^()]*\))", schematic["equipment"])
-                    render_indented_ul(equip_items)
-
-                    st.markdown("**📖 Step-by-Step Coaching Guide**")
-                    render_instruction_steps(schematic["vivid_description"], d_name)
-
-                    st.markdown("**📈 How to Progress the Drill**")
-                    render_progression_steps(
-                        CATEGORY_PROGRESSION.get(
-                            _drill_category(d_name), CATEGORY_PROGRESSION["general"]
+                    with drill_visual_col:
+                        render_drill_visual_aid(
+                            d_name,
+                            persona_key=st.session_state.get(
+                                "caddie_persona_key", selected_persona_key
+                            ),
+                            show_large=True,
                         )
+
+                    with drill_info_col:
+                        render_drill_metric_boxes(
+                            balls_per_drill,
+                            time_per_drill,
+                            activity_label,
+                            kpi["target"],
+                        )
+                        st.markdown(f"### 🔥 {label}")
+                        st.markdown(
+                            "<div style='font-size:.84rem;line-height:1.45;"
+                            "color:#b6bfcb;margin:2px 0 9px;'>"
+                            f"🎯 {_safe_html(drill_purpose)}</div>",
+                            unsafe_allow_html=True,
+                        )
+                        render_drill_voice_briefing(
+                            drill_name=d_name,
+                            persona_key=st.session_state.get(
+                                "caddie_persona_key", selected_persona_key
+                            ),
+                            diagnosis=diag,
+                            purpose=drill_purpose,
+                            setup_text=schematic["vivid_description"],
+                            kpi=kpi,
+                            balls_per_drill=balls_per_drill,
+                            time_per_drill=time_per_drill,
+                            auto_generate_audio=(idx == 0),
+                        )
+
+                    # Keep detail clear without the old long vertical stack.
+                    how_tab, test_tab, progress_tab = st.tabs(
+                        ["▶️ How to Do It", "🔧 Test & Equipment", "📈 Progress & Tips"]
                     )
 
-                    st.markdown("**🧠 Mental Analogy**")
-                    render_indented_html(schematic["analogy"])
+                    with how_tab:
+                        render_instruction_steps(
+                            schematic["vivid_description"], d_name
+                        )
 
-                    st.info(schematic["pro_tip"])
+                    with test_tab:
+                        st.markdown(f"#### 📏 {kpi['name']}")
+                        render_scannable_rows(
+                            [
+                                ("Test", kpi["test"]),
+                                ("Success", kpi["success"]),
+                                ("Pass target", f"{kpi['target']}/10"),
+                                (
+                                    "When to test",
+                                    "Run the same 10-rep test before the drill and again after practice.",
+                                ),
+                            ],
+                            margin_left=0,
+                            compact=False,
+                        )
+                        if equip_items:
+                            st.markdown("#### 🛠️ Equipment Needed")
+                            render_indented_ul(equip_items, margin_left=4)
+
+                    with progress_tab:
+                        st.markdown("#### 📈 How to Progress the Drill")
+                        render_progression_steps(
+                            CATEGORY_PROGRESSION.get(
+                                _drill_category(d_name),
+                                CATEGORY_PROGRESSION["general"],
+                            ),
+                            margin_left=4,
+                        )
+                        render_micro_note(
+                            "Progress only when the current version is repeatable; quality beats adding difficulty too early.",
+                            icon="📌",
+                        )
+
+                    # Important cues remain large and visible regardless of active tab.
+                    analogy_col, tip_col = st.columns(2)
+                    with analogy_col:
+                        render_drill_insight_card(
+                            "Mental Analogy",
+                            schematic["analogy"],
+                            kind="mental",
+                        )
+                    with tip_col:
+                        render_drill_insight_card(
+                            "Pro Tip",
+                            schematic["pro_tip"],
+                            kind="tip",
+                        )
 
             if gm_balls > 0 and gm_time > 0 and not is_pure_game:
                 st.markdown("---")
@@ -8894,21 +8996,6 @@ if (
                     "Open transfer / pressure details",
                     expanded=False,
                 ):
-                    st.markdown(
-                        "🔥 **Final Phase: On-Course Pressure Transfer & Routine Integration**"
-                    )
-                    st.caption(
-                        f"⚡ `≈{gm_balls} balls` · `≈{gm_time} min` · one-ball scenarios"
-                    )
-
-                    render_drill_visual_aid(
-                        "Target Course Pressure Simulation",
-                        persona_key=st.session_state.get(
-                            "caddie_persona_key", selected_persona_key
-                        ),
-                        show_large=True,
-                    )
-
                     pressure_kpi = {
                         "name": "Decision + routine transfer",
                         "test": "Score 10 one-ball scenarios, grading decision quality, routine/commitment, and shot result separately.",
@@ -8921,68 +9008,140 @@ if (
                         "Step completely away between reps, complete the full routine, and hit one ball only. "
                         "No mulligans after a miss."
                     )
-                    render_drill_voice_briefing(
-                        drill_name="Target Course Pressure Simulation",
-                        persona_key=st.session_state.get("caddie_persona_key", selected_persona_key),
-                        diagnosis=diag,
-                        purpose="Transfer the session's technical, strategic, and mental work into realistic one-ball, one-decision course behavior.",
-                        setup_text=pressure_setup,
-                        kpi=pressure_kpi,
-                        balls_per_drill=gm_balls,
-                        time_per_drill=gm_time,
-                        auto_generate_audio=False,
+                    pressure_purpose = (
+                        "Transfer the session's technical, strategic, and mental work into "
+                        "realistic one-ball, one-decision course behavior."
                     )
 
-                    st.markdown("**📏 Objective Transfer Test**")
-                    st.markdown("**Decision + routine transfer**")
-                    render_scannable_rows([
-                        ("Test", "Score 10 one-ball scenarios. Grade each category independently."),
-                        ("Decision quality", "1 point when the pre-shot club/target/risk choice was sensible before seeing the result. Target: 8/10."),
-                        ("Routine + commitment", "1 point when the full routine is completed and the swing is committed. Target: 8/10."),
-                        ("Playable outcome", "1 point for a playable result. Track this separately from the decision/process score; 6/10 is a useful transfer benchmark, not proof of good strategy."),
-                        ("Rule", "No mulligans. A good decision with a poor swing stays a good decision."),
-                    ], margin_left=18, compact=True)
+                    transfer_visual_col, transfer_info_col = st.columns([1.05, .95])
 
-                    st.markdown("**🛠️ Equipment Needed**")
-                    render_indented_ul([
-                        "Full Golf Bag (All Clubs)",
-                        "Laser Rangefinder or Target Flags",
-                        "Pre-shot Routine Line",
-                    ])
+                    with transfer_visual_col:
+                        render_drill_visual_aid(
+                            "Target Course Pressure Simulation",
+                            persona_key=st.session_state.get(
+                                "caddie_persona_key", selected_persona_key
+                            ),
+                            show_large=True,
+                        )
 
-                    st.markdown("**🎯 What This Drill Trains**")
-                    render_indented_html(
-                        "Transfer the technical and mental work from the session into realistic one-ball, one-decision course behavior."
+                    with transfer_info_col:
+                        render_drill_metric_boxes(
+                            gm_balls,
+                            gm_time,
+                            "One-Ball Scenarios",
+                            pressure_kpi["target"],
+                        )
+                        st.markdown("### 🔥 Final Phase: On-Course Pressure Transfer")
+                        st.markdown(
+                            "<div style='font-size:.84rem;line-height:1.45;"
+                            "color:#b6bfcb;margin:2px 0 9px;'>"
+                            f"🎯 {_safe_html(pressure_purpose)}</div>",
+                            unsafe_allow_html=True,
+                        )
+                        render_drill_voice_briefing(
+                            drill_name="Target Course Pressure Simulation",
+                            persona_key=st.session_state.get(
+                                "caddie_persona_key", selected_persona_key
+                            ),
+                            diagnosis=diag,
+                            purpose=pressure_purpose,
+                            setup_text=pressure_setup,
+                            kpi=pressure_kpi,
+                            balls_per_drill=gm_balls,
+                            time_per_drill=gm_time,
+                            auto_generate_audio=False,
+                        )
+
+                    transfer_how, transfer_test, transfer_progress = st.tabs(
+                        ["▶️ How to Do It", "🔧 Test & Equipment", "📈 Progress & Tips"]
                     )
 
-                    st.markdown("**📖 Step-by-Step Coaching Guide**")
-                    pressure_text = (
-                        "SETUP: Pick 3–5 different range targets that represent different on-course shots. "
-                        "Assign a club, target, and imaginary hole situation before each ball; do not hit the same club twice in a row unless the simulated hole calls for it. "
-                        "EXECUTION: Step completely away from the ball between reps. Go through your normal yardage/target decision, rehearsal, alignment, and pre-shot routine, then hit one ball only. "
-                        "After the shot, score the decision and execution before choosing the next scenario. "
-                        "SUCCESS: Grade three things separately: decision quality before the swing, routine/commitment during execution, and playable outcome after the shot. A poor result does not erase a good decision. "
-                        "AVOID: Hitting mulligans, repeating the same club immediately after a poor shot, changing the target after address, or judging strategy only from where the ball finished."
-                    )
-                    render_instruction_steps(pressure_text, "Target Course Pressure Simulation")
+                    with transfer_how:
+                        pressure_text = (
+                            "SETUP: Pick 3–5 different range targets that represent different on-course shots. "
+                            "Assign a club, target, and imaginary hole situation before each ball; do not hit the same club twice in a row unless the simulated hole calls for it. "
+                            "EXECUTION: Step completely away from the ball between reps. Go through your normal yardage/target decision, rehearsal, alignment, and pre-shot routine, then hit one ball only. "
+                            "After the shot, score the decision and execution before choosing the next scenario. "
+                            "SUCCESS: Grade decision quality before the swing, routine/commitment during execution, and playable outcome after the swing. "
+                            "AVOID: Mulligans, changing the target after address, or judging strategy only from where the ball finished."
+                        )
+                        render_instruction_steps(
+                            pressure_text,
+                            "Target Course Pressure Simulation",
+                        )
 
-                    st.markdown("**📈 How to Progress the Drill**")
-                    render_scannable_rows([
-                        ("Step 1", "Start with 5 unscored simulated holes and focus only on decision quality and routine completion."),
-                        ("Step 2", "Move to a 9-shot or 18-shot game where every ball receives a simple result: good/playable, neutral, or penalty-level miss."),
-                        ("Step 3", "Add consequences or reset rules only after the routine stays consistent."),
-                    ], margin_left=24, compact=True)
+                    with transfer_test:
+                        st.markdown("#### 📏 Decision + Routine Transfer")
+                        render_scannable_rows(
+                            [
+                                (
+                                    "Test",
+                                    "Score 10 one-ball scenarios. Grade each category independently.",
+                                ),
+                                (
+                                    "Decision quality",
+                                    "1 point when the club/target/risk choice was sensible before seeing the result. Target: 8/10.",
+                                ),
+                                (
+                                    "Routine + commitment",
+                                    "1 point when the full routine is completed and the swing is committed. Target: 8/10.",
+                                ),
+                                (
+                                    "Playable outcome",
+                                    "Track separately from strategy/process. A poor swing does not erase a good decision.",
+                                ),
+                            ],
+                            margin_left=0,
+                            compact=False,
+                        )
+                        st.markdown("#### 🛠️ Equipment Needed")
+                        render_indented_ul(
+                            [
+                                "Full Golf Bag (All Clubs)",
+                                "Laser Rangefinder or Target Flags",
+                                "Pre-shot Routine Line",
+                            ],
+                            margin_left=4,
+                        )
 
-                    st.markdown("**🧠 Mental Analogy**")
-                    render_indented_html(
-                        "Sunday Major Final Hole: Treat every single ball like a high-stakes"
-                        " tournament stroke on the course."
-                    )
+                    with transfer_progress:
+                        st.markdown("#### 📈 How to Progress the Drill")
+                        render_scannable_rows(
+                            [
+                                (
+                                    "Step 1",
+                                    "Start with 5 unscored simulated holes and focus on decision quality and routine.",
+                                ),
+                                (
+                                    "Step 2",
+                                    "Move to 9 or 18 one-ball scenarios with changing clubs and targets.",
+                                ),
+                                (
+                                    "Step 3",
+                                    "Add consequences only after the routine and decision process stay consistent.",
+                                ),
+                            ],
+                            margin_left=0,
+                            compact=False,
+                        )
+                        render_micro_note(
+                            "Judge the decision before judging the result.",
+                            icon="📌",
+                        )
 
-                    st.info(
-                        "🏆 **Pro Tip:** Never hit two balls in a row with the same club or to"
-                        " the same target during this pressure phase."
-                    )
+                    transfer_analogy_col, transfer_tip_col = st.columns(2)
+                    with transfer_analogy_col:
+                        render_drill_insight_card(
+                            "Mental Analogy",
+                            "Treat every ball like a new tournament hole: decide, commit, accept the result, and move on.",
+                            kind="mental",
+                        )
+                    with transfer_tip_col:
+                        render_drill_insight_card(
+                            "Pro Tip",
+                            "Never hit a mulligan. Score the decision before the outcome so a good plan is not punished for one poor swing.",
+                            kind="tip",
+                        )
 
             validation_targets = _build_next_round_validation(
                 diag,
