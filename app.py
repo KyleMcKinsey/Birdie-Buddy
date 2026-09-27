@@ -577,6 +577,16 @@ def render_drill_insight_card(title, text, kind="mental"):
         },
     }
     p = palette.get(kind, palette["mental"])
+
+    clean_text = str(text or "").strip()
+    if kind == "tip":
+        clean_text = re.sub(
+            r'^\s*(?:💡\s*)?(?:\*\*\s*)?pro\s*tip\s*:?(?:\s*\*\*)?\s*',
+            "",
+            clean_text,
+            flags=re.IGNORECASE,
+        ).strip()
+
     st.markdown(
         "<div style='min-height:132px;padding:16px 18px;margin:2px 0 10px;"
         f"background:{p['bg']};border:1px solid {p['border']};"
@@ -585,7 +595,7 @@ def render_drill_insight_card(title, text, kind="mental"):
         "margin-bottom:8px;'>"
         f"{p['icon']} {_safe_html(title)}</div>"
         "<div style='font-size:.90rem;line-height:1.55;color:#f0f3f8;'>"
-        f"{_safe_html(text)}</div>"
+        f"{_safe_html(clean_text)}</div>"
         "</div>",
         unsafe_allow_html=True,
     )
