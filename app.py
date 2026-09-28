@@ -2549,13 +2549,6 @@ def render_progress_trends(df_history):
                 "Decision, routine, and result stay separate so one poor swing does not rewrite the quality of the pre-shot choice."
             )
 
-        next_target = str(latest.get("Next Round Validation", "") or "").strip()
-        if next_target not in ("", "N/A"):
-            with st.container(border=True):
-                st.markdown("#### 🎯 Next-Round Validation")
-                for target in [x.strip() for x in next_target.split(" || ") if x.strip()]:
-                    st.write(f"• {target}")
-
         with st.expander("View scoring & practice trends", expanded=False):
             valid_chart = performance_series.dropna()
             if len(valid_chart) >= 2:
@@ -9473,34 +9466,32 @@ if (
                 diag,
                 st.session_state.get("round_holes_played", 18),
             )
-            utility_left, utility_right = st.columns(2)
-            with utility_left:
-                with st.container(border=True):
-                    st.markdown("#### 🎯 Next-Round Validation")
-                    if validation_targets:
-                        for idx, target in enumerate(validation_targets, start=1):
-                            st.markdown(
-                                f"<div style='font-size:.78rem;line-height:1.35;margin:4px 0;'>"
-                                f"<strong>{idx}.</strong> {_safe_html(target)}</div>",
-                                unsafe_allow_html=True,
-                            )
-                    else:
-                        render_micro_note("No additional validation target generated for this plan.")
 
-            with utility_right:
-                with st.container(border=True):
-                    st.markdown("#### 📥 Take It to Practice")
-                    export_card_text = build_export_card(
-                        diag, res, active_drills, DRILL_SCHEMATICS, caddie
-                    )
-                    render_micro_note("Download the compact offline practice card.")
-                    st.download_button(
-                        label="Download Practice Card (.txt)",
-                        data=export_card_text,
-                        file_name="birdie_buddy_practice_plan.txt",
-                        mime="text/plain",
-                        use_container_width=True,
-                    )
+            with st.container(border=True):
+                st.markdown("#### 🎯 Next-Round Validation")
+                if validation_targets:
+                    for idx, target in enumerate(validation_targets, start=1):
+                        st.markdown(
+                            f"<div style='font-size:.80rem;line-height:1.42;margin:6px 0;'>"
+                            f"<strong>{idx}.</strong> {_safe_html(target)}</div>",
+                            unsafe_allow_html=True,
+                        )
+                else:
+                    render_micro_note("No additional validation target generated for this plan.")
+
+            with st.container(border=True):
+                st.markdown("#### 📥 Take It to Practice")
+                export_card_text = build_export_card(
+                    diag, res, active_drills, DRILL_SCHEMATICS, caddie
+                )
+                render_micro_note("Download the compact offline practice card.")
+                st.download_button(
+                    label="Download Practice Card (.txt)",
+                    data=export_card_text,
+                    file_name="birdie_buddy_practice_plan.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                )
 
             # ---------------------------------------------------------
             # END-OF-PRACTICE FEEDBACK — close the loop without requiring
