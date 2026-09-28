@@ -1754,23 +1754,29 @@ def _safe_html(value):
     return html.escape(str(value if value is not None else ""))
 
 
-def render_heading_with_note(title, note, level=4):
-    """Render a section heading with short helper copy inline in subdued gray."""
+def render_heading_with_note(title, note="", level=4):
+    """Render app headings with one consistent visual hierarchy."""
     styles = {
         3: ("1.28rem", "850", "8px 0 10px"),
         4: ("1.08rem", "800", "7px 0 8px"),
         5: (".96rem", "800", "6px 0 7px"),
     }
     size, weight, margin = styles.get(level, styles[4])
+    safe_note = _safe_html(note)
+    note_html = (
+        "<div style='font-size:.74rem;font-weight:550;line-height:1.32;"
+        "color:#8f98a8;'>"
+        f"{safe_note}</div>"
+        if safe_note
+        else ""
+    )
     st.markdown(
         "<div style='display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;"
         f"margin:{margin};'>"
         f"<div style='font-size:{size};font-weight:{weight};line-height:1.22;"
         "color:#f4f7fb;'>"
         f"{_safe_html(title)}</div>"
-        "<div style='font-size:.74rem;font-weight:550;line-height:1.32;"
-        "color:#8f98a8;'>"
-        f"{_safe_html(note)}</div>"
+        f"{note_html}"
         "</div>",
         unsafe_allow_html=True,
     )
@@ -1916,7 +1922,7 @@ def render_round_performance_snapshot():
         if has_hcp else None
     )
 
-    st.markdown("#### Round Performance Snapshot")
+    render_heading_with_note("Round Performance Snapshot", level=4)
     st.caption(
         "Benchmarks are handicap-relative when available. FIR and total putts are context signals; direct scoring events and repeated performance gaps carry more diagnostic weight."
     )
@@ -2729,7 +2735,7 @@ def render_progress_trends(df_history):
                 },
             )
 
-        st.markdown("#### History Data")
+        render_heading_with_note("History Data", level=4)
         st.caption(
             "Export your full practice history for safekeeping or analysis. "
             "Clearing history permanently removes the sessions stored in this app."
@@ -2868,7 +2874,7 @@ with st.container(border=True):
 
 # Sidebar - API Key Input & Spreadsheet History Exporter
 with st.sidebar.container(border=True):
-    st.header("Configuration")
+    render_heading_with_note("Configuration", level=4)
     api_key = st.text_input("Enter Gemini API Key", type="password")
 
 # History and trends are intentionally kept in the main page flow.
@@ -2956,7 +2962,7 @@ def render_voice_story_input(text_state_key, audio_key, button_key, label):
         )
         return
 
-    st.markdown("##### 🎙️ Voice Input")
+    render_heading_with_note("🎙️ Voice Input", level=5)
     audio_file = st.audio_input(label, key=audio_key)
     if audio_file is not None:
         if st.button(
@@ -3373,20 +3379,23 @@ def _format_audio_time(seconds):
 def _render_seekable_audio_player(audio_bytes, uid, caddie_name):
     """Compact player: native scrub bar plus skip controls only."""
     encoded = base64.b64encode(audio_bytes).decode("ascii")
-    safe_caddie = str(caddie_name).replace("<", "&lt;").replace(">", "&gt;")
+    display_name = caddie_name if str(caddie_name).strip().startswith(("🧔", "🧙", "🕵", "🏴")) else persona_badged_name(caddie_name)
+    safe_caddie = str(display_name).replace("<", "&lt;").replace(">", "&gt;")
 
     html = f"""
     <style>
       html, body {{ margin:0; padding:0; background:transparent; font-family:Arial,sans-serif; }}
+      * {{ box-sizing:border-box; }}
       .bb-audio-card {{
-        border:1px solid #4b5563; border-radius:11px; padding:10px 12px 10px;
+        border:1px solid #4b5563; border-radius:11px; padding:9px 11px 9px;
+        margin-bottom:2px;
         background:#111827; color:#f3f4f6;
       }}
-      .bb-audio-title {{ font-size:14px; font-weight:700; margin-bottom:4px; }}
-      audio {{ width:100%; height:38px; margin-bottom:8px; display:block; }}
+      .bb-audio-title {{ font-size:13px; font-weight:700; margin-bottom:4px; }}
+      audio {{ width:100%; height:36px; margin-bottom:7px; display:block; }}
       .bb-buttons {{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }}
       .bb-buttons button {{
-        border:1px solid #667085; border-radius:9px; padding:8px 8px; cursor:pointer;
+        border:1px solid #667085; border-radius:9px; padding:7px 8px; cursor:pointer;
         background:#1f2937; color:#f8fafc; font-size:12px; font-weight:650;
       }}
       .bb-buttons button:hover {{ background:#2b3647; }}
@@ -3419,7 +3428,7 @@ def _render_seekable_audio_player(audio_bytes, uid, caddie_name):
     }})();
     </script>
     """
-    components.html(html, height=118, scrolling=False)
+    components.html(html, height=128, scrolling=False)
 
 
 
@@ -3775,6 +3784,7 @@ def render_caddie_voice_player(
     profile = persona.get("voice_profile", {})
     voice_name = profile.get("tts_voice", "Kore")
     caddie_name = persona_key.split(" (")[0]
+    caddie_label = persona_badged_name(persona_key)
 
     digest = hashlib.sha256(
         f"{VOICE_PROFILE_VERSION}|{persona_key}|{spoken_text}".encode("utf-8")
@@ -3783,7 +3793,11 @@ def render_caddie_voice_player(
     meta_key = f"caddie_tts_meta_{digest}"
 
     with st.container(border=True):
-        st.markdown("#### 🎧 Caddie Audio")
+        render_heading_with_note(
+            "🎧 Caddie Audio",
+            caddie_label,
+            level=3,
+        )
         has_audio = state_key in st.session_state
         stored_persona_key = st.session_state.get("caddie_persona_key")
         persona_changed = bool(stored_persona_key and stored_persona_key != persona_key)
@@ -3816,7 +3830,7 @@ def render_caddie_voice_player(
             _render_seekable_audio_player(
                 audio_bytes,
                 uid=digest,
-                caddie_name=caddie_name,
+                caddie_name=caddie_label,
             )
 
         # Intentional controls only: fresh take or switch the already-analyzed
@@ -3824,7 +3838,7 @@ def render_caddie_voice_player(
         if has_audio:
             button_text = "🔄 Regenerate Caddie Response"
         elif persona_changed and diagnosis is not None and refresh_persona_copy:
-            button_text = f"🎭 Generate {caddie_name} Version"
+            button_text = f"🎭 Generate {caddie_label} Version"
         else:
             button_text = None
 
@@ -4012,6 +4026,7 @@ def render_drill_voice_briefing(
 ):
     """Generate persona briefing and render it in the approved preview layout."""
     caddie_name = persona_key.split(" (")[0]
+    caddie_label = persona_badged_name(persona_key)
     context_blob = json.dumps(
         {
             "voice_profile_version": VOICE_PROFILE_VERSION,
@@ -4095,7 +4110,7 @@ def render_drill_voice_briefing(
             "border:1px solid rgba(56,189,248,.36);'>"
             f"<div style='font-size:.81rem;font-weight:850;color:#60a5fa;"
             "margin-bottom:6px;'>🎙️ "
-            f"{_safe_html(caddie_name)}</div>"
+            f"{_safe_html(caddie_label)}</div>"
             "<div style='font-size:.82rem;line-height:1.48;color:#dbeafe;'>"
             f"“{_safe_html(briefing)}”</div></div>",
             unsafe_allow_html=True,
@@ -4110,7 +4125,7 @@ def render_drill_voice_briefing(
         _render_seekable_audio_player(
             audio_bytes,
             uid=f"drill-{digest}",
-            caddie_name=caddie_name,
+            caddie_name=caddie_label,
         )
 
     if briefing and not audio_bytes and not auto_generate_audio:
@@ -4362,6 +4377,7 @@ def _generate_persona_practice_debrief(
 def render_practice_voice_debrief(persona_key, diagnosis, practice_row, kpi):
     """Render an optional persona debrief after practice feedback has been saved."""
     caddie_name = persona_key.split(" (")[0]
+    caddie_label = persona_badged_name(persona_key)
     snapshot = {
         "voice_profile_version": VOICE_PROFILE_VERSION,
         "persona": persona_key,
@@ -4416,12 +4432,12 @@ def render_practice_voice_debrief(persona_key, diagnosis, practice_row, kpi):
     audio_bytes = st.session_state.get(audio_key)
 
     if debrief:
-        st.success(f'**{caddie_name}:** “{debrief}”')
+        st.success(f'**{caddie_label}:** “{debrief}”')
     if audio_bytes:
         _render_seekable_audio_player(
             audio_bytes,
             uid=f"debrief-{digest}",
-            caddie_name=caddie_name,
+            caddie_name=caddie_label,
         )
 
     # Optional fresh take after the automatically prepared debrief.
@@ -7214,7 +7230,7 @@ def _compact_story_excerpt(max_chars=180):
 
 def render_round_summary_card(key_suffix, allow_edit=True):
     with st.container(border=True):
-        st.markdown("##### ✅ Round Intake")
+        render_heading_with_note("✅ Round Intake", level=5)
         source = str(st.session_state.get("round_intake_source", "Round entered"))
         score = _fmt_stat(st.session_state.get("round_score"))
         holes = _fmt_stat(st.session_state.get("round_holes_played"))
@@ -7270,7 +7286,7 @@ def render_followup_summary_card(key_suffix, allow_edit=True):
     answered = sum(answer is not None for answer in answers)
 
     with st.container(border=True):
-        st.markdown("##### ✅ Diagnostic Clarifications")
+        render_heading_with_note("✅ Diagnostic Clarifications", level=5)
         st.caption(f"{answered} of {len(questions)} clarification questions answered.")
 
         if questions and answered:
@@ -7297,7 +7313,7 @@ def render_diagnosis_summary_card(key_suffix, allow_review=True, allow_edit_answ
     primary_drill = str(diag.get("recommended_primary_drill", "N/A"))
 
     with st.container(border=True):
-        st.markdown("##### ✅ Diagnosis")
+        render_heading_with_note("✅ Diagnosis", level=5)
         st.markdown(f"**#1:** {primary_stage} — {primary}")
         if secondary:
             st.caption(f"#2: {secondary}")
@@ -7349,7 +7365,7 @@ def render_practice_setup_summary_card(key_suffix, allow_change=True):
     transfer = int(float(res.get("game_pct", 0)) * 100)
 
     with st.container(border=True):
-        st.markdown("##### ✅ Practice Setup")
+        render_heading_with_note("✅ Practice Setup", level=5)
         c1, c2 = st.columns(2)
         with c1:
             render_compact_metric("Time Budget", f"{res.get('total_time', '—')} min")
@@ -7504,6 +7520,30 @@ def format_selector_value(val: str) -> str:
 
 
 # Persona selection lives in the configuration sidebar so the coaching flow stays focused.
+
+PERSONA_EMOJI_MAP = {
+    "Bogey-Wan Kenobi": "🧔‍♂️",
+    "Harry Putter": "🧙‍♂️",
+    "James Pond": "🕵️‍♂️",
+    "Captain Hack Sparrow": "🏴‍☠️",
+}
+
+def _persona_base_name(persona_key_or_name):
+    text = str(persona_key_or_name or "").strip()
+    if not text:
+        return ""
+    return text.split(" (")[0].strip()
+
+def persona_emoji(persona_key_or_name):
+    base = _persona_base_name(persona_key_or_name)
+    return PERSONA_EMOJI_MAP.get(base, "🎭")
+
+def persona_badged_name(persona_key_or_name):
+    base = _persona_base_name(persona_key_or_name)
+    if not base:
+        return ""
+    return f"{persona_emoji(base)} {base}"
+
 persona_options = list(PERSONA_DATABASE.keys())
 stored_persona = st.session_state.get("caddie_persona_key", persona_options[0])
 persona_index = (
@@ -7512,15 +7552,17 @@ persona_index = (
     else 0
 )
 with st.sidebar.container(border=True):
-    st.subheader("Caddie")
+    render_heading_with_note("Caddie", level=4)
     selected_persona_key = st.selectbox(
         "Movie Caddie Persona",
         options=persona_options,
         index=persona_index,
         key="global_movie_caddie_persona",
+        format_func=persona_badged_name,
         help="Change the caddie's personality without changing the underlying golf diagnosis.",
     )
-persona_display_name = selected_persona_key.split(" (")[0]
+persona_display_name = _persona_base_name(selected_persona_key)
+persona_display_label = persona_badged_name(selected_persona_key)
 active_persona = PERSONA_DATABASE[selected_persona_key]
 
 current_workflow_step = _workflow_step()
@@ -7607,7 +7649,7 @@ if show_step1:
                 )
 
                 if stats_tracked:
-                    st.markdown("#### Round Numbers")
+                    render_heading_with_note("Round Numbers", level=4)
                     cov1, cov2, cov3 = st.columns(3)
                     with cov1:
                         holes_played = st.number_input("Holes Played", min_value=1, max_value=36, value=18, step=1, help="Use 9 for a nine-hole round or the actual number completed.")
@@ -7658,7 +7700,7 @@ if show_step1:
                         else:
                             st.caption("Handicap: not provided")
 
-                    st.markdown("#### Scoring Events")
+                    render_heading_with_note("Scoring Events", level=4)
                     col_e1, col_e2, col_e3, col_e4 = st.columns(4)
                     with col_e1:
                         ob_lost_balls = st.number_input(
@@ -7776,7 +7818,7 @@ if show_step1:
                             hole_df = pd.DataFrame(readable_holes)
                             st.dataframe(hole_df, hide_index=True, use_container_width=True)
 
-                    st.markdown("##### ✅ Review / Correct Extracted Stats")
+                    render_heading_with_note("✅ Review / Correct Extracted Stats", level=5)
                     st.caption(
                         "These fields are editable. Leave a field blank when the scorecard does not actually support it. "
                         "Your confirmed values override the raw image extraction."
@@ -7843,7 +7885,7 @@ if show_step1:
                                 step=0.1, key="upload_hcp_review",
                             )
 
-                    st.markdown("##### 🎯 Scoring Events")
+                    render_heading_with_note("🎯 Scoring Events", level=5)
                     col_e1, col_e2, col_e3, col_e4 = st.columns(4)
                     with col_e1:
                         ob_lost_balls = st.number_input(
@@ -8058,7 +8100,7 @@ if show_step1:
             analyze_label = (
                 "Analyze Uploaded Scorecard"
                 if intake_mode == "📷 Upload Scorecard"
-                else f"Analyze Round with {persona_display_name}"
+                else f"Analyze Round with {persona_display_label}"
             )
             if st.button(analyze_label, type="primary"):
                 scorecard_ready = (
@@ -8710,6 +8752,7 @@ if show_step1:
             render_workflow_dashboard("diagnosis")
             diag = st.session_state["diagnosis"]
             caddie = st.session_state.get("caddie_name", persona_display_name)
+            caddie_label = persona_badged_name(st.session_state.get("caddie_persona_key", selected_persona_key))
             roi_data = st.session_state.get("roi_data", {})
             vc = diag.get("value_chain_analysis", {})
             stage_summary = build_value_chain_roi_summary(roi_data, diag)
@@ -8733,7 +8776,7 @@ if show_step1:
                 ).strip()
 
             if narrative_text:
-                st.success(f'**{caddie}:** “{narrative_text}”')
+                st.success(f'**{caddie_label}:** “{narrative_text}”')
                 render_caddie_voice_player(
                     narrative_text,
                     selected_persona_key,
@@ -8956,7 +8999,7 @@ if (
 
     with st.container(border=True):
         render_heading_with_note(
-            "4. Build Today’s Practice Plan",
+            "Build Today’s Practice Plan",
             "Set today's available practice assets and constraints.",
             level=3,
         )
@@ -8984,7 +9027,7 @@ if (
 
         setup_left, setup_right = st.columns(2)
         with setup_left:
-            st.markdown("#### Assets")
+            render_heading_with_note("Assets", level=4)
             asset_a, asset_b = st.columns(2)
             with asset_a:
                 total_balls = st.number_input(
@@ -9025,7 +9068,7 @@ if (
             practice_mode = mode_map[mode_short]
 
         with setup_right:
-            st.markdown("#### Constraints")
+            render_heading_with_note("Constraints", level=4)
             practice_areas = st.multiselect(
                 "Practice area",
                 PRACTICE_AREA_OPTIONS,
@@ -9156,7 +9199,7 @@ if (
 
     with st.container(border=True):
         render_heading_with_note(
-            "5. Adaptive Practice Execution & Setup Guide",
+            "Adaptive Practice Execution & Setup Guide",
             "Execute the plan, test it, and log what changed.",
             level=3,
         )
@@ -9596,7 +9639,7 @@ if (
             )
 
             with st.container(border=True):
-                st.markdown("#### 🎯 Next-Round Validation")
+                render_heading_with_note("🎯 Next-Round Validation", level=4)
                 if validation_targets:
                     for idx, target in enumerate(validation_targets, start=1):
                         st.markdown(
