@@ -3430,120 +3430,147 @@ def _render_seekable_audio_player(audio_bytes, uid, caddie_name=None):
 
 
 def _persona_avatar_svg(persona_key_or_name):
-    """Return a stylized inline SVG avatar for each movie-caddie persona."""
+    """Return a more polished stylized inline SVG avatar for each movie-caddie persona."""
     base = _persona_base_name(persona_key_or_name)
 
     if base == "Bogey-Wan Kenobi":
         return """
-<svg viewBox="0 0 150 182" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bogey-Wan avatar">
+<svg viewBox="0 0 170 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bogey-Wan avatar">
   <defs>
-    <linearGradient id="bg1" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#14253d"/>
-      <stop offset="100%" stop-color="#0b1526"/>
+    <linearGradient id="bw_bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#18314d"/>
+      <stop offset="100%" stop-color="#0a1220"/>
     </linearGradient>
-    <linearGradient id="robe1" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stop-color="#87684b"/>
-      <stop offset="100%" stop-color="#4d3a2c"/>
+    <linearGradient id="bw_robe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#927052"/>
+      <stop offset="100%" stop-color="#533d2d"/>
     </linearGradient>
-    <linearGradient id="inner1" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stop-color="#d9c7b4"/>
-      <stop offset="100%" stop-color="#baa28d"/>
+    <linearGradient id="bw_tunic" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e9dccf"/>
+      <stop offset="100%" stop-color="#c5b09a"/>
     </linearGradient>
+    <filter id="bw_shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#000000" flood-opacity=".35"/>
+    </filter>
   </defs>
-  <rect x="0" y="0" width="150" height="182" rx="18" fill="url(#bg1)"/>
-  <circle cx="110" cy="34" r="16" fill="rgba(120,196,255,.18)"/>
-  <rect x="108" y="50" width="4" height="78" rx="2" fill="#74d0ff"/>
-  <circle cx="75" cy="52" r="23" fill="#f1d4bc"/>
-  <path d="M52 52c2-22 42-26 49 0-7-8-13-11-24-11S58 44 52 52Z" fill="#b9b9b9"/>
-  <path d="M60 61c7 5 24 5 30 0" stroke="#4d372c" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M60 70c6 15 25 15 30 0v10c-1 17-11 25-15 25s-14-8-15-25V70Z" fill="#d8d8d8"/>
-  <path d="M47 111c10-18 23-27 28-27 6 0 18 8 28 27l11 48H36l11-48Z" fill="url(#robe1)"/>
-  <path d="M60 98h30l13 61H47l13-61Z" fill="url(#inner1)" opacity=".85"/>
-  <path d="M42 112c7-10 21-20 33-20 14 0 26 8 34 20" stroke="#c9b194" stroke-width="5" fill="none" stroke-linecap="round"/>
-  <text x="75" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="#9fd8ff">JEDI COACH</text>
+  <rect width="170" height="220" rx="22" fill="url(#bw_bg)"/>
+  <circle cx="130" cy="40" r="22" fill="#90d7ff" opacity=".10"/>
+  <rect x="126" y="57" width="7" height="90" rx="3.5" fill="#7fd8ff" opacity=".95"/>
+  <g filter="url(#bw_shadow)">
+    <path d="M29 205c8-42 17-69 28-84 10-14 24-25 28-25 5 0 18 10 29 25 12 17 20 43 27 84H29Z" fill="url(#bw_robe)"/>
+    <path d="M60 112h50l18 93H42l18-93Z" fill="url(#bw_tunic)" opacity=".97"/>
+    <path d="M85 97c-10 0-30 18-42 44 10-8 23-14 42-14 18 0 31 6 41 14-10-25-30-44-41-44Z" fill="#b99f86" opacity=".60"/>
+    <circle cx="85" cy="66" r="26" fill="#f0d4bf"/>
+    <path d="M58 64c2-24 17-37 30-37 16 0 29 12 33 36-9-9-21-15-34-15-11 0-21 4-29 16Z" fill="#b7b8bb"/>
+    <path d="M69 61c2 2 5 4 8 4 4 0 6-1 8-4" stroke="#53606b" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M93 61c2 2 5 4 8 4 4 0 6-1 8-4" stroke="#53606b" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M73 76c7 5 24 5 30 0" stroke="#6c4d40" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <path d="M69 83c4 17 12 25 17 25 6 0 14-7 18-25-9 6-25 6-35 0Z" fill="#d7d8da"/>
+    <path d="M56 121c9-12 20-21 29-21 10 0 20 8 29 21" stroke="#d6c1aa" stroke-width="6" fill="none" stroke-linecap="round"/>
+  </g>
 </svg>
 """
 
     if base == "Harry Putter":
         return """
-<svg viewBox="0 0 150 182" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Harry Putter avatar">
+<svg viewBox="0 0 170 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Harry Putter avatar">
   <defs>
-    <linearGradient id="bg2" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#1d253f"/>
+    <linearGradient id="hp_bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#222b49"/>
       <stop offset="100%" stop-color="#101521"/>
     </linearGradient>
+    <filter id="hp_shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#000000" flood-opacity=".35"/>
+    </filter>
   </defs>
-  <rect x="0" y="0" width="150" height="182" rx="18" fill="url(#bg2)"/>
-  <circle cx="120" cy="30" r="14" fill="rgba(255,215,90,.18)"/>
-  <path d="M118 20l2 7 7 2-7 2-2 7-2-7-7-2 7-2 2-7Z" fill="#ffd54a"/>
-  <circle cx="75" cy="52" r="22" fill="#efcfb5"/>
-  <path d="M55 47c2-16 14-24 21-24 11 0 21 8 24 23-8-5-18-9-24-9-6 0-14 3-21 10Z" fill="#252525"/>
-  <circle cx="67" cy="54" r="8" fill="none" stroke="#d9e6ff" stroke-width="2.5"/>
-  <circle cx="84" cy="54" r="8" fill="none" stroke="#d9e6ff" stroke-width="2.5"/>
-  <line x1="75" y1="54" x2="76" y2="54" stroke="#d9e6ff" stroke-width="2"/>
-  <path d="M70 44l4-8 4 5" stroke="#e87b4f" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M58 104c10-14 22-20 33-20 13 0 24 7 31 20l-7 55H35l23-55Z" fill="#1b232f"/>
-  <path d="M68 88h14l4 16H64l4-16Z" fill="#7d1010"/>
-  <rect x="104" y="84" width="4" height="38" rx="2" transform="rotate(24 104 84)" fill="#c5935d"/>
-  <circle cx="121" cy="81" r="6" fill="#9f67ff"/>
-  <text x="75" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="#d9c28e">WIZARD COACH</text>
+  <rect width="170" height="220" rx="22" fill="url(#hp_bg)"/>
+  <g opacity=".95">
+    <path d="M128 28l3 10 10 3-10 3-3 10-3-10-10-3 10-3 3-10Z" fill="#ffd24d"/>
+    <circle cx="132" cy="42" r="19" fill="#ffd24d" opacity=".08"/>
+  </g>
+  <g filter="url(#hp_shadow)">
+    <path d="M36 205c7-33 16-61 25-76 12-18 28-30 24-30 7 0 25 12 36 31 10 16 19 41 24 75H36Z" fill="#1a2230"/>
+    <path d="M74 103h22l7 17H67l7-17Z" fill="#7c1212"/>
+    <path d="M85 66c-11 0-31 18-43 42 12-7 27-12 43-12 18 0 31 4 43 12-12-24-31-42-43-42Z" fill="#2d2f35"/>
+    <circle cx="85" cy="66" r="25" fill="#efcfb5"/>
+    <path d="M61 59c5-21 19-33 30-33 14 0 27 11 31 32-10-7-24-13-33-13-10 0-21 4-28 14Z" fill="#26272b"/>
+    <circle cx="76" cy="69" r="9.5" fill="none" stroke="#d9e7ff" stroke-width="2.8"/>
+    <circle cx="94" cy="69" r="9.5" fill="none" stroke="#d9e7ff" stroke-width="2.8"/>
+    <path d="M85 69h0.5" stroke="#d9e7ff" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M80 51l5-10 5 7" stroke="#d47d52" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <path d="M76 81c4 3 14 3 18 0" stroke="#6c4d40" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <rect x="121" y="90" width="5" height="46" rx="2.5" transform="rotate(20 121 90)" fill="#cb9355"/>
+    <circle cx="136" cy="86" r="7" fill="#9f67ff"/>
+    <circle cx="136" cy="86" r="11" fill="#9f67ff" opacity=".10"/>
+  </g>
 </svg>
 """
 
     if base == "James Pond":
         return """
-<svg viewBox="0 0 150 182" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="James Pond avatar">
+<svg viewBox="0 0 170 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="James Pond avatar">
   <defs>
-    <linearGradient id="bg3" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#152133"/>
-      <stop offset="100%" stop-color="#0a1220"/>
+    <linearGradient id="jp_bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#18263a"/>
+      <stop offset="100%" stop-color="#0a1320"/>
     </linearGradient>
+    <filter id="jp_shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#000000" flood-opacity=".35"/>
+    </filter>
   </defs>
-  <rect x="0" y="0" width="150" height="182" rx="18" fill="url(#bg3)"/>
-  <circle cx="75" cy="49" r="22" fill="#ebcdb3"/>
-  <path d="M53 43c5-17 19-24 31-24 12 0 23 7 27 24-8-5-20-10-29-10-10 0-20 4-29 10Z" fill="#171717"/>
-  <path d="M67 58c5 4 11 5 16 0" stroke="#51362b" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M43 103c11-13 22-20 32-20 11 0 22 7 32 20l10 56H33l10-56Z" fill="#101826"/>
-  <path d="M61 90h28l-3 68H64l-3-68Z" fill="#f2f5f8"/>
-  <polygon points="75,99 65,116 75,128 85,116" fill="#111111"/>
-  <rect x="72" y="128" width="6" height="18" rx="3" fill="#111111"/>
-  <rect x="105" y="82" width="10" height="46" rx="5" transform="rotate(28 105 82)" fill="#60656f"/>
-  <rect x="108" y="77" width="4" height="11" rx="2" transform="rotate(28 108 77)" fill="#8f98a8"/>
-  <text x="75" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="#a8c8ff">SPY COACH</text>
+  <rect width="170" height="220" rx="22" fill="url(#jp_bg)"/>
+  <circle cx="129" cy="41" r="20" fill="#9ec6ff" opacity=".08"/>
+  <g filter="url(#jp_shadow)">
+    <path d="M34 205c8-38 16-64 28-80 10-14 21-25 23-25 4 0 16 11 28 25 13 17 22 43 28 80H34Z" fill="#121925"/>
+    <path d="M69 99h32l-5 106H74l-5-106Z" fill="#f4f6f9"/>
+    <polygon points="85,111 73,130 85,145 97,130" fill="#111111"/>
+    <rect x="81.5" y="145" width="7" height="22" rx="3.5" fill="#111111"/>
+    <circle cx="85" cy="66" r="25" fill="#ebcdb3"/>
+    <path d="M60 58c5-21 20-32 31-32 13 0 26 11 30 31-10-6-23-12-34-12-10 0-20 4-27 13Z" fill="#1b1b1e"/>
+    <path d="M74 81c5 3 17 3 22 0" stroke="#644636" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <rect x="120" y="89" width="12" height="49" rx="6" transform="rotate(25 120 89)" fill="#656b75"/>
+    <rect x="122" y="83" width="5" height="14" rx="2.5" transform="rotate(25 122 83)" fill="#9098a4"/>
+    <path d="M60 100c8-10 17-16 25-16 8 0 17 6 25 16" stroke="#202835" stroke-width="10" fill="none" stroke-linecap="round"/>
+  </g>
 </svg>
 """
 
     if base == "Captain Hack Sparrow":
         return """
-<svg viewBox="0 0 150 182" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Captain Hack Sparrow avatar">
+<svg viewBox="0 0 170 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Captain Hack Sparrow avatar">
   <defs>
-    <linearGradient id="bg4" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#2a1b17"/>
-      <stop offset="100%" stop-color="#13151d"/>
+    <linearGradient id="hs_bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2f2019"/>
+      <stop offset="100%" stop-color="#11141d"/>
     </linearGradient>
+    <filter id="hs_shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#000000" flood-opacity=".35"/>
+    </filter>
   </defs>
-  <rect x="0" y="0" width="150" height="182" rx="18" fill="url(#bg4)"/>
-  <path d="M34 43c8-20 27-31 41-31s33 11 41 31c-9-4-16-6-25-7-2 11-8 17-16 17s-14-6-16-17c-9 1-16 3-25 7Z" fill="#3c251a"/>
-  <path d="M49 36c10-9 50-9 54 0-3 11-14 21-27 21S52 47 49 36Z" fill="#942a24"/>
-  <circle cx="75" cy="58" r="22" fill="#e7c6a8"/>
-  <path d="M54 58c3-19 16-28 24-28 11 0 22 9 28 28-8-8-18-12-28-12-9 0-17 3-24 12Z" fill="#2a1b17"/>
-  <path d="M61 69c3 6 8 9 14 9 6 0 11-3 14-9" stroke="#6d4634" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M66 74c4 7 14 7 18 0" stroke="#3c2316" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M57 103c12-14 25-20 36-20 13 0 24 7 30 20l-5 56H32l25-56Z" fill="#314656"/>
-  <path d="M70 88h12l4 14H66l4-14Z" fill="#efe2c2"/>
-  <circle cx="43" cy="65" r="4" fill="#caa54e"/>
-  <circle cx="107" cy="83" r="4" fill="#caa54e"/>
-  <line x1="41" y1="69" x2="38" y2="90" stroke="#b86a35" stroke-width="2"/>
-  <line x1="105" y1="87" x2="103" y2="107" stroke="#b86a35" stroke-width="2"/>
-  <text x="75" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="#f0cf74">PIRATE COACH</text>
+  <rect width="170" height="220" rx="22" fill="url(#hs_bg)"/>
+  <circle cx="131" cy="36" r="20" fill="#f0c96e" opacity=".08"/>
+  <g filter="url(#hs_shadow)">
+    <path d="M42 50c9-25 27-38 43-38 15 0 34 12 43 38-13-7-23-9-30-9-3 13-9 21-13 21-7 0-13-8-15-21-7 0-15 2-28 9Z" fill="#4a3021"/>
+    <path d="M54 44c9-9 48-9 62 0-2 13-17 24-31 24S56 57 54 44Z" fill="#8f2b25"/>
+    <circle cx="85" cy="70" r="25" fill="#e8c5a8"/>
+    <path d="M61 63c4-21 19-33 32-33 13 0 27 12 31 33-8-7-22-14-34-14-10 0-21 4-29 14Z" fill="#26180f"/>
+    <path d="M75 85c5 4 16 4 21 0" stroke="#744d39" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M72 90c4 8 9 11 13 11 5 0 10-3 13-11" stroke="#402317" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M38 205c9-38 18-63 31-79 10-12 15-17 16-17 3 0 18 10 28 24 11 17 18 41 19 72H38Z" fill="#31495a"/>
+    <path d="M74 101h22l6 16H68l6-16Z" fill="#ece0c5"/>
+    <circle cx="50" cy="78" r="4.5" fill="#c8a14e"/>
+    <line x1="48" y1="82" x2="45" y2="104" stroke="#be703a" stroke-width="2.4"/>
+    <circle cx="117" cy="93" r="4.5" fill="#c8a14e"/>
+    <line x1="116" y1="97" x2="114" y2="118" stroke="#be703a" stroke-width="2.4"/>
+  </g>
 </svg>
 """
 
     return """
-<svg viewBox="0 0 150 182" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Caddie avatar">
-  <rect x="0" y="0" width="150" height="182" rx="18" fill="#0f172a"/>
-  <circle cx="75" cy="55" r="23" fill="#e8cdb8"/>
-  <path d="M46 106c10-14 22-22 29-22 9 0 21 8 29 22l10 53H36l10-53Z" fill="#22324b"/>
+<svg viewBox="0 0 170 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Caddie avatar">
+  <rect width="170" height="220" rx="22" fill="#0f172a"/>
+  <circle cx="85" cy="70" r="25" fill="#e8cdb8"/>
+  <path d="M38 205c9-38 18-63 31-79 10-12 15-17 16-17 3 0 18 10 28 24 11 17 18 41 19 72H38Z" fill="#22324b"/>
 </svg>
 """
 
@@ -3551,12 +3578,12 @@ def _persona_avatar_svg(persona_key_or_name):
 def persona_character_panel(persona_key_or_name):
     svg = _persona_avatar_svg(persona_key_or_name)
     return (
-        "<div style='width:124px;min-width:124px;max-width:124px;"
+        "<div style='width:136px;min-width:136px;max-width:136px;"
         "align-self:stretch;display:flex;align-items:stretch;'>"
         "<div style='width:100%;border-radius:16px;overflow:hidden;"
-        "border:1px solid rgba(91,111,139,.40);"
+        "border:1px solid rgba(91,111,139,.38);"
         "background:linear-gradient(160deg,rgba(18,28,42,.95),rgba(9,15,24,.98));"
-        "box-shadow:inset 0 1px 0 rgba(255,255,255,.03);'>"
+        "box-shadow:0 10px 18px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.03);'>"
         f"{svg}"
         "</div></div>"
     )
@@ -3572,10 +3599,10 @@ def render_caddie_briefing_content(
 ):
     """Render persona identity, narrative, and optional playback as one cohesive block."""
     clean_text = str(text or "").strip()
-    caddie_label = persona_badged_name(persona_key)
+    caddie_label = _persona_base_name(persona_key)
 
     st.markdown(
-        "<div style='display:flex;gap:14px;align-items:stretch;margin:2px 0 10px;'>"
+        "<div style='display:flex;gap:14px;align-items:stretch;margin:1px 0 8px;'>"
         f"{persona_character_panel(persona_key)}"
         "<div style='flex:1;min-width:0;display:flex;flex-direction:column;"
         "justify-content:center;padding:2px 0;'>"
@@ -4001,7 +4028,8 @@ def render_caddie_voice_player(
             button_text = None
 
         if button_text:
-            action_cols = st.columns([7.2, 1.15], gap="small")
+            st.markdown("<div style='margin-top:-4px;'></div>", unsafe_allow_html=True)
+            action_cols = st.columns([8.4, 0.7], gap="small")
             with action_cols[1]:
                 if button_text == "↻ New Take":
                     clicked = st.button(
@@ -4016,6 +4044,7 @@ def render_caddie_voice_player(
                         key=f"generate_{digest}",
                         use_container_width=False,
                     )
+            st.markdown("<div style='margin-bottom:-6px;'></div>", unsafe_allow_html=True)
         else:
             clicked = False
 
@@ -4273,7 +4302,8 @@ def render_drill_voice_briefing(
         )
 
         if briefing:
-            action_cols = st.columns([7.0, 1.0, 1.15], gap="small")
+            st.markdown("<div style='margin-top:-4px;'></div>", unsafe_allow_html=True)
+            action_cols = st.columns([8.0, 0.65, 0.75], gap="small")
 
             with action_cols[1]:
                 add_audio = (
@@ -4294,6 +4324,7 @@ def render_drill_voice_briefing(
                     type="tertiary",
                     use_container_width=False,
                 )
+            st.markdown("<div style='margin-bottom:-6px;'></div>", unsafe_allow_html=True)
 
             if add_audio:
                 try:
@@ -4608,7 +4639,8 @@ def render_practice_voice_debrief(persona_key, diagnosis, practice_row, kpi):
         )
 
         if debrief:
-            action_cols = st.columns([7.2, 1.15], gap="small")
+            st.markdown("<div style='margin-top:-4px;'></div>", unsafe_allow_html=True)
+            action_cols = st.columns([8.4, 0.7], gap="small")
             with action_cols[1]:
                 new_take = st.button(
                     "↻ New Take",
@@ -4616,6 +4648,7 @@ def render_practice_voice_debrief(persona_key, diagnosis, practice_row, kpi):
                     type="tertiary",
                     use_container_width=False,
                 )
+            st.markdown("<div style='margin-bottom:-6px;'></div>", unsafe_allow_html=True)
         else:
             new_take = False
 
@@ -7685,28 +7718,15 @@ def format_selector_value(val: str) -> str:
 
 # Persona selection lives in the configuration sidebar so the coaching flow stays focused.
 
-PERSONA_EMOJI_MAP = {
-    "Bogey-Wan Kenobi": "🧔‍♂️",
-    "Harry Putter": "🧙‍♂️",
-    "James Pond": "🕵️‍♂️",
-    "Captain Hack Sparrow": "🏴‍☠️",
-}
-
 def _persona_base_name(persona_key_or_name):
     text = str(persona_key_or_name or "").strip()
     if not text:
         return ""
     return text.split(" (")[0].strip()
 
-def persona_emoji(persona_key_or_name):
-    base = _persona_base_name(persona_key_or_name)
-    return PERSONA_EMOJI_MAP.get(base, "🎭")
-
 def persona_badged_name(persona_key_or_name):
-    base = _persona_base_name(persona_key_or_name)
-    if not base:
-        return ""
-    return f"{persona_emoji(base)} {base}"
+    """Display persona names cleanly without extra emoji once character panels are shown."""
+    return _persona_base_name(persona_key_or_name)
 
 persona_options = list(PERSONA_DATABASE.keys())
 stored_persona = st.session_state.get("caddie_persona_key", persona_options[0])
