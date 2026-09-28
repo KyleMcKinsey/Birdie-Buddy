@@ -1733,6 +1733,28 @@ def _safe_html(value):
     return html.escape(str(value if value is not None else ""))
 
 
+def render_heading_with_note(title, note, level=4):
+    """Render a section heading with short helper copy inline in subdued gray."""
+    styles = {
+        3: ("1.28rem", "850", "8px 0 10px"),
+        4: ("1.08rem", "800", "7px 0 8px"),
+        5: (".96rem", "800", "6px 0 7px"),
+    }
+    size, weight, margin = styles.get(level, styles[4])
+    st.markdown(
+        "<div style='display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;"
+        f"margin:{margin};'>"
+        f"<div style='font-size:{size};font-weight:{weight};line-height:1.22;"
+        "color:#f4f7fb;'>"
+        f"{_safe_html(title)}</div>"
+        "<div style='font-size:.74rem;font-weight:550;line-height:1.32;"
+        "color:#8f98a8;'>"
+        f"{_safe_html(note)}</div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def _benchmark_status(actual, benchmark, good_when_lower=False, soft_context=False):
     """Return accessible status metadata for a metric vs a benchmark."""
     if actual is None:
@@ -2018,9 +2040,10 @@ def render_value_chain_opportunity_view(stage_summary, diag):
         "mixed": ("GIR cause", "Mixed / unclear"),
     }
 
-    st.markdown("#### Practice Priority Map")
-    render_micro_note(
-        "Bars show relative practice priority, not measured Strokes Gained."
+    render_heading_with_note(
+        "Practice Priority Map",
+        "Bars show relative practice priority, not measured Strokes Gained.",
+        level=4,
     )
 
     for stage, key, icon, short_name in VALUE_CHAIN_STAGES:
@@ -2455,8 +2478,11 @@ def render_progress_trends(df_history):
         focus_tag = "First diagnosed focus"
 
     with st.container(border=True):
-        st.markdown("#### Dashboard Overview")
-        render_micro_note("Scoring trends are normalized when enough course/round context is available.")
+        render_heading_with_note(
+            "Dashboard Overview",
+            "Scoring trends are normalized when enough course/round context is available.",
+            level=4,
+        )
 
         m1, m2, m3 = st.columns(3)
         with m1:
@@ -2540,15 +2566,15 @@ def render_progress_trends(df_history):
             except Exception:
                 pass
         if transfer_values:
-            st.markdown("#### Latest Transfer Test")
+            render_heading_with_note(
+                "Latest Transfer Test",
+                "Decision, routine, and result stay separate.",
+                level=4,
+            )
             transfer_cols = st.columns(len(transfer_values))
             for col, (label, value) in zip(transfer_cols, transfer_values):
                 with col:
                     render_compact_metric(label, f"{value}/10")
-            st.caption(
-                "Decision, routine, and result stay separate so one poor swing does not rewrite the quality of the pre-shot choice."
-            )
-
         with st.expander("View scoring & practice trends", expanded=False):
             valid_chart = performance_series.dropna()
             if len(valid_chart) >= 2:
@@ -7415,10 +7441,10 @@ if show_step1:
     with st.container(border=True):
         # --- STEP 1A: STORY, MANUAL STATS, OR SCORECARD UPLOAD ---
         if st.session_state["diag_step"] == 1:
-            st.markdown("### 📝 Add Your Round")
-            render_micro_note(
-                "Describe the round, enter tracked stats, or upload a scorecard. "
-                "Follow-ups fill only the remaining gaps."
+            render_heading_with_note(
+                "📝 Add Your Round",
+                "Describe the round, enter tracked stats, or upload a scorecard; follow-ups fill remaining gaps.",
+                level=3,
             )
 
             intake_mode = st.radio(
@@ -7555,8 +7581,11 @@ if show_step1:
                     render_micro_note("Enable tracked stats only when zeros are real recorded zeros.")
 
             else:
-                st.markdown("##### 📷 Upload a Scorecard or Tracking Screenshot")
-                render_micro_note("Upload a clear scorecard/app screenshot; only visibly supported data is extracted.")
+                render_heading_with_note(
+                    "📷 Upload a Scorecard or Tracking Screenshot",
+                    "Only visibly supported data is extracted.",
+                    level=5,
+                )
                 scorecard_file = st.file_uploader(
                     "Scorecard image",
                     type=["png", "jpg", "jpeg", "webp"],
@@ -8140,8 +8169,11 @@ if show_step1:
             caddie = st.session_state.get("caddie_name", persona_display_name)
             qs = st.session_state.get("followup_questions", {})
 
-            st.markdown("### 🔎 Quick Diagnostic Follow-Ups")
-            render_micro_note("Only unresolved diagnostic gaps appear here.")
+            render_heading_with_note(
+                "🔎 Quick Diagnostic Follow-Ups",
+                "Only unresolved diagnostic gaps appear here.",
+                level=3,
+            )
 
             question_items = _normalize_followup_questions(qs)
             selected_answers = []
@@ -8579,9 +8611,10 @@ if show_step1:
             vc = diag.get("value_chain_analysis", {})
             stage_summary = build_value_chain_roi_summary(roi_data, diag)
 
-            st.markdown("### 🧾 Round Diagnosis")
-            render_micro_note(
-                "Highest-ROI opportunities across the five-stage golf value chain."
+            render_heading_with_note(
+                "🧾 Round Diagnosis",
+                "Highest-ROI opportunities across the five-stage golf value chain.",
+                level=3,
             )
 
             # The on-screen narrative is the single source of truth for voice playback.
@@ -8824,8 +8857,11 @@ if (
     render_workflow_dashboard("practice_setup")
 
     with st.container(border=True):
-        st.subheader("4. Build Today’s Practice Plan")
-        render_micro_note("Set today's available practice assets and constraints.")
+        render_heading_with_note(
+            "4. Build Today’s Practice Plan",
+            "Set today's available practice assets and constraints.",
+            level=3,
+        )
 
         diag_for_plan = st.session_state["diagnosis"]
         preferred_primary = diag_for_plan.get("recommended_primary_drill")
@@ -8956,8 +8992,11 @@ if (
         game_balls = total_balls - grind_balls
         grind_time = int(round(total_time * grind_pct))
         game_time = total_time - grind_time
-        st.markdown("#### Practice Asset Allocation")
-        render_micro_note("Diagnose → prioritize → allocate → measure → reallocate")
+        render_heading_with_note(
+            "Practice Asset Allocation",
+            "Diagnose → prioritize → allocate → measure → reallocate",
+            level=4,
+        )
         render_practice_allocation_bar(
             grind_pct,
             total_balls=total_balls,
@@ -9480,11 +9519,14 @@ if (
                     render_micro_note("No additional validation target generated for this plan.")
 
             with st.container(border=True):
-                st.markdown("#### 📥 Take It to Practice")
+                render_heading_with_note(
+                    "📥 Take It to Practice",
+                    "Download the compact offline practice card.",
+                    level=4,
+                )
                 export_card_text = build_export_card(
                     diag, res, active_drills, DRILL_SCHEMATICS, caddie
                 )
-                render_micro_note("Download the compact offline practice card.")
                 st.download_button(
                     label="Download Practice Card (.txt)",
                     data=export_card_text,
@@ -9502,9 +9544,10 @@ if (
             _current_log = _practice_rows[-1] if _practice_rows else None
 
             with st.container(border=True):
-                st.markdown("### ✅ Log This Practice Session")
-                render_micro_note(
-                    "Record completion and effectiveness; objective results are optional but improve future allocation."
+                render_heading_with_note(
+                    "✅ Log This Practice Session",
+                    "Record completion and effectiveness; objective results are optional but improve future allocation.",
+                    level=3,
                 )
 
                 if _current_log:
