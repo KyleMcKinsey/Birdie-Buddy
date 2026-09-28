@@ -9026,6 +9026,16 @@ if (
             rationale=allocation_rationale,
         )
 
+        split_rationale = str(diag_for_plan.get("drill_rationale", "") or "").strip()
+        if split_rationale:
+            st.markdown(
+                "<div style='font-size:.78rem;line-height:1.42;color:#8f98a8;"
+                "margin:4px 0 8px;'>"
+                "<strong style='color:#aeb7c4;'>Why this split:</strong> "
+                f"{_safe_html(split_rationale)}</div>",
+                unsafe_allow_html=True,
+            )
+
         can_generate = bool(practice_areas) and resolved_primary is not None
         if not practice_areas:
             st.warning("Select at least one practice area before generating the execution plan.")
@@ -9080,7 +9090,6 @@ if (
             s_drill = res.get("resolved_secondary_drill")
             p_miss = diag.get("primary_miss", "your highest-priority scoring opportunity")
             s_miss = diag.get("secondary_miss")
-            rationale = diag.get("drill_rationale")
             pep_talk = diag.get("caddie_drill_pep_talk")
 
             c_balls = res["total_balls"]
@@ -9112,15 +9121,6 @@ if (
                     f" basic feel keys with your limited budget (≈{c_balls} balls / ≈{c_time}"
                     " min)."
                 )
-
-            summary_line = (
-                "💡 **Targeted Prescription:** Ball and time assets optimized across"
-                f" {len(active_drills)} highest-value focus areas."
-            )
-            if rationale:
-                st.info(f"{summary_line}\n\n**Bang for Your Buck Rationale:** {rationale}")
-            else:
-                st.info(summary_line)
 
             g_balls = res["grind_balls"]
             g_time = res["grind_time"]
