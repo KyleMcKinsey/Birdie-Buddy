@@ -3376,11 +3376,9 @@ def _format_audio_time(seconds):
     return f"{seconds // 60}:{seconds % 60:02d}"
 
 
-def _render_seekable_audio_player(audio_bytes, uid, caddie_name):
+def _render_seekable_audio_player(audio_bytes, uid, caddie_name=None):
     """Compact player: native scrub bar plus skip controls only."""
     encoded = base64.b64encode(audio_bytes).decode("ascii")
-    display_name = caddie_name if str(caddie_name).strip().startswith(("🧔", "🧙", "🕵", "🏴")) else persona_badged_name(caddie_name)
-    safe_caddie = str(display_name).replace("<", "&lt;").replace(">", "&gt;")
 
     html = f"""
     <style>
@@ -3391,7 +3389,6 @@ def _render_seekable_audio_player(audio_bytes, uid, caddie_name):
         margin-bottom:2px;
         background:#111827; color:#f3f4f6;
       }}
-      .bb-audio-title {{ font-size:13px; font-weight:700; margin-bottom:4px; }}
       audio {{ width:100%; height:36px; margin-bottom:7px; display:block; }}
       .bb-buttons {{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }}
       .bb-buttons button {{
@@ -3406,7 +3403,6 @@ def _render_seekable_audio_player(audio_bytes, uid, caddie_name):
       }}
     </style>
     <div class="bb-audio-card">
-      <div class="bb-audio-title">🎧 {safe_caddie}</div>
       <audio id="audio-{uid}" controls preload="metadata">
         <source src="data:audio/wav;base64,{encoded}" type="audio/wav">
       </audio>
@@ -3428,7 +3424,7 @@ def _render_seekable_audio_player(audio_bytes, uid, caddie_name):
     }})();
     </script>
     """
-    components.html(html, height=128, scrolling=False)
+    components.html(html, height=106, scrolling=False)
 
 
 
