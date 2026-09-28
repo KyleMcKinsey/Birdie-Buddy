@@ -38,9 +38,19 @@ st.markdown(
         gap: 1rem;
     }
 
-    /* A little breathing room around bordered Streamlit panels. */
+    /* A little breathing room around bordered Streamlit panels.
+       The bottom margin is important when wrapped/multi-line content
+       makes a card taller than neighboring cards. */
     [data-testid="stVerticalBlockBorderWrapper"] {
         border-radius: 12px !important;
+        margin-bottom: .55rem !important;
+    }
+
+    /* Expanders are bordered controls too; keep a small safety gap
+       so their outline never kisses the card immediately above/below. */
+    [data-testid="stExpander"] {
+        margin-top: .20rem !important;
+        margin-bottom: .55rem !important;
     }
 
     /* Tabs: segmented-control feel, matching the approved drill preview. */
@@ -592,7 +602,7 @@ def render_drill_insight_card(title, text, kind="mental"):
         ).strip()
 
     st.markdown(
-        "<div style='min-height:116px;padding:14px 16px;margin:2px 0 8px;"
+        "<div style='min-height:116px;padding:14px 16px;margin:2px 0 10px;"
         f"background:{p['bg']};border:1px solid {p['border']};"
         "border-radius:11px;box-shadow:inset 0 1px 0 rgba(255,255,255,.035);'>"
         f"<div style='font-size:.91rem;font-weight:850;color:{p['title']};"
@@ -609,7 +619,7 @@ def render_drill_detail_cards(rows):
     """Readable cards for the Test & Equipment tab."""
     for label, value in rows:
         st.markdown(
-            "<div style='margin:8px 1px;padding:10px 12px;border-radius:10px;"
+            "<div style='margin:8px 1px 10px;padding:10px 12px;border-radius:10px;"
             "background:rgba(21,30,43,.80);border:1px solid rgba(100,116,139,.30);'>"
             f"<div style='font-size:.68rem;font-weight:850;letter-spacing:.04em;"
             "text-transform:uppercase;color:#8fa3bb;margin-bottom:4px;'>"
@@ -652,7 +662,7 @@ def render_drill_progress_cards(steps):
 
     for idx, step in enumerate(parts, start=1):
         st.markdown(
-            "<div style='margin:8px 1px;padding:10px 12px;border-radius:10px;"
+            "<div style='margin:8px 1px 10px;padding:10px 12px;border-radius:10px;"
             "background:rgba(21,30,43,.80);border:1px solid rgba(100,116,139,.30);"
             "display:flex;gap:9px;align-items:flex-start;'>"
             f"<div style='min-width:25px;height:25px;border-radius:50%;"
@@ -1632,7 +1642,7 @@ def render_instruction_steps(content: str, drill_name: str = "", margin_left: in
             )
 
         st.markdown(
-            "<div style='margin:9px 1px;padding:13px 15px;border-radius:11px;"
+            "<div style='margin:9px 1px 11px;padding:13px 15px;border-radius:11px;"
             "background:linear-gradient(145deg,rgba(20,28,40,.92),rgba(13,20,31,.96));"
             f"border:1px solid {m['border']};"
             "box-shadow:inset 0 1px 0 rgba(255,255,255,.025);'>"
@@ -1839,7 +1849,7 @@ def render_comparison_metric_card(
 
     st.markdown(
         "<div style='border:1px solid rgba(128,128,128,.22);border-radius:10px;"
-        "padding:10px 11px 9px 11px;margin-bottom:8px;min-height:104px;'>"
+        "padding:10px 11px 9px 11px;margin:0 0 10px 0;min-height:104px;'>"
         f"<div style='font-size:.72rem;color:#8b919d;margin-bottom:2px;'>{_safe_html(label)}</div>"
         "<div style='display:flex;align-items:baseline;justify-content:space-between;gap:8px;'>"
         f"<div style='font-size:1.08rem;font-weight:700;line-height:1.12;'>{_safe_html(actual_display)}</div>"
@@ -2168,7 +2178,7 @@ def render_priority_chips(direct_text, peer_text, priority_text, confidence_text
     html_bits = []
     for label, value, bg in chips:
         html_bits.append(
-            f"<div style='padding:6px 8px;border-radius:9px;background:{bg};min-width:96px;flex:1;'>"
+            f"<div style='padding:6px 8px;margin-bottom:2px;border-radius:9px;background:{bg};min-width:96px;flex:1;'>"
             f"<div style='font-size:.67rem;color:#8b919d;margin-bottom:2px;'>{_safe_html(label)}</div>"
             f"<div style='font-size:.86rem;font-weight:700;line-height:1.15;'>{_safe_html(value)}</div></div>"
         )
@@ -7339,7 +7349,7 @@ def render_workflow_dashboard(key_suffix="workflow"):
     for col, (label, icon, value, accent) in zip(cols, cards):
         with col:
             st.markdown(
-                "<div style='min-height:60px;padding:8px 9px;border-radius:10px;"
+                "<div style='min-height:60px;padding:8px 9px;margin-bottom:8px;border-radius:10px;"
                 "background:rgba(100,116,139,.075);border:1px solid rgba(148,163,184,.18);"
                 f"border-top:3px solid {accent};'>"
                 f"<div style='font-size:.64rem;font-weight:800;letter-spacing:.07em;"
@@ -7348,6 +7358,10 @@ def render_workflow_dashboard(key_suffix="workflow"):
                 f"{_safe_html(value)}</div></div>",
                 unsafe_allow_html=True,
             )
+
+    # Keep the action expander visually separate even when one dashboard
+    # card wraps to multiple lines.
+    st.markdown("<div style='height:3px'></div>", unsafe_allow_html=True)
 
     action_specs = []
     if st.session_state.get("round_intake_source"):
