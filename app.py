@@ -8931,8 +8931,8 @@ if (
 
             mode_map = {
                 "AI Balanced": "Combination / Hybrid (AI Balanced)",
-                "Controlled Only": "Pure Grind Mode (100% Controlled Skill Work)",
-                "Transfer Only": "Pure Game Mode (100% Target / Transfer Work)",
+                "Grind Mode": "Pure Grind Mode (100% Controlled Skill Work)",
+                "Game Mode": "Pure Game Mode (100% Target / Transfer Work)",
             }
             reverse_mode = {v: k for k, v in mode_map.items()}
             current_mode_short = reverse_mode.get(
