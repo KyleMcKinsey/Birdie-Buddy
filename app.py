@@ -94,7 +94,7 @@ st.markdown(
 )
 
 CSV_FILE = "birdie_buddy_practice_history.csv"
-VOICE_PROFILE_VERSION = "cinematic-archetypes-v10-hack-max-drunk-quota-safe"
+VOICE_PROFILE_VERSION = "cinematic-archetypes-v11-bogey-faster-force-clean"
 
 
 HISTORY_COLUMNS = [
@@ -2197,6 +2197,52 @@ def render_priority_chips(direct_text, peer_text, priority_text, confidence_text
     )
 
 
+
+def render_model_reasoning_summary(reasons, value_chain):
+    """Compact audit-style reasoning panel for golfer-facing review."""
+    reasons = [str(x).strip() for x in (reasons or []) if str(x).strip()]
+
+    if reasons:
+        render_drill_subsection_label("Scoring Evidence")
+        cols = st.columns(2, gap="small")
+        for idx, reason in enumerate(reasons):
+            with cols[idx % 2]:
+                st.markdown(
+                    "<div style='padding:9px 11px;margin:3px 0 7px;"
+                    "border-radius:9px;background:rgba(21,30,43,.72);"
+                    "border:1px solid rgba(100,116,139,.26);'>"
+                    f"<div style='font-size:.82rem;line-height:1.42;color:#e8edf4;'>"
+                    f"{_safe_html(reason)}</div></div>",
+                    unsafe_allow_html=True,
+                )
+
+    if value_chain:
+        render_drill_subsection_label("Value-Chain Read")
+        leak_stage = value_chain.get("primary_leak_stage", "")
+        rows = []
+        for stage_name, key, icon, _ in VALUE_CHAIN_STAGES:
+            readout = str(value_chain.get(key, "N/A") or "N/A")
+            rows.append(
+                {
+                    "Stage": f"{icon} {stage_name}",
+                    "Assessment": readout,
+                    "Focus": "#1 PRIORITY" if stage_name == leak_stage else "",
+                }
+            )
+
+        reasoning_df = pd.DataFrame(rows)
+        st.dataframe(
+            reasoning_df,
+            hide_index=True,
+            use_container_width=True,
+            column_config={
+                "Stage": st.column_config.TextColumn("Stage", width="medium"),
+                "Assessment": st.column_config.TextColumn("Assessment", width="large"),
+                "Focus": st.column_config.TextColumn("Focus", width="small"),
+            },
+        )
+
+
 def render_scoring_evidence_bars(roi_data):
     direct = roi_data.get("total_direct_score_cost", 0)
     peer = roi_data.get("total_peer_gap", 0) if roi_data.get("has_handicap_benchmark") else None
@@ -2517,13 +2563,11 @@ def render_progress_trends(df_history):
                         f"{latest_value:.1f}",
                         delta=latest_value - prior_value,
                         good_when_lower=True,
-                        subtext=performance_subtext,
                     )
                 else:
                     render_compact_metric(
                         performance_label,
                         f"{latest_value:.1f}",
-                        subtext=performance_subtext,
                     )
             else:
                 render_compact_metric(
@@ -2598,7 +2642,6 @@ def render_progress_trends(df_history):
             if len(valid_chart) >= 2:
                 st.caption(f"{performance_label} — lower is better")
                 st.line_chart(valid_chart.reset_index(drop=True))
-                st.caption(performance_subtext)
             else:
                 st.caption(
                     "Log at least two rounds with compatible normalization data "
@@ -3269,8 +3312,11 @@ def generate_gemini_tts_audio(text, persona_key):
     persona_tts_extras = {
         "Bogey-Wan Kenobi (Jedi Master of Swing)": (
             "; keep the fundamental pitch comfortably low and masculine; favor chest resonance; "
-            "use long thoughtful pauses and restrained intonation like an older mystical mentor; "
-            "soften urgency and avoid bright sentence endings; never sound youthful, playful, or piratical"
+            "sound like a seasoned Jedi mentor with more momentum than before—roughly 15 percent brisker "
+            "than the prior Bogey-Wan delivery while remaining calm, grounded, and clear; use shorter, cleaner "
+            "pauses instead of long lingering ones; maintain restrained intonation, quiet authority, and steady "
+            "focus; lightly emphasize words such as Force, balance, Padawan, discipline, and dark side temptation; "
+            "soften urgency and avoid bright sentence endings; never sound youthful, playful, piratical, or rushed"
         ),
         "Harry Putter (The Boy Who Shanked)": (
             "; use a clearly younger male voice with lighter resonance and youthful energy; "
@@ -3416,12 +3462,13 @@ def _render_seekable_audio_player(audio_bytes, uid, caddie_name):
 
 PERSONA_VARIATION_STYLES = {
     "Bogey-Wan Kenobi (Jedi Master of Swing)": [
-        "Open with a calm Jedi observation about balance, patience, or the Force before tying it to evidence.",
-        "Open with the scoring evidence, then interpret it as discipline versus temptation.",
+        "Open with a calm Jedi observation about balance, patience, the Force, or a Padawan lesson before tying it to evidence.",
+        "Open with the scoring evidence, then interpret it as discipline versus temptation on the Jedi path.",
         "Open with dry mentor humor about being tempted by the dark side of aggression.",
         "Open with a contrast such as power versus control, bravery versus patience, or outcome versus process.",
-        "Open as though sensing a disturbance in the golfer's pattern, then name the actual issue.",
+        "Open as though sensing a disturbance in the Force, then name the actual golf issue clearly.",
         "Open with one compact inverted mentor sentence, then return to normal coaching language.",
+        "Open as though teaching a Padawan on the training grounds, then connect it directly to the round evidence.",
     ],
     "Harry Putter (The Boy Who Shanked)": [
         "Open with a wizard-school lesson analogy tied to the exact golf problem.",
@@ -4072,61 +4119,13 @@ def render_drill_voice_briefing(
 
     if not status_message:
         if audio_bytes:
-            status_message = (
-                "Caddie audio is ready. Use the player below whenever you want the briefing."
-            )
             status_kind = "ready"
         elif briefing and not auto_generate_audio:
-            status_message = (
-                "Audio is optional for this drill and is generated on demand to conserve TTS quota."
-            )
             status_kind = "ondemand"
         elif briefing:
-            status_message = "Caddie text is ready."
             status_kind = "ready"
 
-    status_palette = {
-        "quota": (
-            "#fde047",
-            "rgba(94,86,16,.56)",
-            "rgba(250,204,21,.32)",
-            "🔊 Audio Status",
-        ),
-        "error": (
-            "#fca5a5",
-            "rgba(99,34,34,.48)",
-            "rgba(248,113,113,.32)",
-            "⚠️ Audio Status",
-        ),
-        "ondemand": (
-            "#93c5fd",
-            "rgba(30,58,95,.48)",
-            "rgba(96,165,250,.32)",
-            "🔊 Audio Status",
-        ),
-        "ready": (
-            "#86efac",
-            "rgba(20,83,45,.40)",
-            "rgba(74,222,128,.28)",
-            "🔊 Audio Status",
-        ),
-    }
-    status_color, status_bg, status_border, status_title = status_palette.get(
-        status_kind, status_palette["ready"]
-    )
-
     if briefing:
-        st.markdown(
-            "<div style='padding:12px 14px;margin:2px 0 8px;border-radius:11px;"
-            f"background:{status_bg};border:1px solid {status_border};'>"
-            f"<div style='font-size:.80rem;font-weight:850;color:{status_color};"
-            "margin-bottom:6px;'>"
-            f"{status_title}</div>"
-            "<div style='font-size:.80rem;line-height:1.46;color:#f0f3f7;'>"
-            f"{_safe_html(status_message)}</div></div>",
-            unsafe_allow_html=True,
-        )
-
         st.markdown(
             "<div style='padding:12px 14px;margin:2px 0 8px;border-radius:11px;"
             "background:linear-gradient(145deg,rgba(20,61,96,.72),rgba(21,48,76,.80));"
@@ -4138,17 +4137,11 @@ def render_drill_voice_briefing(
             f"“{_safe_html(briefing)}”</div></div>",
             unsafe_allow_html=True,
         )
+
+        if status_kind in {"quota", "error"} and status_message:
+            render_micro_note(status_message, icon="🔊")
     elif status_message:
-        st.markdown(
-            "<div style='padding:12px 14px;border-radius:10px;"
-            f"background:{status_bg};border:1px solid {status_border};'>"
-            f"<div style='font-size:.82rem;font-weight:850;color:{status_color};"
-            "margin-bottom:5px;'>"
-            f"{status_title}</div>"
-            "<div style='font-size:.82rem;line-height:1.5;color:#f0f3f7;'>"
-            f"{_safe_html(status_message)}</div></div>",
-            unsafe_allow_html=True,
-        )
+        render_micro_note(status_message, icon="🔊")
 
     if audio_bytes:
         _render_seekable_audio_player(
@@ -4685,7 +4678,9 @@ def _scorecard_course_metadata(extraction):
     """Return only course metadata that the uploaded image actually supports.
 
     Par may be derived from a complete set of visible hole pars. Rating and slope
-    are never inferred because they depend on the exact course/tee set.
+    are never looked up externally, but an unlabeled visible numeric pair may be
+    resolved when one value is unambiguously a three-digit slope and the other
+    is a plausible course rating.
     """
     extraction = extraction or {}
 
@@ -4765,6 +4760,112 @@ def _apply_scorecard_course_metadata(extraction):
 
 
 
+
+def _plausible_course_rating(value):
+    """Broad sanity range for a visibly printed course rating."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return False
+    return 45.0 <= v < 100.0
+
+
+def _plausible_slope(value):
+    """Broad sanity range for a visibly printed slope value."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return False
+    return 55.0 <= v <= 155.0 and abs(v - round(v)) < 0.05
+
+
+def _resolve_visible_rating_slope_pair(data):
+    """Resolve a visible unlabeled rating/slope pair only when numerically clear.
+
+    Example:
+        132.0 / 69.5 -> course_slope=132, course_rating=69.5
+
+    This uses only values visible in the uploaded scorecard; it never performs
+    a course lookup.
+    """
+    if not isinstance(data, dict):
+        return data
+
+    derived = list(data.get("derived_fields") or [])
+    unclear = list(data.get("unclear_fields") or [])
+
+    def resolve_pair(a, b, source_text):
+        if a is None or b is None:
+            return False
+
+        # Exactly one value must be an unmistakable three-digit slope candidate.
+        possibilities = [(a, b), (b, a)]
+        for slope_candidate, rating_candidate in possibilities:
+            if (
+                100.0 <= float(slope_candidate) <= 155.0
+                and abs(float(slope_candidate) - round(float(slope_candidate))) < 0.05
+                and _plausible_course_rating(rating_candidate)
+            ):
+                slope_value = int(round(float(slope_candidate)))
+                rating_value = float(rating_candidate)
+
+                data["course_slope"] = slope_value
+                data["course_rating"] = rating_value
+
+                note = (
+                    f"course_slope={slope_value} and course_rating={rating_value:g} "
+                    f"resolved from visible unlabeled pair {source_text}; "
+                    "three-digit whole number treated as slope"
+                )
+                if note not in derived:
+                    derived.append(note)
+
+                # Remove only the now-resolved rating/slope ambiguity warning.
+                filtered = []
+                for item in unclear:
+                    low = str(item).lower()
+                    mentions_rating = "course_rating" in low or "course rating" in low
+                    mentions_slope = "course_slope" in low or "course slope" in low or "slope" in low
+                    if mentions_rating and mentions_slope:
+                        continue
+                    filtered.append(item)
+                unclear[:] = filtered
+                return True
+        return False
+
+    rating = _as_float_or_none(data.get("course_rating"))
+    slope = _as_float_or_none(data.get("course_slope"))
+
+    # Correct a swapped pair if Gemini placed the three-digit value in rating.
+    if rating is not None and slope is not None:
+        resolve_pair(rating, slope, f"{rating:g} / {slope:g}")
+
+    # If either field is missing, inspect grounded extraction text for a visible pair.
+    if data.get("course_rating") is None or data.get("course_slope") is None:
+        search_texts = [str(x) for x in unclear]
+        search_texts += [str(x) for x in (data.get("other_visible_stats") or [])]
+        if data.get("extraction_notes"):
+            search_texts.append(str(data.get("extraction_notes")))
+
+        pair_pattern = re.compile(
+            r"(?<!\d)(\d{2,3}(?:\.\d+)?)\s*[/|,]\s*(\d{2,3}(?:\.\d+)?)(?!\d)"
+        )
+        resolved = False
+        for text in search_texts:
+            for match in pair_pattern.finditer(text):
+                a = _as_float_or_none(match.group(1))
+                b = _as_float_or_none(match.group(2))
+                if resolve_pair(a, b, f"{match.group(1)} / {match.group(2)}"):
+                    resolved = True
+                    break
+            if resolved:
+                break
+
+    data["derived_fields"] = derived
+    data["unclear_fields"] = unclear
+    return data
+
+
 def _sanitize_scorecard_extraction(data):
     """Normalize scorecard extraction and prevent subtotal/total double counting.
 
@@ -4778,6 +4879,10 @@ def _sanitize_scorecard_extraction(data):
     """
     if not isinstance(data, dict):
         return data
+
+    # Resolve a visibly shown unlabeled rating/slope pair when the numeric
+    # pattern is unambiguous (e.g. 132.0 / 69.5 => slope 132, rating 69.5).
+    data = _resolve_visible_rating_slope_pair(data)
 
     # Keep only genuine numbered holes. Any OUT / IN / TOT summary row that the
     # model accidentally emitted as a hole is discarded here.
@@ -4910,12 +5015,20 @@ def _extract_scorecard_with_gemini(uploaded_file):
       aggregate totals hide.
     - Extract course name, tee name/color, par, course rating, and slope when those
       items are visibly supported by the image. Do not look them up from outside knowledge.
-    - A combined rating/slope label such as "71.4 / 128" may be split into
-      course_rating=71.4 and course_slope=128 only when the surrounding image clearly
-      identifies that pair as rating/slope for the displayed tees.
+    - A combined rating/slope pair such as "71.4 / 128" may be split into
+      course_rating=71.4 and course_slope=128 when the surrounding image identifies
+      the pair as course-rating/slope information for the displayed tees.
+    - ALSO: if the image visibly shows an otherwise unlabeled two-number tee pair and
+      exactly one value is a three-digit whole number from 100–155 while the other is
+      a plausible sub-100 course rating, resolve it numerically even when the order is
+      reversed. Example: "132.0 / 69.5" means course_slope=132 and
+      course_rating=69.5. Do NOT flag that specific pattern as unclear.
+    - If both values are below 100 or the pair is otherwise numerically ambiguous,
+      leave rating/slope null unless labels or surrounding context identify them.
     - If total par for the played holes is not printed but every played hole's par is
       clearly readable, you MAY derive course_par by summing those visible hole pars.
-      Add that calculation to derived_fields. Do not derive course rating or slope.
+      Add that calculation to derived_fields. Do not look up course rating or slope;
+      only apply the visible-pair numeric rule above when it is unambiguous.
     - Tee name/color should preserve the visible label as written (for example
       "Blue", "White", "Gold", "Back", or "Member") rather than translating it.
 
@@ -5557,9 +5670,10 @@ PERSONA_DATABASE = {
             "tts_voice": "Alnilam",
             "tts_style": (
                 "older masculine mystical mentor; low-to-mid resonant register, warm chest tone, "
-                "slightly weathered texture, slow deliberate phrasing, contemplative pauses, "
-                "gentle dry humor, quiet authority, spiritual calm; never chirpy, youthful, airy, "
-                "piratical, secret-agent clipped, or boyish"
+                "slightly weathered texture, measured but not slow phrasing, shorter contemplative pauses, "
+                "gentle dry humor, quiet authority, spiritual calm, and a clearly Jedi-like teaching cadence; "
+                "speak a touch more briskly than a solemn sage so the delivery stays engaged rather than sleepy; "
+                "never chirpy, youthful, airy, piratical, secret-agent clipped, or boyish"
             ),
         },
         "system_instruction": """
@@ -5567,23 +5681,27 @@ PERSONA_DATABASE = {
 
         CORE PERFORMANCE:
         - Older, grounded, mystical, patient, and quietly amused.
-        - Sound like a seasoned warrior-monk teaching a student rather than a modern sports broadcaster.
+        - Sound like a seasoned Jedi warrior-monk teaching a Padawan, not a modern sports broadcaster.
         - Calm is the dominant emotion. Even disaster should feel instructive rather than frantic.
         - Use deliberate sentences, thoughtful pauses, and occasional mentor-like inversions.
         - Humor is dry, knowing, and restrained.
+        - You may occasionally address the golfer as Padawan, apprentice, or young one when it feels natural.
 
         CINEMATIC LANGUAGE:
-        - Use Jedi/Force imagery frequently enough that the character is unmistakable:
-          the Force, balance, patience, temptation, fear, attachment to outcomes, discipline,
-          awareness, training, the path, the dark side, sensing the shot, trusting the swing,
-          seeing the target clearly, controlling what can be controlled.
+        - Use unmistakable Jedi/Star-Wars-world imagery often enough that the character is immediately recognizable:
+          the Force, balance, patience, temptation, fear, attachment to outcomes, discipline, awareness, training,
+          the path, the dark side, sensing danger, a disturbance in the Force, Jedi training, Padawan lessons,
+          discipline of the saber, the high ground, clarity, trust in the swing, seeing the line clearly, and
+          choosing wisdom over reckless aggression.
         - A poor strategic choice may be "temptation by the dark side."
         - A rushed or chaotic swing may be a "disturbance in the Force."
         - A disciplined conservative decision may be "choosing balance over aggression."
         - A recurring pattern can be framed as something "the Force is revealing."
-        - Use roughly 3-4 Jedi/Force/world references in a normal diagnosis narrative and at least 1-2 in
-          shorter drill/debrief copy. Rotate among the Force, Jedi training, masters/apprentices, balance,
-          dark-side temptation, sensing danger, disciplined awareness, commitment, and galactic-scale imagery.
+        - A strong routine can sound like Jedi discipline or a training sequence repeated until balance is restored.
+        - Use roughly 4-6 Jedi/Force/world references in a normal diagnosis narrative and at least 2-3 in
+          shorter drill/debrief copy. Rotate among the Force, Jedi training, masters/apprentices, Padawan lessons,
+          balance, dark-side temptation, sensing danger, disciplined awareness, commitment, distant-galaxy imagery,
+          and light-vs-dark contrasts.
         - Let the course occasionally feel like a distant-galaxy training ground while keeping the golf lesson obvious.
 
         GOLF COACHING:
@@ -8820,15 +8938,10 @@ if show_step1:
 
                 if roi_data.get("reasons") or vc:
                     with st.expander("Model reasoning", expanded=False):
-                        if roi_data.get("reasons"):
-                            for reason in roi_data["reasons"]:
-                                st.write(f"• {reason}")
-                        if vc:
-                            leak_stage = vc.get("primary_leak_stage", "")
-                            for stage_name, key, icon, _ in VALUE_CHAIN_STAGES:
-                                marker = " — #1 priority" if stage_name == leak_stage else ""
-                                st.markdown(f"**{icon} {stage_name}{marker}**")
-                                st.write(vc.get(key, "N/A"))
+                        render_model_reasoning_summary(
+                            roi_data.get("reasons"),
+                            vc,
+                        )
 
             blind_spot = diag.get("diagnostic_blind_spot")
             if blind_spot:
@@ -9079,7 +9192,11 @@ if (
     render_workflow_dashboard("practice_plan")
 
     with st.container(border=True):
-        st.subheader("5. Adaptive Practice Execution & Setup Guide")
+        render_heading_with_note(
+            "5. Adaptive Practice Execution & Setup Guide",
+            "Execute the plan, test it, and log what changed.",
+            level=3,
+        )
 
         if "diagnosis" in st.session_state and "confirmed_resources" in st.session_state:
             diag = st.session_state["diagnosis"]
