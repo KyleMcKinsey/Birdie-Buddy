@@ -3428,6 +3428,140 @@ def _render_seekable_audio_player(audio_bytes, uid, caddie_name=None):
 
 
 
+
+def _persona_avatar_svg(persona_key_or_name):
+    """Return a stylized inline SVG avatar for each movie-caddie persona."""
+    base = _persona_base_name(persona_key_or_name)
+
+    if base == "Bogey-Wan Kenobi":
+        return """
+<svg viewBox="0 0 150 182" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bogey-Wan avatar">
+  <defs>
+    <linearGradient id="bg1" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#14253d"/>
+      <stop offset="100%" stop-color="#0b1526"/>
+    </linearGradient>
+    <linearGradient id="robe1" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#87684b"/>
+      <stop offset="100%" stop-color="#4d3a2c"/>
+    </linearGradient>
+    <linearGradient id="inner1" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#d9c7b4"/>
+      <stop offset="100%" stop-color="#baa28d"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="150" height="182" rx="18" fill="url(#bg1)"/>
+  <circle cx="110" cy="34" r="16" fill="rgba(120,196,255,.18)"/>
+  <rect x="108" y="50" width="4" height="78" rx="2" fill="#74d0ff"/>
+  <circle cx="75" cy="52" r="23" fill="#f1d4bc"/>
+  <path d="M52 52c2-22 42-26 49 0-7-8-13-11-24-11S58 44 52 52Z" fill="#b9b9b9"/>
+  <path d="M60 61c7 5 24 5 30 0" stroke="#4d372c" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M60 70c6 15 25 15 30 0v10c-1 17-11 25-15 25s-14-8-15-25V70Z" fill="#d8d8d8"/>
+  <path d="M47 111c10-18 23-27 28-27 6 0 18 8 28 27l11 48H36l11-48Z" fill="url(#robe1)"/>
+  <path d="M60 98h30l13 61H47l13-61Z" fill="url(#inner1)" opacity=".85"/>
+  <path d="M42 112c7-10 21-20 33-20 14 0 26 8 34 20" stroke="#c9b194" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <text x="75" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="#9fd8ff">JEDI COACH</text>
+</svg>
+"""
+
+    if base == "Harry Putter":
+        return """
+<svg viewBox="0 0 150 182" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Harry Putter avatar">
+  <defs>
+    <linearGradient id="bg2" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#1d253f"/>
+      <stop offset="100%" stop-color="#101521"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="150" height="182" rx="18" fill="url(#bg2)"/>
+  <circle cx="120" cy="30" r="14" fill="rgba(255,215,90,.18)"/>
+  <path d="M118 20l2 7 7 2-7 2-2 7-2-7-7-2 7-2 2-7Z" fill="#ffd54a"/>
+  <circle cx="75" cy="52" r="22" fill="#efcfb5"/>
+  <path d="M55 47c2-16 14-24 21-24 11 0 21 8 24 23-8-5-18-9-24-9-6 0-14 3-21 10Z" fill="#252525"/>
+  <circle cx="67" cy="54" r="8" fill="none" stroke="#d9e6ff" stroke-width="2.5"/>
+  <circle cx="84" cy="54" r="8" fill="none" stroke="#d9e6ff" stroke-width="2.5"/>
+  <line x1="75" y1="54" x2="76" y2="54" stroke="#d9e6ff" stroke-width="2"/>
+  <path d="M70 44l4-8 4 5" stroke="#e87b4f" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M58 104c10-14 22-20 33-20 13 0 24 7 31 20l-7 55H35l23-55Z" fill="#1b232f"/>
+  <path d="M68 88h14l4 16H64l4-16Z" fill="#7d1010"/>
+  <rect x="104" y="84" width="4" height="38" rx="2" transform="rotate(24 104 84)" fill="#c5935d"/>
+  <circle cx="121" cy="81" r="6" fill="#9f67ff"/>
+  <text x="75" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="#d9c28e">WIZARD COACH</text>
+</svg>
+"""
+
+    if base == "James Pond":
+        return """
+<svg viewBox="0 0 150 182" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="James Pond avatar">
+  <defs>
+    <linearGradient id="bg3" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#152133"/>
+      <stop offset="100%" stop-color="#0a1220"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="150" height="182" rx="18" fill="url(#bg3)"/>
+  <circle cx="75" cy="49" r="22" fill="#ebcdb3"/>
+  <path d="M53 43c5-17 19-24 31-24 12 0 23 7 27 24-8-5-20-10-29-10-10 0-20 4-29 10Z" fill="#171717"/>
+  <path d="M67 58c5 4 11 5 16 0" stroke="#51362b" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M43 103c11-13 22-20 32-20 11 0 22 7 32 20l10 56H33l10-56Z" fill="#101826"/>
+  <path d="M61 90h28l-3 68H64l-3-68Z" fill="#f2f5f8"/>
+  <polygon points="75,99 65,116 75,128 85,116" fill="#111111"/>
+  <rect x="72" y="128" width="6" height="18" rx="3" fill="#111111"/>
+  <rect x="105" y="82" width="10" height="46" rx="5" transform="rotate(28 105 82)" fill="#60656f"/>
+  <rect x="108" y="77" width="4" height="11" rx="2" transform="rotate(28 108 77)" fill="#8f98a8"/>
+  <text x="75" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="#a8c8ff">SPY COACH</text>
+</svg>
+"""
+
+    if base == "Captain Hack Sparrow":
+        return """
+<svg viewBox="0 0 150 182" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Captain Hack Sparrow avatar">
+  <defs>
+    <linearGradient id="bg4" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#2a1b17"/>
+      <stop offset="100%" stop-color="#13151d"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="150" height="182" rx="18" fill="url(#bg4)"/>
+  <path d="M34 43c8-20 27-31 41-31s33 11 41 31c-9-4-16-6-25-7-2 11-8 17-16 17s-14-6-16-17c-9 1-16 3-25 7Z" fill="#3c251a"/>
+  <path d="M49 36c10-9 50-9 54 0-3 11-14 21-27 21S52 47 49 36Z" fill="#942a24"/>
+  <circle cx="75" cy="58" r="22" fill="#e7c6a8"/>
+  <path d="M54 58c3-19 16-28 24-28 11 0 22 9 28 28-8-8-18-12-28-12-9 0-17 3-24 12Z" fill="#2a1b17"/>
+  <path d="M61 69c3 6 8 9 14 9 6 0 11-3 14-9" stroke="#6d4634" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M66 74c4 7 14 7 18 0" stroke="#3c2316" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M57 103c12-14 25-20 36-20 13 0 24 7 30 20l-5 56H32l25-56Z" fill="#314656"/>
+  <path d="M70 88h12l4 14H66l4-14Z" fill="#efe2c2"/>
+  <circle cx="43" cy="65" r="4" fill="#caa54e"/>
+  <circle cx="107" cy="83" r="4" fill="#caa54e"/>
+  <line x1="41" y1="69" x2="38" y2="90" stroke="#b86a35" stroke-width="2"/>
+  <line x1="105" y1="87" x2="103" y2="107" stroke="#b86a35" stroke-width="2"/>
+  <text x="75" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="#f0cf74">PIRATE COACH</text>
+</svg>
+"""
+
+    return """
+<svg viewBox="0 0 150 182" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Caddie avatar">
+  <rect x="0" y="0" width="150" height="182" rx="18" fill="#0f172a"/>
+  <circle cx="75" cy="55" r="23" fill="#e8cdb8"/>
+  <path d="M46 106c10-14 22-22 29-22 9 0 21 8 29 22l10 53H36l10-53Z" fill="#22324b"/>
+</svg>
+"""
+
+
+def persona_character_panel(persona_key_or_name):
+    svg = _persona_avatar_svg(persona_key_or_name)
+    return (
+        "<div style='width:124px;min-width:124px;max-width:124px;"
+        "align-self:stretch;display:flex;align-items:stretch;'>"
+        "<div style='width:100%;border-radius:16px;overflow:hidden;"
+        "border:1px solid rgba(91,111,139,.40);"
+        "background:linear-gradient(160deg,rgba(18,28,42,.95),rgba(9,15,24,.98));"
+        "box-shadow:inset 0 1px 0 rgba(255,255,255,.03);'>"
+        f"{svg}"
+        "</div></div>"
+    )
+
+
 def render_caddie_briefing_content(
     text,
     persona_key,
@@ -3440,19 +3574,23 @@ def render_caddie_briefing_content(
     clean_text = str(text or "").strip()
     caddie_label = persona_badged_name(persona_key)
 
-    render_heading_with_note(
-        caddie_label,
-        context_label,
-        level=4,
+    st.markdown(
+        "<div style='display:flex;gap:14px;align-items:stretch;margin:2px 0 10px;'>"
+        f"{persona_character_panel(persona_key)}"
+        "<div style='flex:1;min-width:0;display:flex;flex-direction:column;"
+        "justify-content:center;padding:2px 0;'>"
+        "<div style='display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;"
+        "margin-bottom:7px;'>"
+        f"<div style='font-size:1.08rem;font-weight:800;line-height:1.2;color:#f4f7fb;'>"
+        f"{_safe_html(caddie_label)}</div>"
+        "<div style='font-size:.76rem;font-weight:600;line-height:1.3;color:#8f98a8;'>"
+        f"{_safe_html(context_label)}</div>"
+        "</div>"
+        f"<div style='font-size:.90rem;line-height:1.58;color:#e5edf7;'>"
+        f"“{_safe_html(clean_text)}”</div>"
+        "</div></div>",
+        unsafe_allow_html=True,
     )
-
-    if clean_text:
-        st.markdown(
-            "<div style='font-size:.88rem;line-height:1.52;color:#e5edf7;"
-            "margin:1px 2px 9px;'>"
-            f"“{_safe_html(clean_text)}”</div>",
-            unsafe_allow_html=True,
-        )
 
     if audio_bytes and uid:
         _render_seekable_audio_player(
@@ -3863,13 +4001,21 @@ def render_caddie_voice_player(
             button_text = None
 
         if button_text:
-            action_cols = st.columns([5.6, 1.25], gap="small")
+            action_cols = st.columns([7.2, 1.15], gap="small")
             with action_cols[1]:
-                clicked = st.button(
-                    button_text,
-                    key=f"generate_{digest}",
-                    use_container_width=True,
-                )
+                if button_text == "↻ New Take":
+                    clicked = st.button(
+                        button_text,
+                        key=f"generate_{digest}",
+                        type="tertiary",
+                        use_container_width=False,
+                    )
+                else:
+                    clicked = st.button(
+                        button_text,
+                        key=f"generate_{digest}",
+                        use_container_width=False,
+                    )
         else:
             clicked = False
 
@@ -4127,7 +4273,7 @@ def render_drill_voice_briefing(
         )
 
         if briefing:
-            action_cols = st.columns([4.7, 1.15, 1.15], gap="small")
+            action_cols = st.columns([7.0, 1.0, 1.15], gap="small")
 
             with action_cols[1]:
                 add_audio = (
@@ -4136,7 +4282,8 @@ def render_drill_voice_briefing(
                     and st.button(
                         "🔊 Audio",
                         key=f"drill_voice_audio_button_{digest}",
-                        use_container_width=True,
+                        type="tertiary",
+                        use_container_width=False,
                     )
                 )
 
@@ -4144,7 +4291,8 @@ def render_drill_voice_briefing(
                 new_take = st.button(
                     "↻ New Take",
                     key=f"drill_voice_button_{digest}",
-                    use_container_width=True,
+                    type="tertiary",
+                    use_container_width=False,
                 )
 
             if add_audio:
@@ -4460,12 +4608,13 @@ def render_practice_voice_debrief(persona_key, diagnosis, practice_row, kpi):
         )
 
         if debrief:
-            action_cols = st.columns([5.6, 1.25], gap="small")
+            action_cols = st.columns([7.2, 1.15], gap="small")
             with action_cols[1]:
                 new_take = st.button(
                     "↻ New Take",
                     key=f"practice_debrief_button_{digest}",
-                    use_container_width=True,
+                    type="tertiary",
+                    use_container_width=False,
                 )
         else:
             new_take = False
