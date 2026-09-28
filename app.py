@@ -27,15 +27,15 @@ st.markdown(
        wide enough for the approved drill layout without becoming edge-to-edge. */
     .stMainBlockContainer,
     [data-testid="stMainBlockContainer"] {
-        max-width: 1180px !important;
-        padding-left: 2rem !important;
-        padding-right: 2rem !important;
-        padding-top: 1.4rem !important;
+        max-width: 1160px !important;
+        padding-left: 1.6rem !important;
+        padding-right: 1.6rem !important;
+        padding-top: 1.15rem !important;
     }
 
-    /* Give dashboard cards enough separation that borders never visually touch. */
+    /* Give dashboard cards separation without making the page feel oversized. */
     [data-testid="stHorizontalBlock"] {
-        gap: 1.15rem;
+        gap: 1rem;
     }
 
     /* A little breathing room around bordered Streamlit panels. */
@@ -49,9 +49,9 @@ st.markdown(
         border-bottom: 1px solid rgba(100,116,139,.42);
     }
     button[data-baseweb="tab"] {
-        min-height: 46px;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
+        min-height: 42px;
+        padding-left: .85rem !important;
+        padding-right: .85rem !important;
         border: 1px solid rgba(100,116,139,.42) !important;
         border-bottom: none !important;
         border-radius: 9px 9px 0 0 !important;
@@ -543,17 +543,17 @@ def render_drill_metric_boxes(ball_count, time_minutes, activity, pass_target):
     for col, (icon, label, value) in zip(cols, cards):
         with col:
             st.markdown(
-                "<div style='min-height:56px;padding:8px 10px;margin:1px 0 6px;"
+                "<div style='min-height:52px;padding:7px 9px;margin:1px 0 5px;"
                 "border-radius:10px;"
                 "background:linear-gradient(145deg,rgba(36,48,66,.90),rgba(20,28,40,.94));"
                 "border:1px solid rgba(109,125,148,.46);"
                 "box-shadow:inset 0 1px 0 rgba(255,255,255,.045),"
                 "0 3px 9px rgba(0,0,0,.09);'>"
-                f"<div style='font-size:.62rem;font-weight:800;color:#b7c5d8;"
+                f"<div style='font-size:.60rem;font-weight:800;color:#b7c5d8;"
                 "letter-spacing:.03em;white-space:nowrap;'>"
                 f"{_safe_html(icon)} {_safe_html(label)}</div>"
-                f"<div style='font-size:.76rem;font-weight:770;line-height:1.24;"
-                "margin-top:4px;color:#f8fafc;'>"
+                f"<div style='font-size:.74rem;font-weight:770;line-height:1.22;"
+                "margin-top:3px;color:#f8fafc;'>"
                 f"{_safe_html(value)}</div>"
                 "</div>",
                 unsafe_allow_html=True,
@@ -592,13 +592,13 @@ def render_drill_insight_card(title, text, kind="mental"):
         ).strip()
 
     st.markdown(
-        "<div style='min-height:132px;padding:16px 18px;margin:2px 0 10px;"
+        "<div style='min-height:116px;padding:14px 16px;margin:2px 0 8px;"
         f"background:{p['bg']};border:1px solid {p['border']};"
         "border-radius:11px;box-shadow:inset 0 1px 0 rgba(255,255,255,.035);'>"
-        f"<div style='font-size:.94rem;font-weight:850;color:{p['title']};"
-        "margin-bottom:8px;'>"
+        f"<div style='font-size:.91rem;font-weight:850;color:{p['title']};"
+        "margin-bottom:6px;'>"
         f"{p['icon']} {_safe_html(title)}</div>"
-        "<div style='font-size:.90rem;line-height:1.55;color:#f0f3f8;'>"
+        "<div style='font-size:.87rem;line-height:1.50;color:#f0f3f8;'>"
         f"{_safe_html(clean_text)}</div>"
         "</div>",
         unsafe_allow_html=True,
@@ -609,12 +609,12 @@ def render_drill_detail_cards(rows):
     """Readable cards for the Test & Equipment tab."""
     for label, value in rows:
         st.markdown(
-            "<div style='margin:10px 2px;padding:12px 14px;border-radius:10px;"
+            "<div style='margin:8px 1px;padding:10px 12px;border-radius:10px;"
             "background:rgba(21,30,43,.80);border:1px solid rgba(100,116,139,.30);'>"
-            f"<div style='font-size:.70rem;font-weight:850;letter-spacing:.045em;"
+            f"<div style='font-size:.68rem;font-weight:850;letter-spacing:.04em;"
             "text-transform:uppercase;color:#8fa3bb;margin-bottom:4px;'>"
             f"{_safe_html(label)}</div>"
-            f"<div style='font-size:.88rem;line-height:1.48;color:#edf2f7;'>"
+            f"<div style='font-size:.86rem;line-height:1.43;color:#edf2f7;'>"
             f"{_safe_html(value)}</div></div>",
             unsafe_allow_html=True,
         )
@@ -652,14 +652,14 @@ def render_drill_progress_cards(steps):
 
     for idx, step in enumerate(parts, start=1):
         st.markdown(
-            "<div style='margin:10px 2px;padding:12px 14px;border-radius:10px;"
+            "<div style='margin:8px 1px;padding:10px 12px;border-radius:10px;"
             "background:rgba(21,30,43,.80);border:1px solid rgba(100,116,139,.30);"
-            "display:flex;gap:10px;align-items:flex-start;'>"
+            "display:flex;gap:9px;align-items:flex-start;'>"
             f"<div style='min-width:25px;height:25px;border-radius:50%;"
             "background:#334155;display:flex;align-items:center;justify-content:center;"
             "font-size:.72rem;font-weight:850;color:#f8fafc;'>"
             f"{idx}</div>"
-            f"<div style='font-size:.88rem;line-height:1.48;color:#edf2f7;'>"
+            f"<div style='font-size:.86rem;line-height:1.43;color:#edf2f7;'>"
             f"{_safe_html(step)}</div></div>",
             unsafe_allow_html=True,
         )
@@ -696,18 +696,18 @@ def render_practice_section_header(title, kind="primary", kicker="", icon="", su
             f"border:1px solid {colors['border']};"
             f"border-left:5px solid {colors['border']};"
             "border-radius:10px;"
-            "padding:10px 13px;"
-            "margin:6px 0 9px 0;"
+            "padding:8px 12px;"
+            "margin:4px 0 8px 0;"
             "box-shadow:inset 0 1px 0 rgba(255,255,255,.035);"
             "'>"
             + (
                 f"<div style='font-size:.69rem;font-weight:800;letter-spacing:.09em;"
-                f"text-transform:uppercase;color:{colors['kicker']};margin-bottom:3px;'>"
+                f"text-transform:uppercase;color:{colors['kicker']};margin-bottom:2px;'>"
                 f"{safe_kicker}</div>"
                 if safe_kicker else ""
             )
             + "<div style='display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;'>"
-            + f"<div style='font-size:1.02rem;font-weight:760;line-height:1.22;'>"
+            + f"<div style='font-size:1.00rem;font-weight:760;line-height:1.18;'>"
               f"{safe_icon} {safe_title}</div>"
             + (
                 f"<div style='font-size:.79rem;line-height:1.25;color:#9fb0c6;"
@@ -1123,7 +1123,7 @@ def render_drill_visual_aid(drill_name, persona_key=None, show_large=True):
     )
 
     st.markdown(
-        "<div style='padding:12px 12px 11px;margin:2px 0 6px;"
+        "<div style='padding:10px 10px 9px;margin:1px 0 5px;"
         "border:1px solid rgba(91,111,139,.46);border-radius:12px;"
         "background:linear-gradient(145deg,rgba(12,20,32,.92),rgba(8,14,23,.96));"
         "box-shadow:0 6px 16px rgba(0,0,0,.12),"
@@ -1624,7 +1624,7 @@ def render_instruction_steps(content: str, drill_name: str = "", margin_left: in
         extra_html = ""
         if extra:
             extra_html = (
-                "<div style='margin-top:10px;padding-top:9px;"
+                "<div style='margin-top:8px;padding-top:8px;"
                 "border-top:1px solid rgba(148,163,184,.16);"
                 "font-size:.82rem;line-height:1.5;color:#aeb9c8;'>"
                 f"<strong style='color:#c9d3e0;'>Coach cue:</strong> "
@@ -1632,21 +1632,21 @@ def render_instruction_steps(content: str, drill_name: str = "", margin_left: in
             )
 
         st.markdown(
-            "<div style='margin:12px 2px;padding:15px 17px;border-radius:11px;"
+            "<div style='margin:9px 1px;padding:13px 15px;border-radius:11px;"
             "background:linear-gradient(145deg,rgba(20,28,40,.92),rgba(13,20,31,.96));"
             f"border:1px solid {m['border']};"
             "box-shadow:inset 0 1px 0 rgba(255,255,255,.025);'>"
-            "<div style='display:flex;align-items:center;gap:10px;margin-bottom:8px;'>"
+            "<div style='display:flex;align-items:center;gap:9px;margin-bottom:6px;'>"
             f"<span style='display:inline-flex;width:27px;height:27px;border-radius:50%;"
             f"align-items:center;justify-content:center;background:{m['badge']};"
             "color:white;font-size:.78rem;font-weight:850;'>"
             f"{m['num']}</span>"
-            f"<span style='font-size:.91rem;font-weight:850;color:#f8fafc;'>"
+            f"<span style='font-size:.89rem;font-weight:850;color:#f8fafc;'>"
             f"{m['title']}</span>"
-            f"<span style='font-size:.80rem;color:#99a8ba;'>— {m['subtitle']}</span>"
+            f"<span style='font-size:.77rem;color:#99a8ba;'>— {m['subtitle']}</span>"
             f"<span style='margin-left:auto;font-size:1.10rem;'>{m['icon']}</span>"
             "</div>"
-            "<div style='font-size:.91rem;line-height:1.58;color:#e8edf4;'>"
+            "<div style='font-size:.88rem;line-height:1.50;color:#e8edf4;'>"
             f"{_safe_html(body)}</div>"
             f"{extra_html}"
             "</div>",
@@ -1689,8 +1689,8 @@ def render_compact_metric(label, value, subtext=None, delta=None, good_when_lowe
     subtext_html = ""
     if subtext not in (None, ""):
         subtext_html = (
-            "<div style='font-size:0.76rem; color:#8b919d; margin-top:3px;"
-            " line-height:1.25;'>"
+            "<div style='font-size:0.73rem; color:#8b919d; margin-top:2px;"
+            " line-height:1.22;'>"
             f"{subtext}</div>"
         )
 
@@ -1709,16 +1709,16 @@ def render_compact_metric(label, value, subtext=None, delta=None, good_when_lowe
             delta_text = str(delta)
 
         delta_html = (
-            f"<div style='font-size:0.76rem; color:{delta_color}; margin-top:3px;"
-            f" line-height:1.25;'>{delta_text}</div>"
+            f"<div style='font-size:0.73rem; color:{delta_color}; margin-top:2px;"
+            f" line-height:1.22;'>{delta_text}</div>"
         )
 
     st.markdown(
-        "<div style='padding:2px 0 6px 0; min-height:64px;'>"
-        "<div style='font-size:0.72rem; color:#8b919d; margin-bottom:3px;"
-        " letter-spacing:0.01em; line-height:1.2;'>"
+        "<div style='padding:1px 0 4px 0; min-height:54px;'>"
+        "<div style='font-size:0.70rem; color:#8b919d; margin-bottom:2px;"
+        " letter-spacing:0.01em; line-height:1.15;'>"
         f"{label}</div>"
-        "<div style='font-size:1.42rem; font-weight:650; line-height:1.12;"
+        "<div style='font-size:1.28rem; font-weight:650; line-height:1.10;"
         " letter-spacing:-0.02em; overflow-wrap:anywhere;'>"
         f"{value_text}</div>"
         f"{delta_html}{subtext_html}"
@@ -1810,25 +1810,25 @@ def render_comparison_metric_card(
         else "No peer benchmark"
     )
     note_html = (
-        f"<div style='font-size:0.72rem;color:#8b919d;margin-top:5px;line-height:1.25;'>"
+        f"<div style='font-size:0.70rem;color:#8b919d;margin-top:4px;line-height:1.22;'>"
         f"{_safe_html(note)}</div>"
         if note else ""
     )
 
     st.markdown(
         "<div style='border:1px solid rgba(128,128,128,.22);border-radius:10px;"
-        "padding:12px 12px 10px 12px;margin-bottom:10px;min-height:118px;'>"
-        f"<div style='font-size:.74rem;color:#8b919d;margin-bottom:3px;'>{_safe_html(label)}</div>"
+        "padding:10px 11px 9px 11px;margin-bottom:8px;min-height:104px;'>"
+        f"<div style='font-size:.72rem;color:#8b919d;margin-bottom:2px;'>{_safe_html(label)}</div>"
         "<div style='display:flex;align-items:baseline;justify-content:space-between;gap:8px;'>"
-        f"<div style='font-size:1.16rem;font-weight:700;line-height:1.15;'>{_safe_html(actual_display)}</div>"
-        f"<div style='font-size:.72rem;font-weight:650;color:{status['color']};white-space:nowrap;'>"
+        f"<div style='font-size:1.08rem;font-weight:700;line-height:1.12;'>{_safe_html(actual_display)}</div>"
+        f"<div style='font-size:.70rem;font-weight:650;color:{status['color']};white-space:nowrap;'>"
         f"{status['icon']} {_safe_html(status['label'])}</div></div>"
-        "<div style='position:relative;height:9px;background:rgba(128,128,128,.18);"
-        "border-radius:999px;margin-top:10px;overflow:visible;'>"
-        f"<div style='height:9px;width:{actual_pct:.1f}%;background:{status['color']};"
+        "<div style='position:relative;height:8px;background:rgba(128,128,128,.18);"
+        "border-radius:999px;margin-top:8px;overflow:visible;'>"
+        f"<div style='height:8px;width:{actual_pct:.1f}%;background:{status['color']};"
         "border-radius:999px;opacity:.88;'></div>"
         f"{marker_html}</div>"
-        f"<div style='font-size:.70rem;color:#8b919d;margin-top:6px;'>{benchmark_html}</div>"
+        f"<div style='font-size:.68rem;color:#8b919d;margin-top:5px;'>{benchmark_html}</div>"
         f"{note_html}</div>",
         unsafe_allow_html=True,
     )
@@ -2145,12 +2145,12 @@ def render_priority_chips(direct_text, peer_text, priority_text, confidence_text
     html_bits = []
     for label, value, bg in chips:
         html_bits.append(
-            f"<div style='padding:7px 9px;border-radius:9px;background:{bg};min-width:105px;flex:1;'>"
+            f"<div style='padding:6px 8px;border-radius:9px;background:{bg};min-width:96px;flex:1;'>"
             f"<div style='font-size:.67rem;color:#8b919d;margin-bottom:2px;'>{_safe_html(label)}</div>"
             f"<div style='font-size:.86rem;font-weight:700;line-height:1.15;'>{_safe_html(value)}</div></div>"
         )
     st.markdown(
-        "<div style='display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 10px;'>"
+        "<div style='display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 8px;'>"
         + "".join(html_bits) + "</div>",
         unsafe_allow_html=True,
     )
@@ -7302,20 +7302,20 @@ def render_workflow_dashboard(key_suffix="workflow"):
         return
 
     st.markdown(
-        "<div style='font-size:.68rem;font-weight:800;letter-spacing:.08em;"
-        "text-transform:uppercase;color:#7f8998;margin:3px 0 6px;'>Workflow Dashboard</div>",
+        "<div style='font-size:.66rem;font-weight:800;letter-spacing:.08em;"
+        "text-transform:uppercase;color:#7f8998;margin:2px 0 5px;'>Workflow Dashboard</div>",
         unsafe_allow_html=True,
     )
     cols = st.columns(len(cards))
     for col, (label, icon, value, accent) in zip(cols, cards):
         with col:
             st.markdown(
-                "<div style='min-height:68px;padding:9px 10px;border-radius:10px;"
+                "<div style='min-height:60px;padding:8px 9px;border-radius:10px;"
                 "background:rgba(100,116,139,.075);border:1px solid rgba(148,163,184,.18);"
                 f"border-top:3px solid {accent};'>"
                 f"<div style='font-size:.64rem;font-weight:800;letter-spacing:.07em;"
                 f"text-transform:uppercase;color:#8e98a8;'>{icon} {_safe_html(label)}</div>"
-                f"<div style='font-size:.82rem;font-weight:650;line-height:1.25;margin-top:5px;'>"
+                f"<div style='font-size:.79rem;font-weight:650;line-height:1.22;margin-top:4px;'>"
                 f"{_safe_html(value)}</div></div>",
                 unsafe_allow_html=True,
             )
