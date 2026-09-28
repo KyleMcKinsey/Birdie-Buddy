@@ -630,6 +630,16 @@ def render_drill_detail_cards(rows):
         )
 
 
+def render_drill_subsection_label(label):
+    """Small uppercase subsection label matching the Equipment treatment."""
+    st.markdown(
+        "<div style='font-size:.76rem;font-weight:850;color:#aeb9c8;"
+        "margin:8px 0 4px;letter-spacing:.015em;text-transform:uppercase;'>"
+        f"{_safe_html(label)}</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def render_drill_equipment_chips(items):
     """Compact wrapping equipment chips."""
     chips = "".join(
@@ -641,11 +651,9 @@ def render_drill_equipment_chips(items):
         for item in items if str(item).strip()
     )
     if chips:
+        render_drill_subsection_label("Equipment")
         st.markdown(
-            "<div style='margin-top:10px;'>"
-            "<div style='font-size:.76rem;font-weight:850;color:#aeb9c8;"
-            "margin-bottom:4px;'>EQUIPMENT</div>"
-            f"<div>{chips}</div></div>",
+            f"<div style='margin-bottom:4px;'>{chips}</div>",
             unsafe_allow_html=True,
         )
 
@@ -9314,16 +9322,30 @@ if (
                     st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
                     how_tab, test_tab, progress_tab = st.tabs(
-                        ["▶️ How to Do It", "🔧 Test & Equipment", "📈 Progress & Tips"]
+                        ["▶️ How to Do It", "🔧 Test & Equipment", "📈 Progress"]
                     )
 
                     with how_tab:
                         render_instruction_steps(
                             schematic["vivid_description"], d_name
                         )
+                        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+                        analogy_col, tip_col = st.columns(2, gap="medium")
+                        with analogy_col:
+                            render_drill_insight_card(
+                                "Mental Analogy",
+                                schematic["analogy"],
+                                kind="mental",
+                            )
+                        with tip_col:
+                            render_drill_insight_card(
+                                "Pro Tip",
+                                schematic["pro_tip"],
+                                kind="tip",
+                            )
 
                     with test_tab:
-                        st.markdown(f"#### 📏 {kpi['name']}")
+                        render_drill_subsection_label("Objective Test")
                         render_drill_detail_cards(
                             [
                                 ("Test", kpi["test"]),
@@ -9347,21 +9369,6 @@ if (
                         render_micro_note(
                             "Progress only when the current version is repeatable; quality beats adding difficulty too early.",
                             icon="📌",
-                        )
-
-                    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
-                    analogy_col, tip_col = st.columns(2, gap="medium")
-                    with analogy_col:
-                        render_drill_insight_card(
-                            "Mental Analogy",
-                            schematic["analogy"],
-                            kind="mental",
-                        )
-                    with tip_col:
-                        render_drill_insight_card(
-                            "Pro Tip",
-                            schematic["pro_tip"],
-                            kind="tip",
                         )
 
             if gm_balls > 0 and gm_time > 0 and not is_pure_game:
@@ -9438,7 +9445,7 @@ if (
                     )
 
                     transfer_how, transfer_test, transfer_progress = st.tabs(
-                        ["▶️ How to Do It", "🔧 Test & Equipment", "📈 Progress & Tips"]
+                        ["▶️ How to Do It", "🔧 Test & Equipment", "📈 Progress"]
                     )
 
                     with transfer_how:
@@ -9454,9 +9461,25 @@ if (
                             pressure_text,
                             "Target Course Pressure Simulation",
                         )
+                        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+                        transfer_analogy_col, transfer_tip_col = st.columns(
+                            2, gap="medium"
+                        )
+                        with transfer_analogy_col:
+                            render_drill_insight_card(
+                                "Mental Analogy",
+                                "Treat every ball like a new tournament hole: decide, commit, accept the result, and move on.",
+                                kind="mental",
+                            )
+                        with transfer_tip_col:
+                            render_drill_insight_card(
+                                "Pro Tip",
+                                "Never hit a mulligan. Score the decision before the outcome so a good plan is not punished for one poor swing.",
+                                kind="tip",
+                            )
 
                     with transfer_test:
-                        st.markdown("#### 📏 Decision + Routine Transfer")
+                        render_drill_subsection_label("Objective Test")
                         render_drill_detail_cards(
                             [
                                 (
@@ -9497,22 +9520,6 @@ if (
                         render_micro_note(
                             "Judge the decision before judging the result.",
                             icon="📌",
-                        )
-
-                    transfer_analogy_col, transfer_tip_col = st.columns(
-                        2, gap="medium"
-                    )
-                    with transfer_analogy_col:
-                        render_drill_insight_card(
-                            "Mental Analogy",
-                            "Treat every ball like a new tournament hole: decide, commit, accept the result, and move on.",
-                            kind="mental",
-                        )
-                    with transfer_tip_col:
-                        render_drill_insight_card(
-                            "Pro Tip",
-                            "Never hit a mulligan. Score the decision before the outcome so a good plan is not punished for one poor swing.",
-                            kind="tip",
                         )
 
             validation_targets = _build_next_round_validation(
