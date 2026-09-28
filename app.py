@@ -4075,24 +4075,24 @@ def render_drill_voice_briefing(
 
     if briefing:
         st.markdown(
-            "<div style='min-height:112px;padding:15px 16px;margin:3px 0 10px;border-radius:11px;"
+            "<div style='padding:12px 14px;margin:2px 0 8px;border-radius:11px;"
             f"background:{status_bg};border:1px solid {status_border};'>"
-            f"<div style='font-size:.82rem;font-weight:850;color:{status_color};"
-            "margin-bottom:8px;'>"
+            f"<div style='font-size:.80rem;font-weight:850;color:{status_color};"
+            "margin-bottom:6px;'>"
             f"{status_title}</div>"
-            "<div style='font-size:.82rem;line-height:1.52;color:#f0f3f7;'>"
+            "<div style='font-size:.80rem;line-height:1.46;color:#f0f3f7;'>"
             f"{_safe_html(status_message)}</div></div>",
             unsafe_allow_html=True,
         )
 
         st.markdown(
-            "<div style='min-height:166px;padding:15px 16px;margin:3px 0 10px;border-radius:11px;"
+            "<div style='padding:12px 14px;margin:2px 0 8px;border-radius:11px;"
             "background:linear-gradient(145deg,rgba(20,61,96,.72),rgba(21,48,76,.80));"
             "border:1px solid rgba(56,189,248,.36);'>"
-            f"<div style='font-size:.83rem;font-weight:850;color:#60a5fa;"
-            "margin-bottom:7px;'>🎙️ "
+            f"<div style='font-size:.81rem;font-weight:850;color:#60a5fa;"
+            "margin-bottom:6px;'>🎙️ "
             f"{_safe_html(caddie_name)}</div>"
-            "<div style='font-size:.84rem;line-height:1.52;color:#dbeafe;'>"
+            "<div style='font-size:.82rem;line-height:1.48;color:#dbeafe;'>"
             f"“{_safe_html(briefing)}”</div></div>",
             unsafe_allow_html=True,
         )
