@@ -9360,7 +9360,7 @@ if (
                         render_drill_equipment_chips(equip_items)
 
                     with progress_tab:
-                        st.markdown("#### 📈 How to Progress the Drill")
+                        render_drill_subsection_label("How to Progress the Drill")
                         progression_steps = CATEGORY_PROGRESSION.get(
                             _drill_category(d_name),
                             CATEGORY_PROGRESSION["general"],
@@ -9509,7 +9509,7 @@ if (
                         )
 
                     with transfer_progress:
-                        st.markdown("#### 📈 How to Progress the Drill")
+                        render_drill_subsection_label("How to Progress the Drill")
                         render_drill_progress_cards(
                             [
                                 "Start with 5 unscored simulated holes and focus on decision quality and routine.",
