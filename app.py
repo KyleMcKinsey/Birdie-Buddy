@@ -9472,7 +9472,7 @@ if (
                 if validation_targets:
                     for idx, target in enumerate(validation_targets, start=1):
                         st.markdown(
-                            f"<div style='font-size:.80rem;line-height:1.42;margin:6px 0;'>"
+                            f"<div style='font-size:.87rem;line-height:1.50;margin:6px 0;'>"
                             f"<strong>{idx}.</strong> {_safe_html(target)}</div>",
                             unsafe_allow_html=True,
                         )
