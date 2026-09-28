@@ -1140,8 +1140,11 @@ def render_drill_visual_aid(drill_name, persona_key=None, show_large=True):
         1,
     )
 
+    padding = "12px 12px 11px" if show_large else "10px 10px 9px"
+    margin = "2px 0 7px" if show_large else "1px 0 5px"
+
     st.markdown(
-        "<div style='padding:10px 10px 9px;margin:1px 0 5px;"
+        f"<div style='padding:{padding};margin:{margin};"
         "border:1px solid rgba(91,111,139,.46);border-radius:12px;"
         "background:linear-gradient(145deg,rgba(12,20,32,.92),rgba(8,14,23,.96));"
         "box-shadow:0 6px 16px rgba(0,0,0,.12),"
@@ -3368,7 +3371,7 @@ def _format_audio_time(seconds):
 
 
 def _render_seekable_audio_player(audio_bytes, uid, caddie_name):
-    """Render a large, explicit audio player with a visible scrub/seek bar."""
+    """Compact player: native scrub bar plus skip controls only."""
     encoded = base64.b64encode(audio_bytes).decode("ascii")
     safe_caddie = str(caddie_name).replace("<", "&lt;").replace(">", "&gt;")
 
@@ -3376,24 +3379,19 @@ def _render_seekable_audio_player(audio_bytes, uid, caddie_name):
     <style>
       html, body {{ margin:0; padding:0; background:transparent; font-family:Arial,sans-serif; }}
       .bb-audio-card {{
-        border:1px solid #4b5563; border-radius:12px; padding:14px 14px 12px;
+        border:1px solid #4b5563; border-radius:11px; padding:10px 12px 10px;
         background:#111827; color:#f3f4f6;
       }}
-      .bb-audio-title {{ font-size:15px; font-weight:700; margin-bottom:3px; }}
-      audio {{ width:100%; height:42px; margin-bottom:8px; }}
-      .bb-seek-row {{ display:grid; grid-template-columns:50px 1fr 50px; gap:8px; align-items:center; }}
-      .bb-time {{ font-size:12px; color:#cbd5e1; text-align:center; font-variant-numeric:tabular-nums; }}
-      .bb-seek {{ width:100%; accent-color:#60a5fa; cursor:pointer; }}
-      .bb-buttons {{ display:grid; grid-template-columns:1fr 1.3fr 1fr; gap:8px; margin-top:10px; }}
+      .bb-audio-title {{ font-size:14px; font-weight:700; margin-bottom:4px; }}
+      audio {{ width:100%; height:38px; margin-bottom:8px; display:block; }}
+      .bb-buttons {{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }}
       .bb-buttons button {{
-        border:1px solid #667085; border-radius:9px; padding:9px 8px; cursor:pointer;
-        background:#1f2937; color:#f8fafc; font-size:13px; font-weight:600;
+        border:1px solid #667085; border-radius:9px; padding:8px 8px; cursor:pointer;
+        background:#1f2937; color:#f8fafc; font-size:12px; font-weight:650;
       }}
       .bb-buttons button:hover {{ background:#2b3647; }}
-      .bb-hint {{ font-size:11px; color:#94a3b8; margin-top:8px; text-align:center; }}
       @media (prefers-color-scheme: light) {{
         .bb-audio-card {{ background:#f8fafc; color:#111827; border-color:#d0d5dd; }}
-        .bb-hint,.bb-time {{ color:#667085; }}
         .bb-buttons button {{ background:#fff; color:#111827; border-color:#cbd5e1; }}
         .bb-buttons button:hover {{ background:#f1f5f9; }}
       }}
@@ -3403,60 +3401,25 @@ def _render_seekable_audio_player(audio_bytes, uid, caddie_name):
       <audio id="audio-{uid}" controls preload="metadata">
         <source src="data:audio/wav;base64,{encoded}" type="audio/wav">
       </audio>
-      <div class="bb-seek-row">
-        <span id="now-{uid}" class="bb-time">0:00</span>
-        <input id="seek-{uid}" class="bb-seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Audio position">
-        <span id="dur-{uid}" class="bb-time">0:00</span>
-      </div>
       <div class="bb-buttons">
         <button id="back-{uid}">↶ 10 sec</button>
-        <button id="toggle-{uid}">▶ Play / Pause</button>
         <button id="forward-{uid}">10 sec ↷</button>
       </div>
-      <div class="bb-hint">Drag the blue timeline to jump anywhere in the caddie audio.</div>
     </div>
     <script>
     (() => {{
       const audio = document.getElementById('audio-{uid}');
-      const seek = document.getElementById('seek-{uid}');
-      const now = document.getElementById('now-{uid}');
-      const dur = document.getElementById('dur-{uid}');
-      const toggle = document.getElementById('toggle-{uid}');
-      const fmt = (value) => {{
-        if (!Number.isFinite(value)) return '0:00';
-        value = Math.max(0, Math.floor(value));
-        return Math.floor(value / 60) + ':' + String(value % 60).padStart(2, '0');
+      document.getElementById('back-{uid}').onclick = () => {{
+        audio.currentTime = Math.max(0, audio.currentTime - 10);
       }};
-      const sync = () => {{
-        now.textContent = fmt(audio.currentTime);
-        dur.textContent = fmt(audio.duration);
-        if (Number.isFinite(audio.duration) && audio.duration > 0 && !seek.matches(':active')) {{
-          seek.value = Math.round((audio.currentTime / audio.duration) * 1000);
-        }}
-        toggle.textContent = audio.paused ? '▶ Play / Pause' : '⏸ Play / Pause';
-      }};
-      audio.addEventListener('loadedmetadata', sync);
-      audio.addEventListener('timeupdate', sync);
-      audio.addEventListener('play', sync);
-      audio.addEventListener('pause', sync);
-      audio.addEventListener('ended', sync);
-      seek.addEventListener('input', () => {{
-        if (Number.isFinite(audio.duration) && audio.duration > 0) {{
-          audio.currentTime = (Number(seek.value) / 1000) * audio.duration;
-          sync();
-        }}
-      }});
-      document.getElementById('back-{uid}').onclick = () => {{ audio.currentTime = Math.max(0, audio.currentTime - 10); sync(); }};
       document.getElementById('forward-{uid}').onclick = () => {{
         const end = Number.isFinite(audio.duration) ? audio.duration : audio.currentTime + 10;
-        audio.currentTime = Math.min(end, audio.currentTime + 10); sync();
+        audio.currentTime = Math.min(end, audio.currentTime + 10);
       }};
-      toggle.onclick = () => {{ audio.paused ? audio.play() : audio.pause(); }};
-      sync();
     }})();
     </script>
     """
-    components.html(html, height=210, scrolling=False)
+    components.html(html, height=118, scrolling=False)
 
 
 
@@ -9389,38 +9352,32 @@ if (
                         if x.strip()
                     ]
 
-                    # Tighter top row: visual left, compact metric cards + purpose right.
-                    drill_visual_col, drill_info_col = st.columns(
-                        [1.04, 1.06], gap="medium"
+                    # Cleaner vertical flow: full-width image first, then chips, then the purpose tip.
+                    render_drill_visual_aid(
+                        d_name,
+                        persona_key=st.session_state.get(
+                            "caddie_persona_key", selected_persona_key
+                        ),
+                        show_large=True,
                     )
 
-                    with drill_visual_col:
-                        render_drill_visual_aid(
-                            d_name,
-                            persona_key=st.session_state.get(
-                                "caddie_persona_key", selected_persona_key
-                            ),
-                            show_large=False,
-                        )
+                    render_drill_metric_boxes(
+                        balls_per_drill,
+                        time_per_drill,
+                        activity_label,
+                        kpi["target"],
+                    )
 
-                    with drill_info_col:
-                        render_drill_metric_boxes(
-                            balls_per_drill,
-                            time_per_drill,
-                            activity_label,
-                            kpi["target"],
-                        )
+                    st.markdown(
+                        "<div style='margin:4px 0 6px;'>"
+                        f"<div style='font-size:.84rem;line-height:1.46;"
+                        "color:#bec8d6;'>"
+                        f"🎯 {_safe_html(drill_purpose)}</div>"
+                        "</div>",
+                        unsafe_allow_html=True,
+                    )
 
-                        st.markdown(
-                            "<div style='margin:8px 0 4px;'>"
-                            f"<div style='font-size:.84rem;line-height:1.48;"
-                            "color:#bec8d6;'>"
-                            f"🎯 {_safe_html(drill_purpose)}</div>"
-                            "</div>",
-                            unsafe_allow_html=True,
-                        )
-
-                    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+                    st.markdown("<div style='height:2px'></div>", unsafe_allow_html=True)
 
                     render_drill_voice_briefing(
                         drill_name=d_name,
@@ -9518,35 +9475,29 @@ if (
                         "realistic one-ball, one-decision course behavior."
                     )
 
-                    transfer_visual_col, transfer_info_col = st.columns(
-                        [1.04, 1.06], gap="medium"
+                    render_drill_visual_aid(
+                        "Target Course Pressure Simulation",
+                        persona_key=st.session_state.get(
+                            "caddie_persona_key", selected_persona_key
+                        ),
+                        show_large=True,
                     )
 
-                    with transfer_visual_col:
-                        render_drill_visual_aid(
-                            "Target Course Pressure Simulation",
-                            persona_key=st.session_state.get(
-                                "caddie_persona_key", selected_persona_key
-                            ),
-                            show_large=False,
-                        )
+                    render_drill_metric_boxes(
+                        gm_balls,
+                        gm_time,
+                        "One-Ball Scenarios",
+                        pressure_kpi["target"],
+                    )
+                    st.markdown(
+                        "<div style='margin:4px 0 6px;'>"
+                        "<div style='font-size:.84rem;line-height:1.46;"
+                        "color:#bec8d6;'>"
+                        f"🎯 {_safe_html(pressure_purpose)}</div></div>",
+                        unsafe_allow_html=True,
+                    )
 
-                    with transfer_info_col:
-                        render_drill_metric_boxes(
-                            gm_balls,
-                            gm_time,
-                            "One-Ball Scenarios",
-                            pressure_kpi["target"],
-                        )
-                        st.markdown(
-                            "<div style='margin:8px 0 4px;'>"
-                            "<div style='font-size:.84rem;line-height:1.48;"
-                            "color:#bec8d6;'>"
-                            f"🎯 {_safe_html(pressure_purpose)}</div></div>",
-                            unsafe_allow_html=True,
-                        )
-
-                    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+                    st.markdown("<div style='height:2px'></div>", unsafe_allow_html=True)
                     render_drill_voice_briefing(
                         drill_name="Target Course Pressure Simulation",
                         persona_key=st.session_state.get(
