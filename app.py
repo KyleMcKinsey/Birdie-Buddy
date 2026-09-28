@@ -2800,6 +2800,23 @@ genai.configure(api_key=api_key)
 
 
 # -------------------------------------------------------------
+# GEMINI MODEL CONFIGURATION
+# -------------------------------------------------------------
+# Keep every Birdie Buddy AI workflow pinned to the current stable Gemini 3.8
+# family rather than dynamically selecting older models returned by list_models().
+GEMINI_TEXT_MODEL = "gemini-3.8-flash"
+GEMINI_TTS_MODEL = "gemini-3.8-flash-tts"
+GEMINI_TTS_FALLBACK_MODEL = "gemini-3.8-flash-lite-tts"
+
+
+def _latest_gemini_flash_models():
+    """Return only Birdie Buddy's approved current stable reasoning model."""
+    return [GEMINI_TEXT_MODEL]
+
+
+
+
+# -------------------------------------------------------------
 # VOICE INPUT + CHARACTER-STYLE CADDIE READ-ALOUD
 # -------------------------------------------------------------
 def transcribe_round_audio(audio_file):
@@ -2827,13 +2844,7 @@ def transcribe_round_audio(audio_file):
     - If a word is genuinely unclear, write [unclear] instead of guessing.
     """
 
-    flash_models = [
-        m.name
-        for m in genai.list_models()
-        if "generateContent" in m.supported_generation_methods
-        and "flash" in m.name.lower()
-    ]
-    flash_models.sort(reverse=True)
+    flash_models = _latest_gemini_flash_models()
 
     last_error = None
     for model_name in flash_models:
@@ -2849,7 +2860,7 @@ def transcribe_round_audio(audio_file):
             continue
 
     raise RuntimeError(
-        f"No Gemini Flash model could transcribe the recording. {last_error or ''}".strip()
+        f"{GEMINI_TEXT_MODEL} could not transcribe the recording. {last_error or ''}".strip()
     )
 
 
@@ -3123,7 +3134,7 @@ def _cached_gemini_tts_request(
 ):
     """Network-only TTS request cached for 24h to avoid wasting quota on identical clips."""
     request_body = {
-        "model": "gemini-3.8-flash-tts",
+        "model": GEMINI_TTS_MODEL,
         "input": [{
             "type": "user_input",
             "content": [{
@@ -3147,8 +3158,8 @@ def _cached_gemini_tts_request(
 
     endpoint = "https://generativelanguage.googleapis.com/v1beta/interactions"
     model_fallbacks = [
-        "gemini-3.8-flash-tts",
-        "gemini-3.8-flash-lite-tts",
+        GEMINI_TTS_MODEL,
+        GEMINI_TTS_FALLBACK_MODEL,
     ]
     last_error = None
 
@@ -3635,13 +3646,7 @@ def _regenerate_persona_copy(diag, persona_key, previous_narrative="", take_numb
     }}
     """
 
-    flash_models = [
-        m.name
-        for m in genai.list_models()
-        if "generateContent" in m.supported_generation_methods
-        and "flash" in m.name.lower()
-    ]
-    flash_models.sort(reverse=True)
+    flash_models = _latest_gemini_flash_models()
 
     last_error = None
     for model_name in flash_models:
@@ -3920,13 +3925,7 @@ def _generate_persona_drill_briefing(
     Return only the briefing text.
     """
 
-    flash_models = [
-        m.name
-        for m in genai.list_models()
-        if "generateContent" in m.supported_generation_methods
-        and "flash" in m.name.lower()
-    ]
-    flash_models.sort(reverse=True)
+    flash_models = _latest_gemini_flash_models()
     last_error = None
     for model_name in flash_models:
         try:
@@ -3949,7 +3948,7 @@ def _generate_persona_drill_briefing(
             last_error = exc
             continue
     raise RuntimeError(
-        f"No Gemini Flash model could create the drill briefing. {last_error or ''}".strip()
+        f"{GEMINI_TEXT_MODEL} could not create the drill briefing. {last_error or ''}".strip()
     )
 
 
@@ -4340,13 +4339,7 @@ def _generate_persona_practice_debrief(
     Return only the debrief text.
     """
 
-    flash_models = [
-        m.name
-        for m in genai.list_models()
-        if "generateContent" in m.supported_generation_methods
-        and "flash" in m.name.lower()
-    ]
-    flash_models.sort(reverse=True)
+    flash_models = _latest_gemini_flash_models()
     last_error = None
     for model_name in flash_models:
         try:
@@ -4369,7 +4362,7 @@ def _generate_persona_practice_debrief(
             last_error = exc
             continue
     raise RuntimeError(
-        f"No Gemini Flash model could create the practice debrief. {last_error or ''}".strip()
+        f"{GEMINI_TEXT_MODEL} could not create the practice debrief. {last_error or ''}".strip()
     )
 
 
@@ -4944,13 +4937,7 @@ def _extract_scorecard_with_gemini(uploaded_file):
     }
     """
 
-    flash_models = [
-        m.name
-        for m in genai.list_models()
-        if "generateContent" in m.supported_generation_methods
-        and "flash" in m.name.lower()
-    ]
-    flash_models.sort(reverse=True)
+    flash_models = _latest_gemini_flash_models()
 
     last_error = None
     for model_name in flash_models:
@@ -8117,13 +8104,7 @@ if show_step1:
                     """
 
                     try:
-                        flash_models = [
-                            m.name
-                            for m in genai.list_models()
-                            if 'generateContent' in m.supported_generation_methods
-                            and 'flash' in m.name.lower()
-                        ]
-                        flash_models.sort(reverse=True)
+                        flash_models = _latest_gemini_flash_models()
 
                         q_res = None
                         for model_name in flash_models:
@@ -8457,13 +8438,7 @@ if show_step1:
                     """
 
                     try:
-                        flash_models = [
-                            m.name
-                            for m in genai.list_models()
-                            if 'generateContent' in m.supported_generation_methods
-                            and 'flash' in m.name.lower()
-                        ]
-                        flash_models.sort(reverse=True)
+                        flash_models = _latest_gemini_flash_models()
 
                         response = None
                         for model_name in flash_models:
@@ -8479,7 +8454,7 @@ if show_step1:
                                 continue
 
                         if response is None:
-                            st.error("No active Gemini Flash model found.")
+                            st.error(f"{GEMINI_TEXT_MODEL} is unavailable for this request.")
                             st.stop()
 
                         clean_json = (
