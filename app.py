@@ -7,6 +7,7 @@ import json
 import os
 import time
 import re
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -166,6 +167,35 @@ HISTORY_COLUMNS = [
 ]
 
 
+PRACTICE_SESSION_CSV = "birdie_buddy_practice_sessions.csv"
+PRACTICE_SESSION_COLUMNS = [
+    "Session ID",
+    "Round History Index",
+    "Timestamp",
+    "Continuation Mode",
+    "Course",
+    "Primary Opportunity",
+    "Primary Stage",
+    "Primary Drill",
+    "Secondary Drill",
+    "Practice Mode",
+    "Total Balls",
+    "Total Time",
+    "Controlled %",
+    "Transfer %",
+    "Practice Environment",
+    "Available Equipment",
+    "Completion",
+    "Effectiveness (1-5)",
+    "Baseline KPI (10)",
+    "Post KPI (10)",
+    "Objective Gain",
+    "Transfer Decision Score (10)",
+    "Transfer Routine Score (10)",
+    "Transfer Playable Outcomes (10)",
+]
+
+
 # --- PERSISTENT SPREADSHEET HELPERS ---
 # History lives in st.session_state (always works, even on hosted Streamlit),
 # and we ALSO try to write a CSV on disk as a bonus backup.
@@ -180,6 +210,129 @@ def _init_history():
             except Exception:
                 seeded = []
         st.session_state["practice_history"] = seeded
+
+
+
+def _init_practice_sessions():
+    """Persistent practice visits; multiple visits may attach to one diagnosed round."""
+    if "practice_session_history" not in st.session_state:
+        seeded = []
+        if os.path.exists(PRACTICE_SESSION_CSV):
+            try:
+                seeded = pd.read_csv(
+                    PRACTICE_SESSION_CSV,
+                    keep_default_na=False,
+                ).to_dict("records")
+            except Exception:
+                seeded = []
+        st.session_state["practice_session_history"] = seeded
+
+
+def _new_practice_session_token(origin="New round plan"):
+    token = datetime.now().strftime("%Y%m%d%H%M%S%f")
+    st.session_state["current_practice_session_token"] = token
+    st.session_state["current_practice_origin"] = origin
+    st.session_state["practice_feedback_saved"] = False
+    return token
+
+
+def _practice_sessions_for_current_round(limit=None):
+    _init_practice_sessions()
+    round_index = st.session_state.get("current_round_history_index")
+    rows = st.session_state.get("practice_session_history", [])
+    if isinstance(round_index, int):
+        matches = [
+            row for row in rows
+            if str(row.get("Round History Index", "")) == str(round_index)
+        ]
+    else:
+        matches = rows
+    return matches[-limit:] if limit else matches
+
+
+def _current_practice_session_record():
+    _init_practice_sessions()
+    token = str(st.session_state.get("current_practice_session_token", "") or "")
+    if not token:
+        return None
+    for row in reversed(st.session_state.get("practice_session_history", [])):
+        if str(row.get("Session ID", "")) == token:
+            return row
+    return None
+
+
+def _write_practice_sessions_backup():
+    try:
+        pd.DataFrame(
+            st.session_state.get("practice_session_history", []),
+            columns=PRACTICE_SESSION_COLUMNS,
+        ).to_csv(PRACTICE_SESSION_CSV, index=False)
+    except Exception as exc:
+        st.session_state["practice_session_file_warning"] = str(exc)
+
+
+def _upsert_practice_session_feedback(
+    completed_label,
+    effectiveness,
+    baseline_kpi="",
+    post_kpi="",
+    practice_environment="",
+    available_equipment="",
+    actual_primary_drill="",
+    transfer_decision_score="",
+    transfer_routine_score="",
+    transfer_playable_outcomes="",
+):
+    """Save this range/practice visit without creating another round."""
+    _init_practice_sessions()
+    token = str(st.session_state.get("current_practice_session_token", "") or "")
+    if not token:
+        token = _new_practice_session_token("Practice session")
+
+    diag = st.session_state.get("diagnosis", {}) or {}
+    res = st.session_state.get("confirmed_resources", {}) or {}
+    round_index = st.session_state.get("current_round_history_index")
+    gain = ""
+    if baseline_kpi not in (None, "") and post_kpi not in (None, ""):
+        gain = int(post_kpi) - int(baseline_kpi)
+
+    record = {
+        "Session ID": token,
+        "Round History Index": round_index if isinstance(round_index, int) else "",
+        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "Continuation Mode": st.session_state.get("current_practice_origin", "Practice session"),
+        "Course": st.session_state.get("round_course_name", "") or "N/A",
+        "Primary Opportunity": diag.get("primary_miss", "") or "N/A",
+        "Primary Stage": diag.get("primary_miss_stage", "") or "N/A",
+        "Primary Drill": actual_primary_drill or res.get("resolved_primary_drill") or diag.get("recommended_primary_drill", "N/A"),
+        "Secondary Drill": res.get("resolved_secondary_drill") or diag.get("recommended_secondary_drill") or "N/A",
+        "Practice Mode": res.get("practice_mode", "N/A"),
+        "Total Balls": res.get("total_balls", ""),
+        "Total Time": res.get("total_time", ""),
+        "Controlled %": int(round(float(res.get("grind_pct", 0)) * 100)),
+        "Transfer %": int(round(float(res.get("game_pct", 0)) * 100)),
+        "Practice Environment": practice_environment or "; ".join(res.get("practice_areas", [])),
+        "Available Equipment": available_equipment or "; ".join(res.get("equipment", [])),
+        "Completion": completed_label,
+        "Effectiveness (1-5)": effectiveness,
+        "Baseline KPI (10)": baseline_kpi if baseline_kpi not in (None, "") else "",
+        "Post KPI (10)": post_kpi if post_kpi not in (None, "") else "",
+        "Objective Gain": gain,
+        "Transfer Decision Score (10)": transfer_decision_score if transfer_decision_score not in (None, "") else "",
+        "Transfer Routine Score (10)": transfer_routine_score if transfer_routine_score not in (None, "") else "",
+        "Transfer Playable Outcomes (10)": transfer_playable_outcomes if transfer_playable_outcomes not in (None, "") else "",
+    }
+
+    rows = st.session_state["practice_session_history"]
+    for i, old in enumerate(rows):
+        if str(old.get("Session ID", "")) == token:
+            rows[i] = record
+            break
+    else:
+        rows.append(record)
+
+    _write_practice_sessions_backup()
+    return record
 
 
 def load_history_df():
@@ -394,12 +547,31 @@ def update_last_session_feedback(
     except Exception as file_error:
         st.session_state["history_file_warning"] = str(file_error)
 
+    _upsert_practice_session_feedback(
+        completed_label=completed_label,
+        effectiveness=effectiveness,
+        baseline_kpi=baseline_kpi,
+        post_kpi=post_kpi,
+        practice_environment=practice_environment,
+        available_equipment=available_equipment,
+        actual_primary_drill=actual_primary_drill,
+        transfer_decision_score=transfer_decision_score,
+        transfer_routine_score=transfer_routine_score,
+        transfer_playable_outcomes=transfer_playable_outcomes,
+    )
+
 
 def clear_history_csv():
     st.session_state["practice_history"] = []
+    st.session_state["practice_session_history"] = []
     try:
         if os.path.exists(CSV_FILE):
             os.remove(CSV_FILE)
+    except Exception:
+        pass
+    try:
+        if os.path.exists(PRACTICE_SESSION_CSV):
+            os.remove(PRACTICE_SESSION_CSV)
     except Exception:
         pass
 
@@ -1325,6 +1497,101 @@ def _resolve_drill_for_environment(drill_name, practice_areas, equipment):
     return None, f"{drill_name} is not executable with the selected practice area/equipment."
 
 
+
+def _adapt_diagnosis_for_continued_practice(diag, res, persona_key):
+    """Use completed practice evidence to adjust the next practice visit without inventing a new round."""
+    diag = dict(diag or {})
+    sessions = _practice_sessions_for_current_round(limit=5)
+    if not sessions:
+        return diag
+
+    library = sorted(DRILL_SCHEMATICS.keys())
+    prompt = f"""
+    You are Birdie Buddy's practice reallocation layer. The golfer has NOT played a new round.
+    Adapt the next practice visit using the existing round diagnosis plus completed practice evidence.
+
+    Existing diagnosis:
+    {json.dumps(diag, ensure_ascii=False)}
+
+    Current practice resources/environment:
+    {json.dumps(res, ensure_ascii=False)}
+
+    Recent practice sessions tied to this round:
+    {json.dumps(sessions, ensure_ascii=False)}
+
+    Rules:
+    - Do not create a new round diagnosis.
+    - If a drill was completed and rated 1-2/5, change the intervention rather than repeating it unchanged.
+    - If it was not completed, do not call it ineffective.
+    - If effectiveness was 4-5/5 and objective results improved, retain the underlying skill target but move toward transfer/pressure/context.
+    - One 10-rep pre/post test is weak evidence; larger reallocations require repeated consistent sessions.
+    - Use ONLY drill names from this implemented library:
+      {json.dumps(library)}
+    - Preserve the primary scoring opportunity unless practice evidence strongly supports changing HOW it is trained.
+    - Return concise raw JSON only.
+
+    {{
+      "recommended_primary_drill": "exact library drill",
+      "recommended_secondary_drill": "exact library drill or null",
+      "drill_rationale": "1-2 sentences explaining why the next visit changes or progresses",
+      "caddie_drill_pep_talk": "25-40 word persona-compatible practice instruction without a greeting",
+      "adaptation_note": "one concise sentence"
+    }}
+    """
+    try:
+        model = genai.GenerativeModel(GEMINI_TEXT_MODEL)
+        response = model.generate_content(prompt)
+        raw = (response.text if response else "").replace("```json", "").replace("```", "").strip()
+        change = json.loads(raw)
+        if not isinstance(change, dict):
+            return diag
+
+        areas = res.get("practice_areas", [])
+        equipment = res.get("equipment", [])
+        primary = change.get("recommended_primary_drill")
+        secondary = change.get("recommended_secondary_drill")
+        if primary not in DRILL_SCHEMATICS:
+            primary = diag.get("recommended_primary_drill")
+        if secondary and secondary not in DRILL_SCHEMATICS:
+            secondary = diag.get("recommended_secondary_drill")
+
+        primary, _ = _resolve_drill_for_environment(primary, areas, equipment)
+        if not primary:
+            primary = res.get("resolved_primary_drill") or diag.get("recommended_primary_drill")
+        if secondary:
+            secondary, _ = _resolve_drill_for_environment(secondary, areas, equipment)
+
+        diag["recommended_primary_drill"] = primary
+        diag["recommended_secondary_drill"] = secondary
+        if change.get("drill_rationale"):
+            diag["drill_rationale"] = str(change["drill_rationale"])
+        if change.get("caddie_drill_pep_talk"):
+            diag["caddie_drill_pep_talk"] = str(change["caddie_drill_pep_talk"])
+        diag["continued_practice_adaptation"] = str(change.get("adaptation_note", "") or "")
+        return diag
+    except Exception:
+        # Safe local fallback: if the latest completed intervention was low-value,
+        # rotate to another executable drill in the same category.
+        latest = sessions[-1]
+        try:
+            eff = int(float(latest.get("Effectiveness (1-5)", "")))
+        except Exception:
+            eff = None
+        completed = str(latest.get("Completion", "")).strip()
+        current = res.get("resolved_primary_drill") or diag.get("recommended_primary_drill")
+        if completed in {"Yes, partially", "Yes, fully"} and eff is not None and eff <= 2:
+            category = _drill_category(current)
+            for candidate in CATEGORY_DRILL_CANDIDATES.get(category, []):
+                if candidate != current and _drill_supported(candidate, res.get("practice_areas"), res.get("equipment")):
+                    diag["recommended_primary_drill"] = candidate
+                    diag["drill_rationale"] = (
+                        "The prior completed session was rated low-effectiveness, so Birdie Buddy changed "
+                        "the intervention while keeping the same scoring opportunity."
+                    )
+                    break
+        return diag
+
+
 def _adaptive_hybrid_split(diag):
     """Return an evidence/history-aware controlled-work vs transfer split.
 
@@ -1344,7 +1611,16 @@ def _adaptive_hybrid_split(diag):
     reasons = [f"Base split reflects the primary stage ({_short_progress_stage(stage) or 'general performance'})."]
 
     mech = str((diag or {}).get("mechanical_evidence_level") or "")
-    if mech == "Supported by golfer observations":
+    if mech == "Repeated video + round evidence":
+        grind += 0.10
+        reasons.append("Repeated video plus round evidence supports a stronger controlled-skill bias.")
+    elif mech == "Video-supported hypothesis":
+        grind += 0.06
+        reasons.append("Video supports the movement hypothesis, but practice should still test causation.")
+    elif mech == "Video observation":
+        grind += 0.02
+        reasons.append("Visible video evidence earns only a small controlled-rep bias until causation is tested.")
+    elif mech == "Supported by golfer observations":
         grind += 0.08
         reasons.append("Supported mechanical evidence favors more controlled skill acquisition.")
     elif mech == "Hypothesis to test":
@@ -1360,6 +1636,26 @@ def _adaptive_hybrid_split(diag):
     }:
         grind -= 0.08
         reasons.append("Decision-quality problems are trained more effectively through scenario/transfer reps than blocked mechanics.")
+
+    practice_sessions = _practice_sessions_for_current_round(limit=3)
+    if practice_sessions:
+        latest_session = practice_sessions[-1]
+        try:
+            session_eff = int(float(latest_session.get("Effectiveness (1-5)", "")))
+        except Exception:
+            session_eff = None
+        try:
+            session_gain = int(float(latest_session.get("Objective Gain", "")))
+        except Exception:
+            session_gain = None
+        completed = str(latest_session.get("Completion", "") or "")
+        if completed in {"Yes, partially", "Yes, fully"} and session_eff is not None:
+            if session_eff >= 4 and session_gain is not None and session_gain > 0:
+                grind -= 0.08
+                reasons.append("The latest completed session improved objectively and felt effective, so the next visit shifts toward transfer.")
+            elif session_eff <= 2:
+                grind += 0.03
+                reasons.append("The latest completed session was low-effectiveness; the next visit keeps enough controlled work to test a changed intervention.")
 
     df = load_history_df()
     if not df.empty and stage:
@@ -2070,6 +2366,9 @@ def render_value_chain_opportunity_view(stage_summary, diag):
         "Performance pattern only": "Technique cause: Not confirmed",
         "Hypothesis to test": "Technique cause: Hypothesis to test",
         "Supported by golfer observations": "Technique cause: Supported by observations",
+        "Video observation": "Technique evidence: Visible on video",
+        "Video-supported hypothesis": "Technique cause: Video-supported hypothesis",
+        "Repeated video + round evidence": "Technique evidence: Repeated video + round pattern",
         "Not applicable": "",
     }.get(mechanical_evidence, f"Technique evidence: {mechanical_evidence}" if mechanical_evidence else "")
 
@@ -2774,12 +3073,193 @@ def render_progress_trends(df_history):
                 clear_history_csv()
                 st.rerun()
 
+        _init_practice_sessions()
+        if st.session_state.get("practice_session_history"):
+            practice_sessions_csv = pd.DataFrame(
+                st.session_state["practice_session_history"],
+                columns=PRACTICE_SESSION_COLUMNS,
+            ).to_csv(index=False)
+            st.download_button(
+                "⬇️ Download Practice Sessions CSV",
+                data=practice_sessions_csv,
+                file_name="birdie_buddy_practice_sessions.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="download_practice_sessions_csv_bottom",
+            )
+
         if st.session_state.get("history_file_warning"):
             st.caption(
                 "ℹ️ History is currently being kept in this session because the "
                 "local CSV file could not be written. Use Download History CSV "
                 "to keep a permanent copy."
             )
+
+
+
+def build_full_report_html(diag, res, active_drills, caddie):
+    """Self-contained printable report; no new package dependency required."""
+    diag = diag or {}
+    res = res or {}
+    roi_data = st.session_state.get("roi_data", {}) or {}
+    vc = diag.get("value_chain_analysis", {}) or {}
+    video = st.session_state.get("swing_video_analysis", {}) or {}
+    sessions = _practice_sessions_for_current_round()
+    validations = _build_next_round_validation(
+        diag,
+        st.session_state.get("round_holes_played", 18),
+    )
+
+    def esc(value):
+        return html.escape(str(value if value not in (None, "") else "—"))
+
+    def section(title, body):
+        return f"<section><h2>{esc(title)}</h2>{body}</section>"
+
+    round_rows = [
+        ("Course", st.session_state.get("round_course_name") or "—"),
+        ("Tees", st.session_state.get("round_tee_name") or "—"),
+        ("Score", _fmt_stat(st.session_state.get("round_score"))),
+        ("Holes", st.session_state.get("round_holes_played", "—")),
+        ("Handicap", _fmt_stat(st.session_state.get("round_handicap"))),
+        ("Fairways", f"{_fmt_stat(st.session_state.get('round_fairways_hit'))} / {_fmt_stat(st.session_state.get('round_fairway_opportunities'))}"),
+        ("GIR", f"{_fmt_stat(st.session_state.get('round_gir'))} / {_fmt_stat(st.session_state.get('round_gir_opportunities'))}"),
+        ("Putts", _fmt_stat(st.session_state.get("round_putts"))),
+        ("Penalties", _fmt_stat(st.session_state.get("round_penalty_strokes"))),
+        ("3-Putts", _fmt_stat(st.session_state.get("round_three_putts"))),
+    ]
+    round_html = "<div class='grid'>" + "".join(
+        f"<div class='fact'><span>{esc(k)}</span><strong>{esc(v)}</strong></div>"
+        for k, v in round_rows
+    ) + "</div>"
+
+    priority_html = (
+        f"<div class='priority'><strong>#1 {esc(diag.get('primary_miss', '—'))}</strong>"
+        f"<p>{esc(diag.get('primary_cause_breakdown', ''))}</p>"
+        f"<p><strong>Decision quality:</strong> {esc(diag.get('decision_quality', '—'))}<br>"
+        f"<strong>Technique evidence:</strong> {esc(diag.get('mechanical_evidence_level', '—'))}<br>"
+        f"<strong>Direct score cost:</strong> {esc(roi_data.get('direct_cost_display', '—'))}<br>"
+        f"<strong>Peer gap:</strong> {esc(roi_data.get('peer_gap_display', '—'))}</p></div>"
+    )
+    if diag.get("secondary_miss"):
+        priority_html += (
+            f"<div class='priority secondary'><strong>#2 {esc(diag.get('secondary_miss'))}</strong>"
+            f"<p>{esc(diag.get('secondary_cause_breakdown', ''))}</p></div>"
+        )
+
+    vc_items = [
+        ("Off-the-Tee", vc.get("off_the_tee", "—")),
+        ("Approach", vc.get("approach", "—")),
+        ("Scoring / Scrambling", vc.get("scoring_scrambling", "—")),
+        ("Course Management", vc.get("course_management", "—")),
+        ("Mental", vc.get("mental_infrastructure", "—")),
+    ]
+    vc_html = "<table><tbody>" + "".join(
+        f"<tr><th>{esc(k)}</th><td>{esc(v)}</td></tr>" for k, v in vc_items
+    ) + "</tbody></table>"
+
+    reasoning = roi_data.get("reasons") or []
+    reasoning_html = "<ul>" + "".join(f"<li>{esc(x)}</li>" for x in reasoning) + "</ul>"
+
+    video_html = "<p>No swing-video evidence used.</p>"
+    if video:
+        video_html = (
+            f"<p><strong>{esc(video.get('evidence_level', 'Video evidence'))}</strong></p>"
+            f"<p>{esc(video.get('summary', ''))}</p>"
+        )
+        if video.get("cross_clip_patterns"):
+            video_html += "<ul>" + "".join(
+                f"<li>{esc(x)}</li>" for x in video.get("cross_clip_patterns")[:6]
+            ) + "</ul>"
+
+    allocation_html = (
+        "<div class='grid'>"
+        f"<div class='fact'><span>Time</span><strong>{esc(res.get('total_time'))} min</strong></div>"
+        f"<div class='fact'><span>Balls</span><strong>≈{esc(res.get('total_balls'))}</strong></div>"
+        f"<div class='fact'><span>Controlled</span><strong>{int(float(res.get('grind_pct',0))*100)}%</strong></div>"
+        f"<div class='fact'><span>Transfer</span><strong>{int(float(res.get('game_pct',0))*100)}%</strong></div>"
+        "</div>"
+        f"<p><strong>Why this split:</strong> {esc(diag.get('drill_rationale', res.get('allocation_rationale', '')))}</p>"
+    )
+
+    drill_html = ""
+    for i, drill in enumerate(active_drills or [], start=1):
+        kpi = get_drill_kpi(drill)
+        schematic = DRILL_SCHEMATICS.get(drill, {})
+        drill_html += (
+            f"<div class='drill'><h3>Drill {i}: {esc(drill)}</h3>"
+            f"<p>{esc(schematic.get('trains', schematic.get('what_it_trains', '')))}</p>"
+            f"<p><strong>Objective test:</strong> {esc(kpi.get('test'))}</p>"
+            f"<p><strong>Pass:</strong> {esc(kpi.get('target'))}/10</p>"
+            f"<p><strong>Pro tip:</strong> {esc(schematic.get('pro_tip', ''))}</p></div>"
+        )
+
+    session_html = "<p>No practice sessions logged yet.</p>"
+    if sessions:
+        session_html = (
+            "<table><thead><tr><th>Date</th><th>Session</th><th>Drill</th><th>Completion</th>"
+            "<th>Effectiveness</th><th>Objective Gain</th></tr></thead><tbody>"
+            + "".join(
+                "<tr>"
+                f"<td>{esc(x.get('Timestamp'))}</td>"
+                f"<td>{esc(x.get('Continuation Mode'))}</td>"
+                f"<td>{esc(x.get('Primary Drill'))}</td>"
+                f"<td>{esc(x.get('Completion'))}</td>"
+                f"<td>{esc(x.get('Effectiveness (1-5)'))}</td>"
+                f"<td>{esc(x.get('Objective Gain'))}</td>"
+                "</tr>"
+                for x in sessions
+            )
+            + "</tbody></table>"
+        )
+
+    validation_html = "<ol>" + "".join(f"<li>{esc(x)}</li>" for x in validations) + "</ol>"
+
+    caddie_img = ""
+    try:
+        image_uri = _persona_image_data_uri(st.session_state.get("caddie_persona_key", ""))
+        if image_uri:
+            caddie_img = f"<img class='caddie' src='{image_uri}' alt='{esc(caddie)}'>"
+    except Exception:
+        pass
+
+    body = (
+        section("Round Performance", round_html)
+        + section("Highest-ROI Opportunities", priority_html)
+        + section("Value-Chain Read", vc_html)
+        + section("Model Evidence", reasoning_html)
+        + section("Swing Video Evidence", video_html)
+        + section(
+            f"Caddie Briefing — {caddie}",
+            f"<div class='caddie-row'>{caddie_img}<p>{esc(diag.get('expanded_caddie_intro', ''))}</p></div>",
+        )
+        + section("Practice Asset Allocation", allocation_html)
+        + section(
+            "Caddie Practice Strategy",
+            f"<p>{esc(diag.get('caddie_drill_pep_talk', '—'))}</p>",
+        )
+        + section("Practice Plan", drill_html)
+        + section("Next-Round Validation", validation_html)
+        + section("Practice Sessions", session_html)
+    )
+
+    return f"""<!doctype html>
+<html><head><meta charset="utf-8"><title>Birdie Buddy Full Report</title>
+<style>
+body{{font-family:Inter,Arial,sans-serif;max-width:980px;margin:40px auto;padding:0 24px;color:#18212f;line-height:1.5}}
+h1{{margin-bottom:4px}} .sub{{color:#657084;margin-top:0}} section{{margin:28px 0}}
+h2{{border-bottom:1px solid #d8dee8;padding-bottom:6px}} h3{{margin-bottom:4px}}
+.grid{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}}
+.fact{{border:1px solid #d8dee8;border-radius:10px;padding:10px;background:#f8fafc}}
+.fact span{{display:block;color:#6b7280;font-size:12px}} .fact strong{{font-size:16px}}
+.priority,.drill{{border:1px solid #d8dee8;border-radius:10px;padding:14px;margin:10px 0}}
+.secondary{{background:#fafafa}} table{{border-collapse:collapse;width:100%}} th,td{{border:1px solid #d8dee8;padding:8px;text-align:left;vertical-align:top}}
+th{{background:#f3f6fa}} .caddie-row{{display:flex;gap:18px;align-items:center}} .caddie{{width:120px;height:150px;object-fit:contain}}
+@media print{{body{{margin:0;max-width:none}} section{{break-inside:avoid}}}}
+</style></head>
+<body><h1>Birdie Buddy — Full Coaching Report</h1>
+<p class="sub">AI-Powered Golf Coach & Practice Asset Allocator · {esc(datetime.now().strftime("%Y-%m-%d %H:%M"))}</p>
+{body}</body></html>"""
 
 
 def build_export_card(diag, res, active_drills, drill_schematics, caddie):
@@ -4424,8 +4904,13 @@ def _generate_persona_practice_debrief(
         previous_text=previous_text,
     )
 
-    completion = str(practice_row.get("Drill Completed?", "") or "").strip()
-    effectiveness = practice_row.get("Fix Effectiveness (1-5)", "")
+    completion = str(
+        practice_row.get("Completion", practice_row.get("Drill Completed?", "")) or ""
+    ).strip()
+    effectiveness = practice_row.get(
+        "Effectiveness (1-5)",
+        practice_row.get("Fix Effectiveness (1-5)", ""),
+    )
     baseline = practice_row.get("Baseline KPI (10)", "")
     post = practice_row.get("Post KPI (10)", "")
     gain = practice_row.get("Objective Gain", "")
@@ -4530,8 +5015,14 @@ def render_practice_voice_debrief(
         "persona": persona_key,
         "primary": diagnosis.get("primary_miss"),
         "drill": practice_row.get("Primary Drill"),
-        "completion": practice_row.get("Drill Completed?"),
-        "effectiveness": practice_row.get("Fix Effectiveness (1-5)"),
+        "completion": practice_row.get(
+            "Completion",
+            practice_row.get("Drill Completed?"),
+        ),
+        "effectiveness": practice_row.get(
+            "Effectiveness (1-5)",
+            practice_row.get("Fix Effectiveness (1-5)"),
+        ),
         "pre": practice_row.get("Baseline KPI (10)"),
         "post": practice_row.get("Post KPI (10)"),
         "gain": practice_row.get("Objective Gain"),
@@ -5118,6 +5609,144 @@ def _sanitize_scorecard_extraction(data):
     return data
 
 
+
+def _gemini_file_state_name(file_obj):
+    state = getattr(file_obj, "state", None)
+    return str(getattr(state, "name", state) or "").upper()
+
+
+def _analyze_swing_videos_with_gemini(uploaded_videos, clip_metadata, round_context=""):
+    """Analyze only visible movement from up to three clips; never invent biomechanics."""
+    uploaded_videos = list(uploaded_videos or [])[:3]
+    if not uploaded_videos:
+        return {}
+
+    temporary_paths = []
+    remote_files = []
+    try:
+        for clip in uploaded_videos:
+            suffix = os.path.splitext(getattr(clip, "name", "") or "")[1] or ".mp4"
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(clip.getvalue())
+                temporary_paths.append(tmp.name)
+
+            kwargs = {"path": temporary_paths[-1]}
+            mime_type = getattr(clip, "type", None)
+            if mime_type:
+                kwargs["mime_type"] = mime_type
+            remote = genai.upload_file(**kwargs)
+
+            deadline = time.time() + 180
+            while _gemini_file_state_name(remote) == "PROCESSING" and time.time() < deadline:
+                time.sleep(2)
+                remote = genai.get_file(remote.name)
+
+            if _gemini_file_state_name(remote) == "FAILED":
+                raise RuntimeError(f"Gemini could not process {getattr(clip, 'name', 'a swing clip')}.")
+            remote_files.append(remote)
+
+        prompt = f"""
+        You are Birdie Buddy's conservative swing-video evidence layer.
+
+        Analyze ONLY movement that is actually visible in the supplied clips. Do not diagnose
+        a body-motion fault merely because a ball flew poorly. Do not claim a causal biomechanical
+        diagnosis unless the visual evidence is strong and repeated.
+
+        Round context:
+        {round_context or 'No additional round context supplied.'}
+
+        Clip labels supplied by the golfer:
+        {json.dumps(clip_metadata or [], ensure_ascii=False)}
+
+        Evidence hierarchy:
+        - Video observation: directly visible movement/position/timing, without claiming causation.
+        - Video-supported hypothesis: visible movement plausibly aligns with the round pattern but needs testing.
+        - Repeated video + round evidence: the same visible pattern repeats across useful clips AND aligns with round evidence.
+        Never use language such as "confirmed mechanical fault."
+
+        Look for useful visible information such as alignment, setup, balance, sequencing,
+        posture changes, low-point/strike clues visible on video, face/path proxies that are
+        actually observable, tempo, finish, and repeated movement patterns. If camera angle,
+        frame rate, lighting, occlusion, or clip quality makes a judgment unsafe, say so.
+
+        A hidden opportunity may be surfaced only when it is supported by video evidence and has
+        a plausible score/round connection. A technically unusual motion with no demonstrated score
+        cost should remain low priority.
+
+        Return raw JSON only:
+        {{
+          "evidence_level": "Video observation | Video-supported hypothesis | Repeated video + round evidence | Insufficient video evidence",
+          "summary": "2-4 concise sentences",
+          "clips": [
+            {{
+              "clip": "filename/clip number",
+              "visible_observations": ["short factual observations"],
+              "hypotheses_to_test": ["conservative hypotheses, if warranted"],
+              "quality_limits": ["camera/evidence limitations"],
+              "confidence": 0.0
+            }}
+          ],
+          "cross_clip_patterns": ["patterns repeated across clips"],
+          "round_correlations": [
+            {{
+              "video_pattern": "string",
+              "round_evidence": "string",
+              "strength": "strong | moderate | weak"
+            }}
+          ],
+          "hidden_opportunities": [
+            {{
+              "opportunity": "string",
+              "why_it_matters": "string",
+              "priority_caution": "string explaining why it should or should not affect practice ROI"
+            }}
+          ]
+        }}
+        """
+
+        model = genai.GenerativeModel(GEMINI_TEXT_MODEL)
+        response = model.generate_content([prompt] + remote_files)
+        raw = (response.text if response else "").replace("```json", "").replace("```", "").strip()
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            raise RuntimeError("Swing-video analysis returned an unexpected format.")
+        return data
+    finally:
+        for remote in remote_files:
+            try:
+                genai.delete_file(remote.name)
+            except Exception:
+                pass
+        for path in temporary_paths:
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+
+
+def _compact_video_evidence_text(video_analysis):
+    if not isinstance(video_analysis, dict) or not video_analysis:
+        return "No swing video evidence was used."
+    summary = str(video_analysis.get("summary", "") or "").strip()
+    level = str(video_analysis.get("evidence_level", "") or "").strip()
+    correlations = video_analysis.get("round_correlations") or []
+    hidden = video_analysis.get("hidden_opportunities") or []
+    parts = [f"Evidence level: {level}" if level else ""]
+    if summary:
+        parts.append(summary)
+    if correlations:
+        parts.append("Round correlations: " + "; ".join(
+            f"{x.get('video_pattern', '')} ↔ {x.get('round_evidence', '')} ({x.get('strength', '')})"
+            for x in correlations[:4]
+            if isinstance(x, dict)
+        ))
+    if hidden:
+        parts.append("Potential hidden opportunities: " + "; ".join(
+            str(x.get("opportunity", "")) for x in hidden[:3] if isinstance(x, dict)
+        ))
+    return "\n".join(p for p in parts if p)
+
+
 def _extract_scorecard_with_gemini(uploaded_file):
     """Read a paper/app scorecard image with Gemini and return grounded JSON.
 
@@ -5315,25 +5944,36 @@ def _normalize_followup_questions(payload):
 
 
 def _recent_coaching_history(limit=5):
-    """Return a compact, prompt-safe summary of recent coaching outcomes."""
+    """Return compact recent round + practice evidence for future diagnosis/adaptation."""
     df = load_history_df()
-    if df.empty:
-        return "No prior coaching history available."
-    rows = df.tail(limit).to_dict("records")
     lines = []
-    for row in rows:
+    if not df.empty:
+        for row in df.tail(limit).to_dict("records"):
+            lines.append(
+                f"ROUND | Stage={row.get('Primary Value Chain Stage','N/A')} | "
+                f"Opportunity={row.get('Primary Macro-Fault','N/A')} | "
+                f"LatestDrill={row.get('Primary Drill','N/A')} | "
+                f"LatestCompletion={row.get('Drill Completed?','')} | "
+                f"LatestEffectiveness={row.get('Fix Effectiveness (1-5)','')} | "
+                f"LatestObjectiveGain={row.get('Objective Gain','')}"
+            )
+
+    _init_practice_sessions()
+    sessions = st.session_state.get("practice_session_history", [])[-limit:]
+    for row in sessions:
         lines.append(
-            f"Stage={row.get('Primary Value Chain Stage','N/A')} | "
-            f"Opportunity={row.get('Primary Macro-Fault','N/A')} | "
+            f"PRACTICE | Session={row.get('Continuation Mode','')} | "
+            f"Stage={row.get('Primary Stage','N/A')} | "
             f"Drill={row.get('Primary Drill','N/A')} | "
-            f"Completed={row.get('Drill Completed?','')} | "
-            f"Effectiveness={row.get('Fix Effectiveness (1-5)','')} | "
+            f"Completed={row.get('Completion','')} | "
+            f"Effectiveness={row.get('Effectiveness (1-5)','')} | "
             f"ObjectiveGain={row.get('Objective Gain','')} | "
             f"TransferDecision={row.get('Transfer Decision Score (10)','')} | "
             f"TransferRoutine={row.get('Transfer Routine Score (10)','')} | "
             f"PlayableOutcome={row.get('Transfer Playable Outcomes (10)','')}"
         )
-    return "\n".join(lines)
+
+    return "\n".join(lines[-(limit * 2):]) if lines else "No prior coaching history available."
 
 
 def _align_drills_to_diagnosis_context(diag):
@@ -7327,6 +7967,8 @@ def _invalidate_diagnosis_and_practice():
     st.session_state.pop("diagnosis", None)
     st.session_state.pop("roi_data", None)
     st.session_state.pop("confirmed_resources", None)
+    st.session_state.pop("current_practice_session_token", None)
+    st.session_state.pop("current_practice_origin", None)
     st.session_state["show_practice_builder"] = False
     st.session_state["show_execution_plan"] = False
     st.session_state.pop("workflow_review_mode", None)
@@ -7354,6 +7996,8 @@ def _start_new_round():
         if (
             key.startswith("upload_")
             or key.startswith("scorecard_")
+            or key.startswith("swing_video_")
+            or key.startswith("swing_clip_")
             or key in {
                 "course_name_input", "tee_name_input", "course_par_input",
                 "course_rating_input", "course_slope_input",
@@ -7367,6 +8011,9 @@ def _start_new_round():
             st.session_state.pop(key, None)
     _invalidate_diagnosis_and_practice()
     st.session_state.pop("current_round_history_index", None)
+    st.session_state.pop("current_practice_session_token", None)
+    st.session_state.pop("current_practice_origin", None)
+    st.session_state.pop("pending_practice_origin", None)
     st.session_state["diag_step"] = 1
 
 
@@ -8178,6 +8825,107 @@ if show_step1:
                         placeholder="Optional",
                     )
 
+
+            swing_video_files = []
+            swing_video_metadata = []
+            with st.expander(
+                "🎥 Optional swing video evidence",
+                expanded=bool(st.session_state.get("swing_video_analysis")),
+            ):
+                render_micro_note(
+                    "Upload up to 3 clips from the round. Video can support a hypothesis or reveal a hidden opportunity, but it never overrides scoring ROI."
+                )
+                swing_video_uploads = st.file_uploader(
+                    "Swing clips",
+                    type=["mp4", "mov", "m4v", "avi", "webm"],
+                    accept_multiple_files=True,
+                    key="swing_video_uploads",
+                    help="Best results: stable camera, golfer fully visible, and impact visible when possible.",
+                )
+                swing_video_files = list(swing_video_uploads or [])[:3]
+                if swing_video_uploads and len(swing_video_uploads) > 3:
+                    st.warning("Birdie Buddy analyzes the first 3 clips only.")
+
+                signature = tuple(
+                    (getattr(f, "name", ""), len(f.getvalue()))
+                    for f in swing_video_files
+                )
+                if signature != st.session_state.get("swing_video_signature"):
+                    st.session_state["swing_video_signature"] = signature
+                    st.session_state.pop("swing_video_analysis", None)
+
+                for clip_idx, clip in enumerate(swing_video_files, start=1):
+                    st.video(clip)
+                    vm1, vm2, vm3 = st.columns(3)
+                    with vm1:
+                        clip_club = st.text_input(
+                            f"Clip {clip_idx} club",
+                            placeholder="e.g., Driver, 7-iron",
+                            key=f"swing_clip_club_{clip_idx}",
+                        )
+                    with vm2:
+                        clip_context = st.selectbox(
+                            f"Clip {clip_idx} context",
+                            ["Unknown", "Tee shot", "Approach", "Recovery", "Wedge / scoring shot"],
+                            key=f"swing_clip_context_{clip_idx}",
+                        )
+                    with vm3:
+                        clip_result = st.selectbox(
+                            f"Clip {clip_idx} result",
+                            ["Unknown", "Good / intended", "Miss left", "Miss right", "Short", "Long", "Penalty / trouble"],
+                            key=f"swing_clip_result_{clip_idx}",
+                        )
+                    swing_video_metadata.append({
+                        "clip": getattr(clip, "name", f"Clip {clip_idx}"),
+                        "club": clip_club or "Unknown",
+                        "context": clip_context,
+                        "result": clip_result,
+                    })
+
+                if swing_video_files:
+                    if st.button(
+                        "Analyze Swing Clips",
+                        key="analyze_swing_clips_btn",
+                        use_container_width=True,
+                    ):
+                        round_video_context = (
+                            f"Golfer notes: {user_round_story or 'None'}. "
+                            f"Score={_fmt_stat(round_score)}, FIR={_fmt_stat(fairways_hit)}, "
+                            f"GIR={_fmt_stat(gir)}, Putts={_fmt_stat(putts)}, "
+                            f"Penalties={_fmt_stat(penalty_strokes)}."
+                        )
+                        try:
+                            with st.spinner("Reviewing visible swing evidence..."):
+                                st.session_state["swing_video_analysis"] = _analyze_swing_videos_with_gemini(
+                                    swing_video_files,
+                                    swing_video_metadata,
+                                    round_video_context,
+                                )
+                            st.rerun()
+                        except Exception as exc:
+                            st.error(f"Swing clips could not be analyzed: {exc}")
+
+                video_analysis_preview = st.session_state.get("swing_video_analysis")
+                if video_analysis_preview:
+                    render_inline_facts([
+                        ("Evidence", video_analysis_preview.get("evidence_level", "Video evidence")),
+                        ("Clips", str(len(video_analysis_preview.get("clips") or []))),
+                    ])
+                    st.markdown(
+                        f"<div style='font-size:.82rem;line-height:1.45;color:#c8d1de;margin-top:5px;'>"
+                        f"{_safe_html(video_analysis_preview.get('summary', ''))}</div>",
+                        unsafe_allow_html=True,
+                    )
+                    with st.expander("Review video observations", expanded=False):
+                        for clip_result in video_analysis_preview.get("clips") or []:
+                            if not isinstance(clip_result, dict):
+                                continue
+                            st.markdown(f"**{clip_result.get('clip', 'Clip')}**")
+                            for obs in clip_result.get("visible_observations") or []:
+                                st.write(f"• {obs}")
+                            for hyp in clip_result.get("hypotheses_to_test") or []:
+                                st.caption(f"Hypothesis to test: {hyp}")
+
             with st.expander(
                 "⚙️ Optional: Tweak Observable Ball-Flight & Focus Selectors (Default:"
                 " None)",
@@ -8327,6 +9075,29 @@ if show_step1:
                     else:
                         round_numbers_block = "No round stats were tracked for this diagnosis."
 
+                    video_analysis = st.session_state.get("swing_video_analysis") or {}
+                    if swing_video_files and not video_analysis:
+                        round_video_context = (
+                            f"Golfer notes: {user_round_story or 'None'}. "
+                            f"{round_numbers_block}"
+                        )
+                        try:
+                            with st.spinner("Reviewing uploaded swing clips..."):
+                                video_analysis = _analyze_swing_videos_with_gemini(
+                                    swing_video_files,
+                                    swing_video_metadata,
+                                    round_video_context,
+                                )
+                            st.session_state["swing_video_analysis"] = video_analysis
+                        except Exception as exc:
+                            st.warning(
+                                f"Swing video could not be analyzed, so diagnosis will continue without it: {exc}"
+                            )
+                            video_analysis = {}
+
+                    video_evidence_block = _compact_video_evidence_text(video_analysis)
+                    st.session_state["swing_video_context"] = video_evidence_block
+
                     question_prompt = f"""
                     You are the neutral diagnostic intake layer for Birdie Buddy.
 
@@ -8341,6 +9112,9 @@ if show_step1:
 
                     Scorecard / screenshot extraction (if one was uploaded):
                     {scorecard_context}
+
+                    Optional swing-video evidence:
+                    {video_evidence_block}
 
                     IMPORTANT: the reviewed round numbers below supersede any conflicting raw extraction values.
 
@@ -8545,6 +9319,8 @@ if show_step1:
                     {followup_context}
                     Scorecard / Screenshot Context:
                     {st.session_state.get('scorecard_context', 'No scorecard image was used.')}
+                    Swing Video Evidence:
+                    {st.session_state.get('swing_video_context', 'No swing video evidence was used.')}
                     Round Stats Tracked: {st.session_state.get('round_stats_tracked', False)}
                     Round Numbers: Score={_fmt_stat(_rs)}, Holes Played={st.session_state.get('round_holes_played', 18)}, Fairways Hit={_fmt_stat(_fh)} (of {st.session_state.get('round_fairway_opportunities')}),
                     GIR={_fmt_stat(_gir)} (of {st.session_state.get('round_gir_opportunities')}), Putts={_fmt_stat(_pt)}, Penalty Strokes={_fmt_stat(_pen)},
@@ -8599,7 +9375,7 @@ if show_step1:
 
                     **Decision-Quality Rule:** Evaluate the choice separately from the result. Use one of: Good decision / bad execution; Poor decision / reasonable execution; Both contributed; Unclear; Not applicable. Never use the final outcome alone to judge the decision.
 
-                    **Mechanical Evidence Rule:** A scorecard, round story, or miss pattern can establish a performance problem but usually cannot prove a specific biomechanical cause. Label mechanics as a hypothesis unless direct observations (contact, start direction, curvature, divot, or video-quality evidence) support it. When evidence is limited, prescribe an assessment/feedback drill rather than declaring a body-motion fault as fact.
+                    **Mechanical / Video Evidence Rule:** A scorecard, round story, or miss pattern can establish a performance problem but usually cannot prove a specific biomechanical cause. Swing video adds direct visual evidence, but the AI must distinguish a visible observation from causation. Use the evidence ladder: Performance pattern only → Hypothesis to test → Supported by golfer observations → Video observation → Video-supported hypothesis → Repeated video + round evidence. Never use "confirmed mechanical fault." When evidence is limited, prescribe an assessment/feedback drill rather than declaring a body-motion fault as fact. A video-only cosmetic motion should not outrank stronger score-cost evidence.
 
                     **History Adaptation Rule:** Use the recent coaching history supplied in Round Context. If the same issue recurs after the golfer actually completed the same drill and rated it 1-2/5, change the intervention. If the drill was not completed, do not call the intervention ineffective. If a drill was rated highly yet the issue recurs, favor transfer/pressure/context work rather than simply repeating blocked mechanics.
 
@@ -8746,7 +9522,7 @@ if show_step1:
                       "short_game_context": "chip | pitch | bunker | difficult_lie | putting_conversion | mixed | unknown — use the best-supported short-game context when scrambling is material",
                       "penalty_attribution": "exactly one of: course_management | off_the_tee | approach | scoring_scrambling | mixed | unknown — classify only the best-supported cause; use mixed/unknown when evidence does not support a single category",
                       "decision_quality": "Good decision / bad execution | Poor decision / reasonable execution | Both contributed | Unclear | Not applicable",
-                      "mechanical_evidence_level": "Performance pattern only | Hypothesis to test | Supported by golfer observations | Not applicable",
+                      "mechanical_evidence_level": "Performance pattern only | Hypothesis to test | Supported by golfer observations | Video observation | Video-supported hypothesis | Repeated video + round evidence | Not applicable",
                       "roi_priority": "CRITICAL | HIGH | MEDIUM | LOW",
                       "roi_score": 0.0,  // internal Practice Priority Index only; heuristic 0-100, not an externally validated golf metric
                       "estimated_excess_strokes": "string — use rounded values or ranges (not hundredths) for handicap-relative heuristic estimates; explicitly label them as estimates, not measured Strokes Gained",
@@ -9105,6 +9881,46 @@ if show_step1:
                             vc,
                         )
 
+                _video_evidence = st.session_state.get("swing_video_analysis") or {}
+                if _video_evidence:
+                    with st.expander("🎥 Swing Video Evidence", expanded=False):
+                        render_inline_facts([
+                            ("Evidence level", _video_evidence.get("evidence_level", "Video evidence")),
+                            ("Clips reviewed", str(len(_video_evidence.get("clips") or []))),
+                        ])
+                        if _video_evidence.get("summary"):
+                            st.write(_video_evidence.get("summary"))
+
+                        _patterns = _video_evidence.get("cross_clip_patterns") or []
+                        if _patterns:
+                            render_drill_subsection_label("Repeated Visible Patterns")
+                            for _pattern in _patterns:
+                                st.write(f"• {_pattern}")
+
+                        _correlations = _video_evidence.get("round_correlations") or []
+                        if _correlations:
+                            render_drill_subsection_label("Round Correlations")
+                            for _corr in _correlations:
+                                if isinstance(_corr, dict):
+                                    st.write(
+                                        f"• {_corr.get('video_pattern', 'Video pattern')} → "
+                                        f"{_corr.get('round_evidence', 'round evidence')} "
+                                        f"({_corr.get('strength', 'uncertain')})"
+                                    )
+
+                        _hidden_video = _video_evidence.get("hidden_opportunities") or []
+                        if _hidden_video:
+                            render_drill_subsection_label("Potential Hidden Opportunities")
+                            for _item in _hidden_video:
+                                if isinstance(_item, dict):
+                                    st.write(f"• {_item.get('opportunity', '')}")
+                                    if _item.get("priority_caution"):
+                                        st.caption(_item.get("priority_caution"))
+
+                        render_micro_note(
+                            "Video observations support the diagnosis only when they align with scoring evidence; visible motion alone does not become a high-priority fault."
+                        )
+
             blind_spot = diag.get("diagnostic_blind_spot")
             if blind_spot:
                 with st.expander("🔍 Hidden scoring opportunity", expanded=False):
@@ -9338,6 +10154,8 @@ if (
                 "resolved_secondary_drill": resolved_secondary,
                 "allocation_rationale": allocation_rationale,
             }
+            origin = st.session_state.pop("pending_practice_origin", "New round plan")
+            _new_practice_session_token(origin)
             st.session_state["show_execution_plan"] = True
             st.rerun()
 
@@ -9820,21 +10638,42 @@ if (
                 export_card_text = build_export_card(
                     diag, res, active_drills, DRILL_SCHEMATICS, caddie
                 )
-                st.download_button(
-                    label="Download Practice Card (.txt)",
-                    data=export_card_text,
-                    file_name="birdie_buddy_practice_plan.txt",
-                    mime="text/plain",
-                    use_container_width=True,
+                full_report_html = build_full_report_html(
+                    diag,
+                    res,
+                    active_drills,
+                    caddie,
                 )
+                dl1, dl2 = st.columns(2)
+                with dl1:
+                    st.download_button(
+                        label="Download Practice Card (.txt)",
+                        data=export_card_text,
+                        file_name="birdie_buddy_practice_plan.txt",
+                        mime="text/plain",
+                        use_container_width=True,
+                    )
+                with dl2:
+                    st.download_button(
+                        label="Save Full Report (.html)",
+                        data=full_report_html,
+                        file_name="birdie_buddy_full_report.html",
+                        mime="text/html",
+                        use_container_width=True,
+                        help="Self-contained report. Open it in a browser and print/save as PDF if desired.",
+                    )
 
             # ---------------------------------------------------------
             # END-OF-PRACTICE FEEDBACK — close the loop without requiring
             # the golfer to begin another round first.
             # ---------------------------------------------------------
             _init_history()
-            _practice_rows = st.session_state.get("practice_history", [])
-            _current_log = _practice_rows[-1] if _practice_rows else None
+            _init_practice_sessions()
+            _session_token = str(st.session_state.get("current_practice_session_token", "") or "")
+            if not _session_token:
+                _session_token = _new_practice_session_token("New round plan")
+            _session_key = _session_token[-10:]
+            _current_log = _current_practice_session_record() or {}
 
             with st.container(border=True):
                 render_heading_with_note(
@@ -9843,7 +10682,7 @@ if (
                     level=3,
                 )
 
-                if _current_log:
+                if _session_token:
                     _logged_drill = (
                         res.get("resolved_primary_drill")
                         or _current_log.get("Primary Drill")
@@ -9863,7 +10702,7 @@ if (
 
                     _completion_options = ["Not yet", "Yes, partially", "Yes, fully"]
                     _existing_completion = str(
-                        _current_log.get("Drill Completed?", "") or ""
+                        _current_log.get("Completion", "") or ""
                     ).strip()
                     # Backward compatibility with older wording used by previous builds.
                     _completion_aliases = {
@@ -9880,7 +10719,7 @@ if (
                     )
 
                     _existing_effectiveness = _current_log.get(
-                        "Fix Effectiveness (1-5)", ""
+                        "Effectiveness (1-5)", ""
                     )
                     try:
                         _effectiveness_default = int(float(_existing_effectiveness))
@@ -9894,7 +10733,7 @@ if (
                             "How much of the practice plan did you complete?",
                             _completion_options,
                             index=_completion_index,
-                            key="end_practice_completed",
+                            key=f"end_practice_completed_{_session_key}",
                         )
                     with log_col2:
                         practice_effectiveness = st.slider(
@@ -9902,7 +10741,7 @@ if (
                             min_value=1,
                             max_value=5,
                             value=_effectiveness_default,
-                            key="end_practice_effectiveness",
+                            key=f"end_practice_effectiveness_{_session_key}",
                             help=(
                                 "1 = no noticeable benefit, 3 = some improvement, "
                                 "5 = clear improvement you would keep practicing."
@@ -9928,6 +10767,7 @@ if (
                     objective_test_done = st.checkbox(
                         "I completed the objective pre/post test",
                         value=existing_objective,
+                        key=f"objective_test_done_{_session_key}",
                         disabled=practice_completed == "Not yet",
                         help="Optional. If unchecked, the test stays missing rather than becoming 0.",
                     )
@@ -9941,6 +10781,7 @@ if (
                                 min_value=0, max_value=10,
                                 value=_history_int("Baseline KPI (10)", 0),
                                 step=1,
+                                key=f"baseline_kpi_{_session_key}",
                                 help="Run the exact 10-rep objective test shown on the primary drill card before practice.",
                             )
                         with kpi_col2:
@@ -9949,6 +10790,7 @@ if (
                                 min_value=0, max_value=10,
                                 value=_history_int("Post KPI (10)", 0),
                                 step=1,
+                                key=f"post_kpi_{_session_key}",
                                 help="Repeat the same test after practice under the same conditions.",
                             )
                         gain = int(post_kpi) - int(baseline_kpi)
@@ -9985,6 +10827,7 @@ if (
                             transfer_test_done = st.checkbox(
                                 "I completed the 10-scenario transfer test",
                                 value=existing_transfer,
+                                key=f"transfer_test_done_{_session_key}",
                                 help="Decision, routine, and result stay separate.",
                             )
                             if transfer_test_done:
@@ -9993,6 +10836,7 @@ if (
                                     transfer_decision_score = st.number_input(
                                         "Decisions /10",
                                         min_value=0, max_value=10,
+                                        key=f"transfer_decision_{_session_key}",
                                         value=_history_int("Transfer Decision Score (10)", 0),
                                         step=1,
                                     )
@@ -10000,6 +10844,7 @@ if (
                                     transfer_routine_score = st.number_input(
                                         "Routine /10",
                                         min_value=0, max_value=10,
+                                        key=f"transfer_routine_{_session_key}",
                                         value=_history_int("Transfer Routine Score (10)", 0),
                                         step=1,
                                     )
@@ -10007,6 +10852,7 @@ if (
                                     transfer_playable_outcomes = st.number_input(
                                         "Playable /10",
                                         min_value=0, max_value=10,
+                                        key=f"transfer_playable_{_session_key}",
                                         value=_history_int("Transfer Playable Outcomes (10)", 0),
                                         step=1,
                                     )
@@ -10015,7 +10861,7 @@ if (
                                 )
 
                     existing_saved = bool(
-                        str(_current_log.get("Drill Completed?", "")).strip()
+                        str(_current_log.get("Completion", "")).strip()
                     )
                     button_label = (
                         "💾 Update Practice Log"
@@ -10027,7 +10873,7 @@ if (
                         button_label,
                         type="primary",
                         use_container_width=True,
-                        key="log_practice_feedback_btn",
+                        key=f"log_practice_feedback_btn_{_session_key}",
                     ):
                         effectiveness_to_save = (
                             "" if practice_completed == "Not yet" else practice_effectiveness
@@ -10052,8 +10898,8 @@ if (
                         st.rerun()
 
                     if existing_saved:
-                        saved_completion = _current_log.get("Drill Completed?", "")
-                        saved_effectiveness = _current_log.get("Fix Effectiveness (1-5)", "")
+                        saved_completion = _current_log.get("Completion", "")
+                        saved_effectiveness = _current_log.get("Effectiveness (1-5)", "")
                         if saved_effectiveness not in (None, ""):
                             saved_rows = [
                                 ("Completion", saved_completion),
@@ -10089,6 +10935,50 @@ if (
                                     )
                         else:
                             st.info(f"Practice status logged: **{saved_completion}**")
+
+                        render_heading_with_note(
+                            "Continue Practice",
+                            "No new round required.",
+                            level=4,
+                        )
+                        cp1, cp2, cp3 = st.columns(3)
+                        with cp1:
+                            if st.button(
+                                "Continue Current Plan",
+                                key=f"continue_same_{_session_key}",
+                                use_container_width=True,
+                                help="Start another practice visit with the same diagnosis, allocation, and drills.",
+                            ):
+                                _new_practice_session_token("Continue current plan")
+                                st.rerun()
+                        with cp2:
+                            if st.button(
+                                "Adapt Based on Results",
+                                key=f"continue_adapt_{_session_key}",
+                                use_container_width=True,
+                                help="Use the practice evidence you just logged to adjust the next visit.",
+                            ):
+                                adapted = _adapt_diagnosis_for_continued_practice(
+                                    diag,
+                                    res,
+                                    st.session_state.get("caddie_persona_key", selected_persona_key),
+                                )
+                                st.session_state["diagnosis"] = adapted
+                                st.session_state["pending_practice_origin"] = "Adapted based on prior practice"
+                                st.session_state["show_practice_builder"] = True
+                                st.session_state["show_execution_plan"] = False
+                                st.rerun()
+                        with cp3:
+                            if st.button(
+                                "Change Available Assets",
+                                key=f"continue_assets_{_session_key}",
+                                use_container_width=True,
+                                help="Keep the round diagnosis but change time, balls, location, equipment, or practice mode.",
+                            ):
+                                st.session_state["pending_practice_origin"] = "Changed available practice assets"
+                                st.session_state["show_practice_builder"] = True
+                                st.session_state["show_execution_plan"] = False
+                                st.rerun()
                 else:
                     st.info(
                         "Complete the round diagnosis first so Birdie Buddy has a "
