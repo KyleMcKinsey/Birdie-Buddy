@@ -4723,6 +4723,27 @@ def render_practice_voice_debrief(
                 )
 
 
+
+# -------------------------------------------------------------
+# SCORE-ROI PRIORITY ENGINE
+# -------------------------------------------------------------
+VALUE_CHAIN_STAGES = [
+    ("Off-the-Tee Performance (Primary Drive)", "off_the_tee", "🏌️", "Off-the-Tee"),
+    ("Approach Precision (Mid Game)", "approach", "🎯", "Approach"),
+    ("Scoring/Scrambling (Short Game/Putting)", "scoring_scrambling", "⛳", "Scoring / Scrambling"),
+    ("Course Management / Strategic Decision-Making", "course_management", "🗺️", "Course Management"),
+    ("Mental Infrastructure (Support Systems)", "mental_infrastructure", "🧠", "Mental"),
+]
+
+COURSE_MANAGEMENT_SUBTYPES = [
+    "Target Selection",
+    "Club Selection",
+    "Hazard Avoidance",
+    "Layup/Go Decision",
+    "Recovery Decision",
+    "Aggression/Pin Selection",
+]
+
 def _interp_handicap_benchmark(handicap, benchmarks):
     """Linearly interpolate between published Shot Scope handicap benchmarks.
 
