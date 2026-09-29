@@ -79,6 +79,19 @@ st.markdown(
         color: white !important;
     }
 
+    /* Let action-button labels wrap so full caddie names stay visible. */
+    div[data-testid="stButton"] button {
+        height: auto !important;
+        min-height: 2.3rem !important;
+    }
+    div[data-testid="stButton"] button p {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        line-height: 1.15 !important;
+        text-align: center !important;
+    }
+
     /* Prevent metric-card content from looking like stacked narrow towers. */
     [data-testid="stHorizontalBlock"] > div {
         min-width: 0;
@@ -3538,7 +3551,7 @@ def render_caddie_action_stack(
     if switch_persona_key:
         switch_name = _persona_base_name(switch_persona_key)
         switch_caddie = st.button(
-            f"⇄ New Take: {switch_name}",
+            f"⇄ New Take · {switch_name}",
             key=f"{key_prefix}_switch",
             type="tertiary",
             use_container_width=True,
@@ -3964,7 +3977,7 @@ def render_caddie_voice_player(
 
     with st.container(border=True):
         # Actions sit beside the narrative, not in a floating row under the player.
-        briefing_col, action_col = st.columns([7.35, 1.65], gap="small")
+        briefing_col, action_col = st.columns([6.35, 2.65], gap="small")
 
         with briefing_col:
             render_caddie_identity_narrative(
@@ -4240,7 +4253,7 @@ def render_drill_voice_briefing(
     audio_bytes = st.session_state.get(audio_key)
 
     with st.container(border=True):
-        briefing_col, action_col = st.columns([7.35, 1.65], gap="small")
+        briefing_col, action_col = st.columns([6.35, 2.65], gap="small")
 
         with briefing_col:
             render_caddie_identity_narrative(
@@ -4571,7 +4584,7 @@ def render_practice_voice_debrief(
     audio_bytes = st.session_state.get(audio_key)
 
     with st.container(border=True):
-        briefing_col, action_col = st.columns([7.35, 1.65], gap="small")
+        briefing_col, action_col = st.columns([6.35, 2.65], gap="small")
 
         with briefing_col:
             render_caddie_identity_narrative(
