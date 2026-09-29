@@ -3429,163 +3429,61 @@ def _render_seekable_audio_player(audio_bytes, uid, caddie_name=None):
 
 
 
-def _persona_avatar_svg(persona_key_or_name):
-    """Return a more polished stylized inline SVG avatar for each movie-caddie persona."""
-    base = _persona_base_name(persona_key_or_name)
 
-    if base == "Bogey-Wan Kenobi":
-        return """
-<svg viewBox="0 0 170 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bogey-Wan avatar">
-  <defs>
-    <linearGradient id="bw_bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#18314d"/>
-      <stop offset="100%" stop-color="#0a1220"/>
-    </linearGradient>
-    <linearGradient id="bw_robe" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#927052"/>
-      <stop offset="100%" stop-color="#533d2d"/>
-    </linearGradient>
-    <linearGradient id="bw_tunic" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#e9dccf"/>
-      <stop offset="100%" stop-color="#c5b09a"/>
-    </linearGradient>
-    <filter id="bw_shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#000000" flood-opacity=".35"/>
-    </filter>
-  </defs>
-  <rect width="170" height="220" rx="22" fill="url(#bw_bg)"/>
-  <circle cx="130" cy="40" r="22" fill="#90d7ff" opacity=".10"/>
-  <rect x="126" y="57" width="7" height="90" rx="3.5" fill="#7fd8ff" opacity=".95"/>
-  <g filter="url(#bw_shadow)">
-    <path d="M29 205c8-42 17-69 28-84 10-14 24-25 28-25 5 0 18 10 29 25 12 17 20 43 27 84H29Z" fill="url(#bw_robe)"/>
-    <path d="M60 112h50l18 93H42l18-93Z" fill="url(#bw_tunic)" opacity=".97"/>
-    <path d="M85 97c-10 0-30 18-42 44 10-8 23-14 42-14 18 0 31 6 41 14-10-25-30-44-41-44Z" fill="#b99f86" opacity=".60"/>
-    <circle cx="85" cy="66" r="26" fill="#f0d4bf"/>
-    <path d="M58 64c2-24 17-37 30-37 16 0 29 12 33 36-9-9-21-15-34-15-11 0-21 4-29 16Z" fill="#b7b8bb"/>
-    <path d="M69 61c2 2 5 4 8 4 4 0 6-1 8-4" stroke="#53606b" stroke-width="2" fill="none" stroke-linecap="round"/>
-    <path d="M93 61c2 2 5 4 8 4 4 0 6-1 8-4" stroke="#53606b" stroke-width="2" fill="none" stroke-linecap="round"/>
-    <path d="M73 76c7 5 24 5 30 0" stroke="#6c4d40" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-    <path d="M69 83c4 17 12 25 17 25 6 0 14-7 18-25-9 6-25 6-35 0Z" fill="#d7d8da"/>
-    <path d="M56 121c9-12 20-21 29-21 10 0 20 8 29 21" stroke="#d6c1aa" stroke-width="6" fill="none" stroke-linecap="round"/>
-  </g>
-</svg>
-"""
+PERSONA_IMAGE_FILES = {
+    "Bogey-Wan Kenobi": "bogey_wan.png",
+    "Harry Putter": "harry_putter.png",
+    "James Pond": "james_pond.png",
+    "Captain Hack Sparrow": "captain_hack.png",
+}
 
-    if base == "Harry Putter":
-        return """
-<svg viewBox="0 0 170 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Harry Putter avatar">
-  <defs>
-    <linearGradient id="hp_bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#222b49"/>
-      <stop offset="100%" stop-color="#101521"/>
-    </linearGradient>
-    <filter id="hp_shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#000000" flood-opacity=".35"/>
-    </filter>
-  </defs>
-  <rect width="170" height="220" rx="22" fill="url(#hp_bg)"/>
-  <g opacity=".95">
-    <path d="M128 28l3 10 10 3-10 3-3 10-3-10-10-3 10-3 3-10Z" fill="#ffd24d"/>
-    <circle cx="132" cy="42" r="19" fill="#ffd24d" opacity=".08"/>
-  </g>
-  <g filter="url(#hp_shadow)">
-    <path d="M36 205c7-33 16-61 25-76 12-18 28-30 24-30 7 0 25 12 36 31 10 16 19 41 24 75H36Z" fill="#1a2230"/>
-    <path d="M74 103h22l7 17H67l7-17Z" fill="#7c1212"/>
-    <path d="M85 66c-11 0-31 18-43 42 12-7 27-12 43-12 18 0 31 4 43 12-12-24-31-42-43-42Z" fill="#2d2f35"/>
-    <circle cx="85" cy="66" r="25" fill="#efcfb5"/>
-    <path d="M61 59c5-21 19-33 30-33 14 0 27 11 31 32-10-7-24-13-33-13-10 0-21 4-28 14Z" fill="#26272b"/>
-    <circle cx="76" cy="69" r="9.5" fill="none" stroke="#d9e7ff" stroke-width="2.8"/>
-    <circle cx="94" cy="69" r="9.5" fill="none" stroke="#d9e7ff" stroke-width="2.8"/>
-    <path d="M85 69h0.5" stroke="#d9e7ff" stroke-width="2.6" stroke-linecap="round"/>
-    <path d="M80 51l5-10 5 7" stroke="#d47d52" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-    <path d="M76 81c4 3 14 3 18 0" stroke="#6c4d40" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-    <rect x="121" y="90" width="5" height="46" rx="2.5" transform="rotate(20 121 90)" fill="#cb9355"/>
-    <circle cx="136" cy="86" r="7" fill="#9f67ff"/>
-    <circle cx="136" cy="86" r="11" fill="#9f67ff" opacity=".10"/>
-  </g>
-</svg>
-"""
 
-    if base == "James Pond":
-        return """
-<svg viewBox="0 0 170 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="James Pond avatar">
-  <defs>
-    <linearGradient id="jp_bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#18263a"/>
-      <stop offset="100%" stop-color="#0a1320"/>
-    </linearGradient>
-    <filter id="jp_shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#000000" flood-opacity=".35"/>
-    </filter>
-  </defs>
-  <rect width="170" height="220" rx="22" fill="url(#jp_bg)"/>
-  <circle cx="129" cy="41" r="20" fill="#9ec6ff" opacity=".08"/>
-  <g filter="url(#jp_shadow)">
-    <path d="M34 205c8-38 16-64 28-80 10-14 21-25 23-25 4 0 16 11 28 25 13 17 22 43 28 80H34Z" fill="#121925"/>
-    <path d="M69 99h32l-5 106H74l-5-106Z" fill="#f4f6f9"/>
-    <polygon points="85,111 73,130 85,145 97,130" fill="#111111"/>
-    <rect x="81.5" y="145" width="7" height="22" rx="3.5" fill="#111111"/>
-    <circle cx="85" cy="66" r="25" fill="#ebcdb3"/>
-    <path d="M60 58c5-21 20-32 31-32 13 0 26 11 30 31-10-6-23-12-34-12-10 0-20 4-27 13Z" fill="#1b1b1e"/>
-    <path d="M74 81c5 3 17 3 22 0" stroke="#644636" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-    <rect x="120" y="89" width="12" height="49" rx="6" transform="rotate(25 120 89)" fill="#656b75"/>
-    <rect x="122" y="83" width="5" height="14" rx="2.5" transform="rotate(25 122 83)" fill="#9098a4"/>
-    <path d="M60 100c8-10 17-16 25-16 8 0 17 6 25 16" stroke="#202835" stroke-width="10" fill="none" stroke-linecap="round"/>
-  </g>
-</svg>
-"""
+def _persona_image_data_uri(persona_key_or_name):
+    """Load the generated transparent PNG for the selected caddie."""
+    base_name = _persona_base_name(persona_key_or_name)
+    filename = PERSONA_IMAGE_FILES.get(base_name)
+    if not filename:
+        return ""
 
-    if base == "Captain Hack Sparrow":
-        return """
-<svg viewBox="0 0 170 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Captain Hack Sparrow avatar">
-  <defs>
-    <linearGradient id="hs_bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#2f2019"/>
-      <stop offset="100%" stop-color="#11141d"/>
-    </linearGradient>
-    <filter id="hs_shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#000000" flood-opacity=".35"/>
-    </filter>
-  </defs>
-  <rect width="170" height="220" rx="22" fill="url(#hs_bg)"/>
-  <circle cx="131" cy="36" r="20" fill="#f0c96e" opacity=".08"/>
-  <g filter="url(#hs_shadow)">
-    <path d="M42 50c9-25 27-38 43-38 15 0 34 12 43 38-13-7-23-9-30-9-3 13-9 21-13 21-7 0-13-8-15-21-7 0-15 2-28 9Z" fill="#4a3021"/>
-    <path d="M54 44c9-9 48-9 62 0-2 13-17 24-31 24S56 57 54 44Z" fill="#8f2b25"/>
-    <circle cx="85" cy="70" r="25" fill="#e8c5a8"/>
-    <path d="M61 63c4-21 19-33 32-33 13 0 27 12 31 33-8-7-22-14-34-14-10 0-21 4-29 14Z" fill="#26180f"/>
-    <path d="M75 85c5 4 16 4 21 0" stroke="#744d39" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-    <path d="M72 90c4 8 9 11 13 11 5 0 10-3 13-11" stroke="#402317" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-    <path d="M38 205c9-38 18-63 31-79 10-12 15-17 16-17 3 0 18 10 28 24 11 17 18 41 19 72H38Z" fill="#31495a"/>
-    <path d="M74 101h22l6 16H68l6-16Z" fill="#ece0c5"/>
-    <circle cx="50" cy="78" r="4.5" fill="#c8a14e"/>
-    <line x1="48" y1="82" x2="45" y2="104" stroke="#be703a" stroke-width="2.4"/>
-    <circle cx="117" cy="93" r="4.5" fill="#c8a14e"/>
-    <line x1="116" y1="97" x2="114" y2="118" stroke="#be703a" stroke-width="2.4"/>
-  </g>
-</svg>
-"""
+    app_dir = os.path.dirname(os.path.abspath(__file__))
+    image_path = os.path.join(app_dir, "assets", "caddies", filename)
+    if not os.path.exists(image_path):
+        return ""
 
-    return """
-<svg viewBox="0 0 170 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Caddie avatar">
-  <rect width="170" height="220" rx="22" fill="#0f172a"/>
-  <circle cx="85" cy="70" r="25" fill="#e8cdb8"/>
-  <path d="M38 205c9-38 18-63 31-79 10-12 15-17 16-17 3 0 18 10 28 24 11 17 18 41 19 72H38Z" fill="#22324b"/>
-</svg>
-"""
+    with open(image_path, "rb") as image_file:
+        encoded = base64.b64encode(image_file.read()).decode("utf-8")
+
+    return f"data:image/png;base64,{encoded}"
 
 
 def persona_character_panel(persona_key_or_name):
-    svg = _persona_avatar_svg(persona_key_or_name)
+    """Render the selected generated caddie character beside the briefing."""
+    image_uri = _persona_image_data_uri(persona_key_or_name)
+    if not image_uri:
+        return ""
+
     return (
-        "<div style='width:136px;min-width:136px;max-width:136px;"
-        "align-self:stretch;display:flex;align-items:stretch;'>"
-        "<div style='width:100%;border-radius:16px;overflow:hidden;"
-        "border:1px solid rgba(91,111,139,.38);"
-        "background:linear-gradient(160deg,rgba(18,28,42,.95),rgba(9,15,24,.98));"
-        "box-shadow:0 10px 18px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.03);'>"
-        f"{svg}"
-        "</div></div>"
+        "<div style='"
+        "width:150px;"
+        "min-width:150px;"
+        "height:182px;"
+        "display:flex;"
+        "align-items:flex-end;"
+        "justify-content:center;"
+        "overflow:visible;"
+        "padding:0;"
+        "margin:0;"
+        "'>"
+        f"<img src='{image_uri}' "
+        "style='"
+        "width:100%;"
+        "height:100%;"
+        "object-fit:contain;"
+        "object-position:center bottom;"
+        "display:block;"
+        "filter:drop-shadow(0 8px 10px rgba(0,0,0,.32));"
+        "'>"
+        "</div>"
     )
 
 
