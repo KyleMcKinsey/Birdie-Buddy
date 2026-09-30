@@ -102,517 +102,6 @@ st.markdown(
     [data-testid="stAudio"] {
         width: 100%;
     }
-
-    /* =========================================================
-       BIRDIE BUDDY // JARVIS HUD EXPERIENCE
-       Pure CSS motion keeps the Streamlit/Python core intact.
-       ========================================================= */
-    :root {
-        --bb-cyan: #62e8ff;
-        --bb-cyan-soft: rgba(98,232,255,.14);
-        --bb-blue: #3b82f6;
-        --bb-green: #53f3b1;
-        --bb-amber: #ffd166;
-        --bb-red: #ff6b6b;
-        --bb-ink: #07101c;
-        --bb-panel: rgba(9,20,34,.76);
-        --bb-line: rgba(98,232,255,.22);
-    }
-
-    [data-testid="stAppViewContainer"] {
-        background:
-            radial-gradient(circle at 22% 4%, rgba(20,91,135,.17), transparent 30%),
-            radial-gradient(circle at 82% 18%, rgba(21,128,112,.10), transparent 27%),
-            linear-gradient(180deg, #070b12 0%, #08111d 44%, #060a10 100%) !important;
-    }
-
-    [data-testid="stAppViewContainer"]::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        z-index: 0;
-        opacity: .18;
-        background-image:
-            linear-gradient(rgba(98,232,255,.055) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(98,232,255,.055) 1px, transparent 1px);
-        background-size: 54px 54px;
-        mask-image: linear-gradient(to bottom, rgba(0,0,0,.9), rgba(0,0,0,.25));
-        animation: bbGridDrift 18s linear infinite;
-    }
-
-    [data-testid="stAppViewContainer"]::after {
-        content: "";
-        position: fixed;
-        left: 0;
-        right: 0;
-        top: -15%;
-        height: 12%;
-        pointer-events: none;
-        z-index: 0;
-        background: linear-gradient(
-            to bottom,
-            transparent,
-            rgba(98,232,255,.025),
-            rgba(98,232,255,.075),
-            rgba(98,232,255,.02),
-            transparent
-        );
-        animation: bbScan 8s linear infinite;
-    }
-
-    [data-testid="stMain"],
-    [data-testid="stSidebar"] {
-        position: relative;
-        z-index: 1;
-    }
-
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(5,13,23,.98), rgba(7,18,29,.98)) !important;
-        border-right: 1px solid rgba(98,232,255,.16);
-    }
-
-    [data-testid="stVerticalBlockBorderWrapper"] {
-        background: linear-gradient(
-            145deg,
-            rgba(10,22,37,.76),
-            rgba(6,14,24,.70)
-        ) !important;
-        border: 1px solid rgba(98,232,255,.16) !important;
-        box-shadow:
-            0 12px 30px rgba(0,0,0,.16),
-            inset 0 1px 0 rgba(255,255,255,.025),
-            0 0 0 1px rgba(59,130,246,.02);
-        backdrop-filter: blur(12px);
-        transition: border-color .22s ease, box-shadow .22s ease, transform .22s ease;
-    }
-
-    [data-testid="stVerticalBlockBorderWrapper"]:hover {
-        border-color: rgba(98,232,255,.28) !important;
-        box-shadow:
-            0 14px 34px rgba(0,0,0,.22),
-            0 0 24px rgba(98,232,255,.035);
-    }
-
-    [data-testid="stExpander"] {
-        background: rgba(8,18,31,.60);
-        border: 1px solid rgba(98,232,255,.12) !important;
-        border-radius: 10px !important;
-    }
-
-    div[data-testid="stButton"] button {
-        transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
-    }
-
-    div[data-testid="stButton"] button:hover {
-        transform: translateY(-1px);
-        border-color: rgba(98,232,255,.48) !important;
-        box-shadow: 0 0 18px rgba(98,232,255,.09);
-    }
-
-    div[data-testid="stButton"] button[kind="primary"] {
-        background: linear-gradient(135deg, #087ea4, #1261a0) !important;
-        border: 1px solid rgba(98,232,255,.58) !important;
-        box-shadow: 0 0 18px rgba(56,189,248,.12);
-    }
-
-    .bb-jarvis-hero {
-        position: relative;
-        display: grid;
-        grid-template-columns: 118px minmax(0, 1fr) auto;
-        gap: 20px;
-        align-items: center;
-        min-height: 132px;
-        padding: 16px 22px;
-        margin: 0 0 12px;
-        border: 1px solid rgba(98,232,255,.28);
-        border-radius: 18px;
-        overflow: hidden;
-        background:
-            radial-gradient(circle at 9% 50%, rgba(98,232,255,.10), transparent 18%),
-            linear-gradient(120deg, rgba(9,27,45,.92), rgba(7,16,28,.82));
-        box-shadow:
-            inset 0 1px 0 rgba(255,255,255,.035),
-            0 0 42px rgba(37,99,235,.07);
-    }
-
-    .bb-jarvis-hero::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background:
-            linear-gradient(90deg, transparent, rgba(98,232,255,.035), transparent);
-        transform: translateX(-110%);
-        animation: bbHeroSweep 5.8s ease-in-out infinite;
-    }
-
-    .bb-core-wrap {
-        position: relative;
-        width: 98px;
-        height: 98px;
-        display: grid;
-        place-items: center;
-    }
-
-    .bb-core {
-        width: 50px;
-        height: 50px;
-        display: grid;
-        place-items: center;
-        border-radius: 50%;
-        color: #e9fbff;
-        font-size: 24px;
-        background:
-            radial-gradient(circle, rgba(98,232,255,.28), rgba(11,76,108,.28) 55%, rgba(4,15,26,.9) 58%);
-        border: 1px solid rgba(98,232,255,.72);
-        box-shadow:
-            0 0 12px rgba(98,232,255,.28),
-            0 0 30px rgba(98,232,255,.12),
-            inset 0 0 16px rgba(98,232,255,.16);
-        animation: bbCorePulse 2.4s ease-in-out infinite;
-    }
-
-    .bb-orbit {
-        position: absolute;
-        border-radius: 50%;
-        border: 1px solid rgba(98,232,255,.34);
-    }
-
-    .bb-orbit.a {
-        width: 72px;
-        height: 72px;
-        border-left-color: transparent;
-        border-bottom-color: rgba(83,243,177,.58);
-        animation: bbSpin 6s linear infinite;
-    }
-
-    .bb-orbit.b {
-        width: 92px;
-        height: 92px;
-        border-top-color: transparent;
-        border-right-color: rgba(59,130,246,.62);
-        animation: bbSpinReverse 9s linear infinite;
-    }
-
-    .bb-orbit.c {
-        width: 62px;
-        height: 62px;
-        border-right-color: transparent;
-        border-top-color: rgba(255,209,102,.68);
-        animation: bbSpin 4.6s linear infinite;
-    }
-
-    .bb-hero-kicker {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 3px;
-        font-size: .66rem;
-        font-weight: 850;
-        letter-spacing: .13em;
-        color: #82dff1;
-        text-transform: uppercase;
-    }
-
-    .bb-pulse-dot {
-        display: inline-block;
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: var(--bb-green);
-        box-shadow: 0 0 12px rgba(83,243,177,.8);
-        animation: bbDot 1.7s ease-in-out infinite;
-    }
-
-    .bb-hero-title {
-        font-size: 1.72rem;
-        line-height: 1.08;
-        font-weight: 860;
-        letter-spacing: -.025em;
-        color: #f3fbff;
-    }
-
-    .bb-hero-title span {
-        color: var(--bb-cyan);
-        text-shadow: 0 0 18px rgba(98,232,255,.20);
-    }
-
-    .bb-hero-sub {
-        margin-top: 7px;
-        font-size: .76rem;
-        color: #91a7bd;
-        letter-spacing: .035em;
-    }
-
-    .bb-system-readout {
-        min-width: 170px;
-        display: grid;
-        gap: 7px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: .66rem;
-        color: #8ba3b8;
-    }
-
-    .bb-system-readout div {
-        display: flex;
-        justify-content: space-between;
-        gap: 18px;
-        padding: 5px 8px;
-        border-bottom: 1px solid rgba(98,232,255,.10);
-    }
-
-    .bb-system-readout b {
-        color: #9ff7d2;
-        font-weight: 800;
-    }
-
-    .bb-ai-core-panel {
-        display: grid;
-        grid-template-columns: 155px minmax(0,1fr);
-        gap: 18px;
-        align-items: center;
-        padding: 14px 16px;
-        margin: 4px 0 12px;
-        border-radius: 14px;
-        border: 1px solid rgba(98,232,255,.22);
-        background:
-            radial-gradient(circle at 8% 50%, rgba(98,232,255,.09), transparent 25%),
-            linear-gradient(125deg, rgba(10,26,43,.82), rgba(5,14,25,.74));
-        overflow: hidden;
-    }
-
-    .bb-priority-ring {
-        --p: 240deg;
-        width: 118px;
-        height: 118px;
-        margin: 0 auto;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        position: relative;
-        background: conic-gradient(
-            var(--bb-cyan) 0deg,
-            #2dd4bf var(--p),
-            rgba(71,85,105,.19) var(--p),
-            rgba(71,85,105,.19) 360deg
-        );
-        box-shadow: 0 0 28px rgba(98,232,255,.10);
-        animation: bbCorePulse 2.8s ease-in-out infinite;
-    }
-
-    .bb-priority-ring::before {
-        content: "";
-        position: absolute;
-        width: 94px;
-        height: 94px;
-        border-radius: 50%;
-        background: #08121f;
-        border: 1px solid rgba(98,232,255,.15);
-    }
-
-    .bb-ring-value {
-        position: relative;
-        z-index: 1;
-        text-align: center;
-        color: #f2fbff;
-        font-size: 1.22rem;
-        font-weight: 850;
-    }
-
-    .bb-ring-value span {
-        display: block;
-        margin-top: 2px;
-        font-size: .55rem;
-        font-weight: 750;
-        letter-spacing: .08em;
-        color: #7fa4bb;
-        text-transform: uppercase;
-    }
-
-    .bb-core-label {
-        font-size: .64rem;
-        letter-spacing: .10em;
-        text-transform: uppercase;
-        color: #6f91a9;
-        font-weight: 800;
-    }
-
-    .bb-core-primary {
-        margin-top: 3px;
-        font-size: 1rem;
-        font-weight: 800;
-        color: #ecfaff;
-    }
-
-    .bb-core-stage {
-        margin-top: 2px;
-        color: #68dbef;
-        font-size: .78rem;
-        font-weight: 700;
-    }
-
-    .bb-core-metrics {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0,1fr));
-        gap: 8px;
-        margin-top: 10px;
-    }
-
-    .bb-core-metric {
-        padding: 8px 9px;
-        border-radius: 9px;
-        background: rgba(98,232,255,.045);
-        border: 1px solid rgba(98,232,255,.10);
-    }
-
-    .bb-core-metric span {
-        display: block;
-        font-size: .59rem;
-        color: #718ca1;
-        text-transform: uppercase;
-        letter-spacing: .07em;
-    }
-
-    .bb-core-metric strong {
-        display: block;
-        margin-top: 2px;
-        color: #dff9ff;
-        font-size: .80rem;
-    }
-
-    .bb-stage-fill {
-        height: 9px;
-        width: var(--w);
-        background: linear-gradient(
-            90deg,
-            color-mix(in srgb, var(--stage-color), #09111d 18%),
-            var(--stage-color),
-            color-mix(in srgb, var(--stage-color), white 12%)
-        );
-        border-radius: 999px;
-        box-shadow: 0 0 13px color-mix(in srgb, var(--stage-color), transparent 62%);
-        animation: bbGrow .75s cubic-bezier(.22,.9,.35,1) both;
-    }
-
-    .bb-alloc-controlled,
-    .bb-alloc-transfer {
-        height: 100%;
-        position: relative;
-        overflow: hidden;
-        animation: bbGrow .8s cubic-bezier(.22,.9,.35,1) both;
-    }
-
-    .bb-alloc-controlled {
-        background: linear-gradient(90deg, #2563eb, #55d9ff);
-        box-shadow: 0 0 18px rgba(85,217,255,.18);
-    }
-
-    .bb-alloc-transfer {
-        background: linear-gradient(90deg, #12846a, #53f3b1);
-        box-shadow: 0 0 18px rgba(83,243,177,.15);
-    }
-
-    .bb-alloc-controlled::after,
-    .bb-alloc-transfer::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        transform: translateX(-120%);
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,.20), transparent);
-        animation: bbBarSweep 3.1s ease-in-out infinite;
-    }
-
-    .bb-caddie-shell {
-        position: relative;
-        border-left: 2px solid rgba(98,232,255,.42);
-        padding-left: 10px;
-    }
-
-    .bb-caddie-shell::after {
-        content: "AI CADDIE LINK";
-        position: absolute;
-        top: -8px;
-        right: 4px;
-        font-size: .52rem;
-        letter-spacing: .12em;
-        color: rgba(98,232,255,.55);
-        font-weight: 850;
-    }
-
-    .bb-motion-arrow {
-        animation: bbSvgPulse 1.45s ease-in-out infinite;
-    }
-
-    @keyframes bbGridDrift {
-        from { background-position: 0 0, 0 0; }
-        to { background-position: 54px 54px, 54px 54px; }
-    }
-
-    @keyframes bbScan {
-        from { transform: translateY(-10vh); }
-        to { transform: translateY(125vh); }
-    }
-
-    @keyframes bbHeroSweep {
-        0%, 68% { transform: translateX(-115%); opacity: 0; }
-        76% { opacity: 1; }
-        100% { transform: translateX(115%); opacity: 0; }
-    }
-
-    @keyframes bbSpin {
-        to { transform: rotate(360deg); }
-    }
-
-    @keyframes bbSpinReverse {
-        to { transform: rotate(-360deg); }
-    }
-
-    @keyframes bbCorePulse {
-        0%,100% { filter: brightness(.96); }
-        50% { filter: brightness(1.15); }
-    }
-
-    @keyframes bbDot {
-        0%,100% { transform: scale(.78); opacity: .70; }
-        50% { transform: scale(1.14); opacity: 1; }
-    }
-
-    @keyframes bbGrow {
-        from { width: 0; opacity: .45; }
-        to { opacity: 1; }
-    }
-
-    @keyframes bbBarSweep {
-        0%, 38% { transform: translateX(-120%); }
-        72%, 100% { transform: translateX(120%); }
-    }
-
-    @keyframes bbSvgPulse {
-        0%,100% { opacity: .58; }
-        50% { opacity: 1; }
-    }
-
-    @media (max-width: 780px) {
-        .bb-jarvis-hero {
-            grid-template-columns: 82px 1fr;
-        }
-        .bb-system-readout {
-            grid-column: 1 / -1;
-            grid-template-columns: repeat(3, 1fr);
-        }
-        .bb-core-wrap {
-            width: 76px;
-            height: 76px;
-            transform: scale(.80);
-        }
-        .bb-ai-core-panel {
-            grid-template-columns: 1fr;
-        }
-        .bb-core-metrics {
-            grid-template-columns: 1fr;
-        }
-    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -1531,9 +1020,9 @@ def _dv_arrow(x1, y1, x2, y2, color="#f7c948", width=5, dashed=False):
     lx, ly = bx+wing*math.sin(a), by-wing*math.cos(a)
     rx, ry = bx-wing*math.sin(a), by+wing*math.cos(a)
     return (
-        f'<line class="bb-motion-arrow" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{color}" '
+        f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{color}" '
         f'stroke-width="{width}" stroke-linecap="round"{dash}/>'
-        f'<polygon class="bb-motion-arrow" points="{x2},{y2} {lx:.1f},{ly:.1f} {rx:.1f},{ry:.1f}" fill="{color}"/>'
+        f'<polygon points="{x2},{y2} {lx:.1f},{ly:.1f} {rx:.1f},{ry:.1f}" fill="{color}"/>'
     )
 
 
@@ -2806,258 +2295,6 @@ def render_heading_with_note(title, note="", level=4):
     )
 
 
-
-def render_jarvis_header():
-    """Animated system header for the JARVIS-style build."""
-    st.markdown(
-        """
-        <div class="bb-jarvis-hero">
-          <div class="bb-core-wrap">
-            <div class="bb-orbit a"></div>
-            <div class="bb-orbit b"></div>
-            <div class="bb-orbit c"></div>
-            <div class="bb-core">⛳</div>
-          </div>
-          <div>
-            <div class="bb-hero-kicker">
-              <span class="bb-pulse-dot"></span>
-              BIRDIE BUDDY // ADAPTIVE GOLF INTELLIGENCE
-            </div>
-            <div class="bb-hero-title">
-              Practice Intelligence <span>Online</span>
-            </div>
-            <div class="bb-hero-sub">
-              DIAGNOSE&nbsp;&nbsp;•&nbsp;&nbsp;PRIORITIZE&nbsp;&nbsp;•&nbsp;&nbsp;ALLOCATE&nbsp;&nbsp;•&nbsp;&nbsp;MEASURE&nbsp;&nbsp;•&nbsp;&nbsp;REALLOCATE
-            </div>
-          </div>
-          <div class="bb-system-readout">
-            <div><span>AI CORE</span><b>READY</b></div>
-            <div><span>ROI ENGINE</span><b>ONLINE</b></div>
-            <div><span>COACH LOOP</span><b>ACTIVE</b></div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_jarvis_diagnosis_core(diag, roi_data):
-    """Animated primary-priority readout; display-only, no change to diagnosis logic."""
-    diag = diag or {}
-    roi_data = roi_data or {}
-
-    raw_score = diag.get("roi_score", roi_data.get("score"))
-    try:
-        score = max(0.0, min(100.0, float(raw_score)))
-    except Exception:
-        try:
-            score = max(0.0, min(100.0, float(diag.get("confidence_score", 0)) * 100.0))
-        except Exception:
-            score = 0.0
-
-    confidence = diag.get("confidence_score")
-    try:
-        confidence_text = f"{float(confidence) * 100:.0f}%"
-    except Exception:
-        confidence_text = str(confidence or "—")
-
-    primary = str(diag.get("primary_miss", "") or "Primary scoring opportunity")
-    stage = _short_progress_stage(
-        diag.get("primary_miss_stage")
-        or (diag.get("value_chain_analysis", {}) or {}).get("primary_leak_stage", "")
-    )
-    direct_cost = str(
-        roi_data.get("direct_cost_display")
-        or diag.get("roi_evidence")
-        or "Evidence-based"
-    )
-    peer_gap = str(roi_data.get("peer_gap_display") or "—")
-    decision = str(diag.get("decision_quality") or "—")
-
-    degrees = score * 3.6
-
-    st.markdown(
-        f"""
-        <div class="bb-ai-core-panel">
-          <div class="bb-priority-ring" style="--p:{degrees:.1f}deg;">
-            <div class="bb-ring-value">
-              {score:.0f}
-              <span>Priority Index</span>
-            </div>
-          </div>
-          <div>
-            <div class="bb-core-label">PRIMARY SCORING SIGNAL</div>
-            <div class="bb-core-primary">{_safe_html(primary)}</div>
-            <div class="bb-core-stage">{_safe_html(stage or "Highest-ROI focus")}</div>
-            <div class="bb-core-metrics">
-              <div class="bb-core-metric">
-                <span>Direct Cost</span>
-                <strong>{_safe_html(direct_cost)}</strong>
-              </div>
-              <div class="bb-core-metric">
-                <span>Peer Gap</span>
-                <strong>{_safe_html(peer_gap)}</strong>
-              </div>
-              <div class="bb-core-metric">
-                <span>Confidence</span>
-                <strong>{_safe_html(confidence_text)}</strong>
-              </div>
-            </div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_quick_voice_control(text, persona_key, uid):
-    """Near-instant browser speech with animated waveform; Gemini voice remains optional."""
-    spoken = str(text or "").strip()
-    if not spoken:
-        return
-
-    persona = _persona_base_name(persona_key)
-    voice_profiles = {
-        "Bogey-Wan Kenobi": {"rate": 0.90, "pitch": 0.82, "label": "CALM MENTOR"},
-        "Harry Putter": {"rate": 1.05, "pitch": 1.13, "label": "YOUNG WIZARD"},
-        "James Pond": {"rate": 0.96, "pitch": 0.78, "label": "AGENT VOICE"},
-        "Captain Hack Sparrow": {"rate": 0.88, "pitch": 0.72, "label": "PIRATE MODE"},
-    }
-    profile = voice_profiles.get(persona, {"rate": 1.0, "pitch": 1.0, "label": "QUICK VOICE"})
-    encoded = base64.b64encode(spoken.encode("utf-8")).decode("ascii")
-    safe_uid = re.sub(r"[^a-zA-Z0-9_-]", "", str(uid or "voice"))[:48]
-
-    component_html = f"""
-    <!doctype html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <style>
-        * {{ box-sizing: border-box; }}
-        body {{ margin:0; background:transparent; font-family:Inter,system-ui,-apple-system,sans-serif; }}
-        .voice {{
-          height:52px; display:flex; align-items:center; gap:11px; padding:6px 8px;
-          border:1px solid rgba(98,232,255,.18); border-radius:10px;
-          background:linear-gradient(90deg,rgba(8,22,37,.74),rgba(6,15,26,.52));
-          color:#dff9ff;
-        }}
-        button {{
-          min-width:136px; height:36px; border-radius:8px;
-          border:1px solid rgba(98,232,255,.46);
-          background:linear-gradient(135deg,rgba(8,126,164,.84),rgba(18,78,140,.84));
-          color:#ecfdff; font-size:11px; font-weight:850; letter-spacing:.055em;
-          cursor:pointer;
-          box-shadow:0 0 14px rgba(98,232,255,.08);
-        }}
-        button:hover {{ filter:brightness(1.12); }}
-        button:disabled {{ opacity:.46; cursor:not-allowed; }}
-        .meta {{ min-width:94px; }}
-        .meta .a {{ font-size:9px; color:#65dff4; font-weight:850; letter-spacing:.11em; }}
-        .meta .b {{ margin-top:2px; font-size:8px; color:#6f899f; letter-spacing:.07em; }}
-        .wave {{ flex:1; height:29px; display:flex; align-items:center; gap:3px; overflow:hidden; }}
-        .bar {{
-          width:3px; height:6px; border-radius:999px;
-          background:#5ee7ff; opacity:.33;
-          box-shadow:0 0 7px rgba(94,231,255,.35);
-        }}
-        .voice.speaking .bar {{ animation:wave .62s ease-in-out infinite alternate; opacity:.9; }}
-        .voice.speaking .bar:nth-child(2n) {{ animation-duration:.48s; }}
-        .voice.speaking .bar:nth-child(3n) {{ animation-duration:.76s; }}
-        .voice.speaking .bar:nth-child(4n) {{ animation-duration:.39s; }}
-        .status {{ width:58px; font-size:8px; font-weight:800; letter-spacing:.09em; color:#7893a9; text-align:right; }}
-        .voice.speaking .status {{ color:#70f0bd; }}
-        @keyframes wave {{
-          from {{ height:5px; }}
-          to {{ height:27px; }}
-        }}
-      </style>
-    </head>
-    <body>
-      <div class="voice" id="voice-{safe_uid}">
-        <button id="btn-{safe_uid}">⚡ QUICK VOICE</button>
-        <div class="meta">
-          <div class="a">{profile["label"]}</div>
-          <div class="b">LOCAL • LOW LATENCY</div>
-        </div>
-        <div class="wave">
-          {''.join('<div class="bar"></div>' for _ in range(28))}
-        </div>
-        <div class="status" id="status-{safe_uid}">READY</div>
-      </div>
-      <script>
-        const root = document.getElementById("voice-{safe_uid}");
-        const btn = document.getElementById("btn-{safe_uid}");
-        const status = document.getElementById("status-{safe_uid}");
-        const bytes = Uint8Array.from(atob("{encoded}"), c => c.charCodeAt(0));
-        const text = new TextDecoder().decode(bytes);
-
-        function chooseVoice() {{
-          const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-          const english = voices.filter(v => (v.lang || "").toLowerCase().startsWith("en"));
-          const maleHint = /daniel|alex|david|mark|george|guy|male|aaron|fred/i;
-          const britishHint = /daniel|george|uk|british|england/i;
-          let pool = english;
-          if ("{persona}" === "Bogey-Wan Kenobi" || "{persona}" === "James Pond") {{
-            const preferred = english.find(v => britishHint.test(v.name || ""));
-            if (preferred) return preferred;
-          }}
-          return english.find(v => maleHint.test(v.name || "")) || pool[0] || voices[0] || null;
-        }}
-
-        function speak() {{
-          if (!("speechSynthesis" in window)) {{
-            status.textContent = "UNAVAILABLE";
-            btn.disabled = true;
-            return;
-          }}
-          window.speechSynthesis.cancel();
-          const utter = new SpeechSynthesisUtterance(text);
-          const voice = chooseVoice();
-          if (voice) utter.voice = voice;
-          utter.rate = {profile["rate"]};
-          utter.pitch = {profile["pitch"]};
-          utter.volume = 1.0;
-          utter.onstart = () => {{
-            root.classList.add("speaking");
-            status.textContent = "SPEAKING";
-            btn.textContent = "■ STOP";
-          }};
-          utter.onend = () => {{
-            root.classList.remove("speaking");
-            status.textContent = "READY";
-            btn.textContent = "⚡ QUICK VOICE";
-          }};
-          utter.onerror = () => {{
-            root.classList.remove("speaking");
-            status.textContent = "VOICE ERR";
-            btn.textContent = "⚡ QUICK VOICE";
-          }};
-          window.speechSynthesis.speak(utter);
-        }}
-
-        btn.onclick = () => {{
-          if (root.classList.contains("speaking")) {{
-            window.speechSynthesis.cancel();
-            root.classList.remove("speaking");
-            status.textContent = "READY";
-            btn.textContent = "⚡ QUICK VOICE";
-          }} else {{
-            speak();
-          }}
-        }};
-        if ("speechSynthesis" in window) {{
-          window.speechSynthesis.getVoices();
-        }} else {{
-          btn.disabled = true;
-          status.textContent = "NO VOICE";
-        }}
-      </script>
-    </body>
-    </html>
-    """
-    components.html(component_html, height=58, scrolling=False)
-
-
 def _benchmark_status(actual, benchmark, good_when_lower=False, soft_context=False):
     """Return accessible status metadata for a metric vs a benchmark."""
     if actual is None:
@@ -3455,7 +2692,7 @@ def render_value_chain_opportunity_view(stage_summary, diag):
             f"<div style='font-size:.70rem;font-weight:700;color:{color};'>{_safe_html(role)}</div>"
             "</div>"
             "<div style='height:9px;background:rgba(128,128,128,.16);border-radius:999px;margin:8px 0 7px;'>"
-            f"<div class='bb-stage-fill' style='--w:{strength}%;--stage-color:{color};'></div>"
+            f"<div style='height:9px;width:{strength}%;background:{color};border-radius:999px;'></div>"
             "</div>"
             "<div style='display:flex;flex-wrap:wrap;gap:6px;'>"
             + chip_html
@@ -3605,9 +2842,9 @@ def render_practice_allocation_bar(
         f"<span><strong>Transfer / game</strong> · {transfer}%"
         f"{_safe_html(transfer_assets)}</span></div>"
         f"<div style='height:{height}px;display:flex;border-radius:999px;overflow:hidden;"
-        "background:rgba(128,128,128,.15);border:1px solid rgba(98,232,255,.10);'>"
-        f"<div class='bb-alloc-controlled' style='width:{controlled}%;'></div>"
-        f"<div class='bb-alloc-transfer' style='width:{transfer}%;'></div>"
+        "background:rgba(128,128,128,.15);'>"
+        f"<div style='width:{controlled}%;background:#4f70b3;'></div>"
+        f"<div style='width:{transfer}%;background:#3f8f6b;'></div>"
         "</div>"
         + (
             f"<div style='font-size:.72rem;color:#8b919d;margin-top:6px;line-height:1.3;'>"
@@ -4328,17 +3565,13 @@ def build_export_card(diag, res, active_drills, drill_schematics, caddie):
     return "\n".join(lines)
 
 
-render_jarvis_header()
+with st.container(border=True):
+    st.title("⛳ Birdie Buddy")
+    st.caption("AI-Powered Golf Coach & Practice Asset Allocator")
 
 # Sidebar - API Key Input & Spreadsheet History Exporter
 with st.sidebar.container(border=True):
-    render_heading_with_note("Configuration", "JARVIS HUD build", level=4)
-    st.markdown(
-        "<div style='display:flex;gap:7px;align-items:center;margin:-2px 0 8px;"
-        "font-size:.64rem;letter-spacing:.08em;color:#74dced;font-weight:800;'>"
-        "<span class='bb-pulse-dot'></span> INTERFACE CORE ONLINE</div>",
-        unsafe_allow_html=True,
-    )
+    render_heading_with_note("Configuration", level=4)
     api_key = st.text_input("Enter Gemini API Key", type="password")
 
 # History and trends are intentionally kept in the main page flow.
@@ -4961,7 +4194,6 @@ def render_caddie_identity_narrative(
     caddie_label = _persona_base_name(persona_key)
 
     st.markdown(
-        "<div class='bb-caddie-shell'>"
         "<div style='display:flex;gap:14px;align-items:stretch;margin:1px 0 5px;'>"
         f"{persona_character_panel(persona_key)}"
         "<div style='flex:1;min-width:0;display:flex;flex-direction:column;"
@@ -4975,7 +4207,7 @@ def render_caddie_identity_narrative(
         "</div>"
         f"<div style='font-size:.90rem;line-height:1.58;color:#e5edf7;'>"
         f"“{_safe_html(clean_text)}”</div>"
-        "</div></div></div>",
+        "</div></div>",
         unsafe_allow_html=True,
     )
 
@@ -5012,11 +4244,11 @@ def render_caddie_action_stack(
 
     if show_audio:
         generate_audio = st.button(
-            "🎙️ Cinematic Voice",
+            "🔊 Audio",
             key=f"{key_prefix}_audio",
             type="tertiary",
             use_container_width=True,
-            help="Generate the higher-quality Gemini character voice. Quick Voice is available immediately.",
+            help="Generate audio for the current briefing.",
         )
 
     return {
@@ -5391,7 +4623,7 @@ def render_caddie_voice_player(
     sidebar_persona_key=None,
     content_field="expanded_caddie_intro",
 ):
-    """JARVIS briefing: instant local speech + optional cinematic Gemini TTS."""
+    """Integrated persona briefing with reliable New Take and Switch Caddie actions."""
     spoken_text = _speech_clean_text(text)
     if not spoken_text:
         return
@@ -5408,9 +4640,27 @@ def render_caddie_voice_player(
     state_key = f"caddie_tts_audio_{digest}"
     meta_key = f"caddie_tts_meta_{digest}"
     status_message = ""
+
+    if state_key not in st.session_state:
+        try:
+            with st.spinner("Preparing caddie audio..."):
+                audio_bytes, used_voice, used_model = generate_gemini_tts_audio(
+                    spoken_text, persona_key
+                )
+            st.session_state[state_key] = audio_bytes
+            st.session_state[meta_key] = {
+                "voice": used_voice,
+                "model": used_model,
+            }
+        except TTSQuotaExceeded as exc:
+            status_message = str(exc)
+        except Exception as exc:
+            status_message = f"Audio is temporarily unavailable: {exc}"
+
     audio_bytes = st.session_state.get(state_key)
 
     with st.container(border=True):
+        # Actions sit beside the narrative, not in a floating row under the player.
         briefing_col, action_col = st.columns([6.35, 2.65], gap="small")
 
         with briefing_col:
@@ -5426,45 +4676,14 @@ def render_caddie_voice_player(
                 switch_persona_key=(
                     sidebar_persona_key if switch_needed and diagnosis is not None else None
                 ),
-                show_audio=not bool(audio_bytes),
+                show_audio=False,
             )
 
-        # This is available immediately because the browser synthesizes it locally
-        # after the user clicks; it does not wait on a Gemini TTS round trip.
-        render_quick_voice_control(
-            spoken_text,
-            persona_key,
+        render_caddie_playback(
+            audio_bytes=audio_bytes,
             uid=digest,
+            status_message=status_message,
         )
-
-        if actions["generate_audio"]:
-            try:
-                blocked = _tts_block_message()
-                if blocked:
-                    raise TTSQuotaExceeded(blocked)
-                with st.spinner("Synthesizing cinematic caddie voice..."):
-                    generated_audio, used_voice, used_model = generate_gemini_tts_audio(
-                        spoken_text,
-                        persona_key,
-                    )
-                st.session_state[state_key] = generated_audio
-                st.session_state[meta_key] = {
-                    "voice": used_voice,
-                    "model": used_model,
-                }
-                st.rerun()
-            except TTSQuotaExceeded as exc:
-                status_message = str(exc)
-            except Exception as exc:
-                status_message = f"Cinematic voice is temporarily unavailable: {exc}"
-
-        audio_bytes = st.session_state.get(state_key)
-        if audio_bytes or status_message:
-            render_caddie_playback(
-                audio_bytes=audio_bytes,
-                uid=digest,
-                status_message=status_message,
-            )
 
         if actions["switch_caddie"]:
             try:
@@ -10673,10 +9892,6 @@ if show_step1:
                 "🧾 Round Diagnosis",
                 "Highest-ROI opportunities across the five-stage golf value chain.",
                 level=3,
-            )
-            render_jarvis_diagnosis_core(
-                diag,
-                roi_data,
             )
 
             # The on-screen narrative is the single source of truth for voice playback.
